@@ -102,7 +102,7 @@ SurfaceMesh octahedron()
     return mesh;
 }
 
-SurfaceMesh sqare(double a, size_t n_size)
+SurfaceMesh square(double a, size_t n_size)
 { // a = size of sqare
     SurfaceMesh mesh;
 

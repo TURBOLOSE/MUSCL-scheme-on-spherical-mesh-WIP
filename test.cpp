@@ -1,6 +1,6 @@
 #include <iostream>
-#include "pmp/surface_mesh.h"
-#include "sph_gen.h"
+#include "MUSCL_base.hpp"
+
 
 using namespace pmp;
 
@@ -10,22 +10,18 @@ int main()
     double a=1;
     size_t N=3;
 
-    SurfaceMesh mesh = sqare(a, N);
+    SurfaceMesh mesh = square(a, N);
     auto points = mesh.get_vertex_property<Point>("v:point");
 
-    std::cout << "vertices: " << mesh.n_vertices() << std::endl;
-    std::cout << "edges: " << mesh.n_edges() << std::endl;
-    std::cout << "faces: " << mesh.n_faces() << std::endl;
+    MUSCL_base test(mesh);
 
 
-    for (auto e : mesh.vertices())
+    /*for (auto e : mesh.vertices())
     {
-
         std::cout<<points[e]<<std::endl;
-    }
+    }*/
     
-
-
+    
 
     return 0;
 }

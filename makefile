@@ -1,10 +1,28 @@
 .PHONY: clean, time
-all: run_test 
-	./run_test
-run_test: test.cpp  sph_gen.h
-	g++ test.cpp pmp/surface_mesh.cpp pmp/algorithms/subdivision.cpp pmp/algorithms/differential_geometry.cpp  -std=c++20 -O3 -o run_test
+
+MAIN_DEPEND = test.cpp  sph_gen.h MUSCL_base.hpp
+SOURCE_FILES = test.cpp pmp/surface_mesh.cpp pmp/algorithms/subdivision.cpp pmp/algorithms/differential_geometry.cpp
+OBJ_FILES = $(SOURCE_FILES:.cpp=.o)
+CC = g++
+CFLAGS = -std=c++20 -O3
+
+main: $(OBJ_FILES) main.o
+	$(CC) $(CFLAGS) -o main $(OBJ_FILES)
+
+main.o: $(MAIN_DEPEND)
+	$(CC) $(CFLAGS) -c test.cpp
+
+pmp/surface_mesh.o: pmp/surface_mesh.h
+
+pmp/algorithms/subdivision.o: pmp/algorithms/subdivision.h
+
+pmp/algorithms/differential_geometry.o: pmp/algorithms/differential_geometry.h
+
 
 clean: 
-	rm -f run_test
+	rm -f main
+	rm -f *.o
+	rm -f pmp/*.o
+	rm -f pmp/algorithms/*.o
 time: run_test
 	time ./run_test

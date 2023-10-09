@@ -7,7 +7,7 @@ CC = g++
 CFLAGS = -std=c++20 -O3
 
 main: $(OBJ_FILES) main.o
-	$(CC) $(CFLAGS) -o main $(OBJ_FILES)
+	$(CC) $(CFLAGS) -o test $(OBJ_FILES)
 
 main.o: $(MAIN_DEPEND)
 	$(CC) $(CFLAGS) -c test.cpp
@@ -20,7 +20,7 @@ pmp/algorithms/differential_geometry.o: pmp/algorithms/differential_geometry.h
 
 
 clean: 
-	rm -f main
+	rm -f test
 	rm -f *.o
 	rm -f pmp/*.o
 	rm -f pmp/algorithms/*.o

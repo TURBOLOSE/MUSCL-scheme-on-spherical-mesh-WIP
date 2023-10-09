@@ -143,20 +143,31 @@ public:
     };
 
     double broken_distance(std::vector<double> a, std::vector<double> b)
-    {
+    { // broken distance between 2 points if broken line made out of 2 parts
+
         // dim(a)=3; dim(b)=3
         // distance on a spherical mesh between points a and b
 
         double dist = 0;
+        double min_etha;
         int start_face = point_in_face(a);
         int end_face = point_in_face(b);
-        std::vector<double> bma, bma_face; // b-a and (b-a) projected to face
-        std::vector<double> len;
-        size_t n_edges=faces[start_face].size();
+        int edge1, edge2;
+        signed int sign;
+        signed int sign_prev = 0;
+        std::vector<double> bma, bma_face, r, r_edge; // b-a and (b-a) projected to face, r-- edge vector
+        std::vector<double> intersection;             // rhs of linear system and intersection points
+        Eigen::Matrix<double, 3, 3> dist_matrix;
+        Eigen::Matrix<double, 3, 1> rhs;
 
+        size_t n_edges = faces[start_face].size();
 
         bma.resize(3);
+        // rhs.resize(3);
+        intersection.resize(3);
         bma_face.resize(3);
+        r.resize(3);
+        r_edge.resize(3);
 
         for (size_t i = 0; i < 3; i++) // line vector
         {
@@ -169,25 +180,160 @@ public:
         }
         else
         {
-            for (size_t i = 0; i < 3; i++) // line vector
+            for (size_t i = 0; i < 3; i++) // projected line vector
             {
-                bma_face[i] = normals[start_face][i] - bma[i];
+                bma_face[i] = bma[i] - normals[start_face][i] *
+                                           (bma[0] * normals[start_face][0] +
+                                            bma[1] * normals[start_face][1] +
+                                            bma[2] * normals[start_face][2]);
             }
 
+            double bma_face_norm = sqrt(bma_face[0] * bma_face[0] + bma_face[1] * bma_face[1] + bma_face[2] * bma_face[2]);
 
-        
-            for (size_t i = 0; i < n_edges; i++)
+            for (size_t i = 0; i < 3; i++) // projected line vector
             {
-                //WIP
+                bma_face[i] /= bma_face_norm;
             }
-            
 
+            for (size_t i = 0; i < n_edges; i++) // finding edge that our projected vector crosses
+            {
 
+                for (size_t j = 0; j < 3; j++) // vector from a to edge centers
+                {
 
+                    if (i < n_edges - 1)
+                    {
+                        r[j] = -a[j] + (vertices[faces[start_face][i]][j] + vertices[faces[start_face][i + 1]][j]) / 2;
+                    }
+                    else
+                    {
+                        r[j] = -a[j] + (vertices[faces[start_face][i]][j] + vertices[faces[start_face][0]][j]) / 2;
+                    }
+                }
+
+                double sinetha = sqrt((bma_face[1] * r[2] - bma_face[2] * r[1]) * (bma_face[1] * r[2] - bma_face[2] * r[1]) +
+                                      (bma_face[2] * r[0] - bma_face[0] * r[2]) * (bma_face[2] * r[0] - bma_face[0] * r[2]) +
+                                      (bma_face[0] * r[1] - bma_face[1] * r[0]) * (bma_face[0] * r[1] - bma_face[1] * r[0])) /
+                                 (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
+
+                double cosetha = (bma_face[0] * r[0] + bma_face[1] * r[1] + bma_face[2] * r[2]) /
+                                 (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
+
+                if (i == 0)
+                {
+                    min_etha = abs(std::atan2(sinetha, cosetha));
+                    edge1 = 0;
+                    edge2 = 1;
+                }
+                else if (abs(std::atan2(sinetha, cosetha)) < min_etha)
+                {
+                    min_etha = abs(std::atan2(sinetha, cosetha));
+                    edge1 = i;
+                    edge2 = i + 1;
+                    if (edge2 == n_edges)
+                    {
+                        edge2 = 0;
+                    }
+                }
+            }
+
+            for (size_t i = 0; i < 3; i++)
+            // edge vector
+            {
+                r_edge[i] = vertices[faces[start_face][edge2]][i] - vertices[faces[start_face][edge1]][i];
+            }
+
+            double r_edge_norm = sqrt(r_edge[0] * r_edge[0] + r_edge[1] * r_edge[1] + r_edge[2] * r_edge[2]);
+
+            for (size_t i = 0; i < 3; i++)
+            {
+                r_edge[i] /= r_edge_norm;
+            }
+
+            intersection = find_lines_intersection(a, vertices[faces[start_face][edge1]], bma_face, r_edge);
+
+            dist += sqrt((intersection[0] - a[0]) * (intersection[0] - a[0]) +
+                         (intersection[1] - a[1]) * (intersection[1] - a[1]) +
+                         (intersection[2] - a[2]) * (intersection[2] - a[2]));
+
+            // dist+=broken_distance(intersection,b);
         }
 
         return dist;
     };
+
+    std::vector<double> find_lines_intersection(std::vector<double> x1, std::vector<double> x2,
+                                                std::vector<double> n1, std::vector<double> n2)
+    {
+        // x1 and x2 -- starting points of lines
+        // n1 and n2 -- vectors of lines
+        // method returns coordinates of point of intersection
+        std::vector<double> res;
+        res.resize(3);
+        double t0;
+        double prec = 1e-7; // compare with 0
+
+        if (abs(n2[0]) > prec)
+        {
+            if (abs(n1[1] - n2[1] * n1[0] / n2[0]) > prec)
+            {
+                t0 = (x2[1] - x1[1] + n2[1] * (x1[0] - x2[0]) / n2[0]) / (n1[1] - n2[1] * n1[0] / n2[0]);
+            }
+            else if (abs(n1[2] - n2[2] * n1[0] / n2[0]) > prec)
+            {
+                t0 = (x2[2] - x1[2] + n2[2] * (x1[0] - x2[0]) / n2[0]) / (n1[2] - n2[2] * n1[0] / n2[0]);
+            }
+            else
+            {
+                std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
+                t0 = 0;
+            }
+        }
+        else if (abs(n2[1]) > prec)
+        {
+            if (abs(n1[0] - n2[0] * n1[1] / n2[1]) > prec)
+            {
+                t0 = (x2[0] - x1[0] + n2[0] * (x1[1] - x2[1]) / n2[1]) / (n1[0] - n2[0] * n1[1] / n2[1]);
+            }
+            else if (abs(n1[2] - n2[2] * n1[1] / n2[1]) > prec)
+            {
+                t0 = (x2[2] - x1[2] + n2[2] * (x1[1] - x2[1]) / n2[1]) / (n1[2] - n2[2] * n1[1] / n2[1]);
+            }
+            else
+            {
+                std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
+                t0 = 0;
+            }
+        }
+        else if (abs(n2[2]) > prec)
+        {
+            if (abs(n1[0] - n2[0] * n1[2] / n2[2]) > prec)
+            {
+                t0 = (x2[0] - x1[0] + n2[0] * (x1[2] - x2[2]) / n2[2]) / (n1[0] - n2[0] * n1[2] / n2[2]);
+            }
+            else if (abs(n1[1] - n2[1] * n1[2] / n2[2]) > prec)
+            {
+                t0 = (x2[1] - x1[1] + n2[1] * (x1[2] - x2[2]) / n2[2]) / (n1[1] - n2[1] * n1[2] / n2[2]);
+            }
+            else
+            {
+                std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
+                t0 = 0;
+            }
+        }
+        else
+        {
+            std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
+            t0 = 0;
+        }
+
+        for (size_t i = 0; i < 3; i++)
+        {
+            res[i] = x1[i] + t0 * n1[i];
+        }
+
+        return res;
+    }
 
     int point_in_face(std::vector<double> r)
     { // dim(r)=3;

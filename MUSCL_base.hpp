@@ -138,128 +138,193 @@ public:
         process_mesh();
     };
 
-    void process_mesh(){
+    void process_mesh()
+    {
+        std::vector<double> BM, B_nB; // vectors from B to M and from B_n to B
+        BM.resize(3);
+        B_nB.resize(3);
 
+        // for (auto face : faces)
+        //{
+        int n_face=0;
+        std::vector<int> face = faces[n_face];
+        for (size_t i = 0; i < face.size(); i++)
+        {
+            for (size_t j = 0; j < 3; j++)
+            {
+                if (i == face.size() - 1)
+                {
+                    BM[j] = (vertices[face[i]][j] + vertices[face[0]][j]) / 2;
+                }
+                else
+                {
+                    BM[j] = (vertices[face[i]][j] + vertices[face[i + 1]][j]) / 2;
+                }
+            }
+
+            for (auto neighboor : neighbors[n_face])
+            {
+                for (size_t j = 0; j < 3; j++)
+                {
+                    B_nB[j]=face_centers[neighboor][j]-face_centers[n_face][j];
+                }
+            }
+
+            double cos_etha=(BM[0]*B_nB[0]+BM[1]*B_nB[1]+BM[2]*B_nB[2])/
+            (sqrt(BM[0]*BM[0]+BM[1]*BM[1]+BM[2]*BM[2])*sqrt(B_nB[0]*B_nB[0]+B_nB[1]*B_nB[1]+B_nB[2]*B_nB[2]) );
+            std::cout<<cos_etha<<std::endl;
+
+
+
+        }
+
+        //}
     };
 
     double broken_distance(std::vector<double> a, std::vector<double> b)
-    { // broken distance between 2 points if broken line made out of 2 parts
-
+    {
+        // broken distance between 2 points if broken line made out of 2 parts
         // dim(a)=3; dim(b)=3
         // distance on a spherical mesh between points a and b
 
         double dist = 0;
+        int maxiter = 4;
+        int iter = 0;
+
+        int current_face = point_in_face(a)[0];
+        int end_face = point_in_face(b)[0];
+        std::vector<double> bma, intersection, intersection_prev;
+        intersection_prev = a;
+        bma.resize(3);
+
+        while ((current_face != end_face) && (iter < maxiter))
+        {
+
+            for (size_t i = 0; i < 3; i++) // line vector
+            {
+                bma[i] = b[i] - a[i];
+            }
+
+            intersection = broken_distance_base(intersection_prev, b, bma, current_face);
+
+            dist += sqrt((intersection[0] - intersection_prev[0]) * (intersection[0] - intersection_prev[0]) +
+                         (intersection[1] - intersection_prev[1]) * (intersection[1] - intersection_prev[1]) +
+                         (intersection[2] - intersection_prev[2]) * (intersection[2] - intersection_prev[2]));
+
+            if (point_in_face(intersection)[0] == current_face)
+            {
+                current_face = point_in_face(intersection)[0];
+            }
+            else
+            {
+                current_face = point_in_face(intersection)[1];
+            }
+
+            intersection_prev = intersection;
+
+            iter++;
+        }
+
+        dist += sqrt((b[0] - intersection[0]) * (b[0] - intersection[0]) +
+                     (b[1] - intersection[1]) * (b[1] - intersection[1]) + (b[2] - intersection[2]) * (b[2] - intersection[2]));
+
+        return dist;
+    }
+
+    std::vector<double> broken_distance_base(std::vector<double> a, std::vector<double> b, std::vector<double> bma, int face_num)
+    {
+        // returns intersection point from a to b among projection of bma inside  face with index face_num
+        double dist = 0;
         double min_etha;
-        int start_face = point_in_face(a);
-        int end_face = point_in_face(b);
+
         int edge1, edge2;
         signed int sign;
         signed int sign_prev = 0;
-        std::vector<double> bma, bma_face, r, r_edge; // b-a and (b-a) projected to face, r-- edge vector
-        std::vector<double> intersection;             // rhs of linear system and intersection points
+        std::vector<double> bma_face, r, r_edge; // b-a and (b-a) projected to face, r-- edge vector
+        std::vector<double> intersection;        // rhs of linear system and intersection points
         Eigen::Matrix<double, 3, 3> dist_matrix;
         Eigen::Matrix<double, 3, 1> rhs;
 
-        size_t n_edges = faces[start_face].size();
+        size_t n_edges = faces[face_num].size();
 
-        bma.resize(3);
-        // rhs.resize(3);
         intersection.resize(3);
         bma_face.resize(3);
         r.resize(3);
         r_edge.resize(3);
 
-        for (size_t i = 0; i < 3; i++) // line vector
+        for (size_t i = 0; i < 3; i++) // projected line vector
         {
-            bma[i] = b[i] - a[i];
+            bma_face[i] = bma[i] - normals[face_num][i] *
+                                       (bma[0] * normals[face_num][0] +
+                                        bma[1] * normals[face_num][1] +
+                                        bma[2] * normals[face_num][2]);
         }
 
-        if (start_face == end_face)
+        double bma_face_norm = sqrt(bma_face[0] * bma_face[0] + bma_face[1] * bma_face[1] + bma_face[2] * bma_face[2]);
+
+        for (size_t i = 0; i < 3; i++) // projected line vector
         {
-            dist = sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]) + (b[2] - a[2]) * (b[2] - a[2]));
+            bma_face[i] /= bma_face_norm;
         }
-        else
+
+        for (size_t i = 0; i < n_edges; i++) // finding edge that our projected vector crosses
         {
-            for (size_t i = 0; i < 3; i++) // projected line vector
-            {
-                bma_face[i] = bma[i] - normals[start_face][i] *
-                                           (bma[0] * normals[start_face][0] +
-                                            bma[1] * normals[start_face][1] +
-                                            bma[2] * normals[start_face][2]);
-            }
 
-            double bma_face_norm = sqrt(bma_face[0] * bma_face[0] + bma_face[1] * bma_face[1] + bma_face[2] * bma_face[2]);
-
-            for (size_t i = 0; i < 3; i++) // projected line vector
-            {
-                bma_face[i] /= bma_face_norm;
-            }
-
-            for (size_t i = 0; i < n_edges; i++) // finding edge that our projected vector crosses
+            for (size_t j = 0; j < 3; j++) // vector from a to edge centers
             {
 
-                for (size_t j = 0; j < 3; j++) // vector from a to edge centers
+                if (i < n_edges - 1)
                 {
-
-                    if (i < n_edges - 1)
-                    {
-                        r[j] = -a[j] + (vertices[faces[start_face][i]][j] + vertices[faces[start_face][i + 1]][j]) / 2;
-                    }
-                    else
-                    {
-                        r[j] = -a[j] + (vertices[faces[start_face][i]][j] + vertices[faces[start_face][0]][j]) / 2;
-                    }
+                    r[j] = -a[j] + (vertices[faces[face_num][i]][j] + vertices[faces[face_num][i + 1]][j]) / 2;
                 }
-
-                double sinetha = sqrt((bma_face[1] * r[2] - bma_face[2] * r[1]) * (bma_face[1] * r[2] - bma_face[2] * r[1]) +
-                                      (bma_face[2] * r[0] - bma_face[0] * r[2]) * (bma_face[2] * r[0] - bma_face[0] * r[2]) +
-                                      (bma_face[0] * r[1] - bma_face[1] * r[0]) * (bma_face[0] * r[1] - bma_face[1] * r[0])) /
-                                 (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
-
-                double cosetha = (bma_face[0] * r[0] + bma_face[1] * r[1] + bma_face[2] * r[2]) /
-                                 (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
-
-                if (i == 0)
+                else
                 {
-                    min_etha = abs(std::atan2(sinetha, cosetha));
-                    edge1 = 0;
-                    edge2 = 1;
-                }
-                else if (abs(std::atan2(sinetha, cosetha)) < min_etha)
-                {
-                    min_etha = abs(std::atan2(sinetha, cosetha));
-                    edge1 = i;
-                    edge2 = i + 1;
-                    if (edge2 == n_edges)
-                    {
-                        edge2 = 0;
-                    }
+                    r[j] = -a[j] + (vertices[faces[face_num][i]][j] + vertices[faces[face_num][0]][j]) / 2;
                 }
             }
 
-            for (size_t i = 0; i < 3; i++)
-            // edge vector
+            double sinetha = sqrt((bma_face[1] * r[2] - bma_face[2] * r[1]) * (bma_face[1] * r[2] - bma_face[2] * r[1]) +
+                                  (bma_face[2] * r[0] - bma_face[0] * r[2]) * (bma_face[2] * r[0] - bma_face[0] * r[2]) +
+                                  (bma_face[0] * r[1] - bma_face[1] * r[0]) * (bma_face[0] * r[1] - bma_face[1] * r[0])) /
+                             (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
+
+            double cosetha = (bma_face[0] * r[0] + bma_face[1] * r[1] + bma_face[2] * r[2]) /
+                             (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
+
+            if (i == 0)
             {
-                r_edge[i] = vertices[faces[start_face][edge2]][i] - vertices[faces[start_face][edge1]][i];
+                min_etha = abs(std::atan2(sinetha, cosetha));
+                edge1 = 0;
+                edge2 = 1;
             }
-
-            double r_edge_norm = sqrt(r_edge[0] * r_edge[0] + r_edge[1] * r_edge[1] + r_edge[2] * r_edge[2]);
-
-            for (size_t i = 0; i < 3; i++)
+            else if (abs(std::atan2(sinetha, cosetha)) < min_etha)
             {
-                r_edge[i] /= r_edge_norm;
+                min_etha = abs(std::atan2(sinetha, cosetha));
+                edge1 = i;
+                edge2 = i + 1;
+                if (edge2 == n_edges)
+                {
+                    edge2 = 0;
+                }
             }
-
-            intersection = find_lines_intersection(a, vertices[faces[start_face][edge1]], bma_face, r_edge);
-
-            dist += sqrt((intersection[0] - a[0]) * (intersection[0] - a[0]) +
-                         (intersection[1] - a[1]) * (intersection[1] - a[1]) +
-                         (intersection[2] - a[2]) * (intersection[2] - a[2]));
-
-            // dist+=broken_distance(intersection,b);
         }
 
-        return dist;
+        for (size_t i = 0; i < 3; i++)
+        // edge vector
+        {
+            r_edge[i] = vertices[faces[face_num][edge2]][i] - vertices[faces[face_num][edge1]][i];
+        }
+
+        double r_edge_norm = sqrt(r_edge[0] * r_edge[0] + r_edge[1] * r_edge[1] + r_edge[2] * r_edge[2]);
+
+        for (size_t i = 0; i < 3; i++)
+        {
+            r_edge[i] /= r_edge_norm;
+        }
+
+        intersection = find_lines_intersection(a, vertices[faces[face_num][edge1]], bma_face, r_edge);
+
+        return intersection;
     };
 
     std::vector<double> find_lines_intersection(std::vector<double> x1, std::vector<double> x2,
@@ -335,11 +400,11 @@ public:
         return res;
     }
 
-    int point_in_face(std::vector<double> r)
+    std::vector<int> point_in_face(std::vector<double> r)
     { // dim(r)=3;
         // finds face in which point r is in
         int count = 0;
-        int res;
+        std::vector<int> res;
         int flag = 0;
         double dotpr;
         std::vector<double> r_face;
@@ -356,7 +421,7 @@ public:
 
             if (abs(dotpr) < eps) // compare with 0
             {
-                res = count;
+                res.push_back(count);
                 flag += 1;
             }
 
@@ -365,9 +430,6 @@ public:
 
         if (flag == 0)
             std::cout << "point_in_face: no face has been found" << std::endl;
-
-        if (flag > 1)
-            std::cout << "point_in_face: more than 1 face has been found" << std::endl;
 
         return res;
     };

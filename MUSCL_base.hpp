@@ -124,10 +124,7 @@ public:
                            vertices[faces[i][2]].begin(), r2.begin(), std::minus<double>()); // r2=vertice_2-vertice_1
 
             normals[i].resize(3);
-
-            normals[i][0] = r1[1] * r2[2] - r1[2] * r2[1]; // cross product
-            normals[i][1] = -(r1[0] * r2[2] - r1[2] * r2[0]);
-            normals[i][2] = r1[0] * r2[1] - r1[1] * r2[0];
+            normals[i] = cross_product(r1, r2);
 
             double norm = sqrt(normals[i][0] * normals[i][0] + normals[i][1] * normals[i][1] + normals[i][2] * normals[i][2]);
 
@@ -140,42 +137,108 @@ public:
 
     void process_mesh()
     {
-        std::vector<double> BM, B_nB; // vectors from B to M and from B_n to B
+        std::vector<double> BM, B_nB, B_nB_face, BM_normal, B_left, B1B2, r; // vectors from B to M and from B_n to B
+        BM_normal.resize(3);
         BM.resize(3);
+        B_nB_face.resize(3);
+        B_left.resize(3);
         B_nB.resize(3);
+        B1B2.resize(3);
+        r.resize(3);
+        double max_cos = -1;
+        int left_face1, left_face2, right_face1, right_face2;
 
         // for (auto face : faces)
         //{
-        int n_face=0;
+        int n_face = 0;
         std::vector<int> face = faces[n_face];
         for (size_t i = 0; i < face.size(); i++)
         {
+            max_cos = -1;
             for (size_t j = 0; j < 3; j++)
             {
                 if (i == face.size() - 1)
                 {
-                    BM[j] = (vertices[face[i]][j] + vertices[face[0]][j]) / 2;
+                    BM[j] = (vertices[face[i]][j] + vertices[face[0]][j]) / 2 - face_centers[n_face][j];
+                    r[j] = (vertices[face[0]][j] - vertices[face[i]][j]);
                 }
                 else
                 {
-                    BM[j] = (vertices[face[i]][j] + vertices[face[i + 1]][j]) / 2;
+                    BM[j] = (vertices[face[i]][j] + vertices[face[i + 1]][j]) / 2 - face_centers[n_face][j];
+                    ;
+                    r[j] = (vertices[face[i + 1]][j] - vertices[face[i]][j]);
                 }
             }
 
-            for (auto neighboor : neighbors[n_face])
+            for (auto neighboor : neighbors[n_face]) // find 1st most left element
             {
                 for (size_t j = 0; j < 3; j++)
                 {
-                    B_nB[j]=face_centers[neighboor][j]-face_centers[n_face][j];
+                    B_nB[j] = face_centers[neighboor][j] - face_centers[n_face][j]; // not projection
+                }
+
+                for (size_t j = 0; j < 3; j++)
+                {
+                    B_nB_face[j] = B_nB[j] - normals[n_face][j] * dot_product(B_nB, normals[n_face]); // projection
+                }
+
+                double cos_etha = dot_product(BM, B_nB_face) / (norm(BM) * norm(B_nB_face));
+                if (cos_etha > max_cos)
+                {
+                    max_cos = cos_etha;
+                    left_face1 = neighboor;
                 }
             }
 
-            double cos_etha=(BM[0]*B_nB[0]+BM[1]*B_nB[1]+BM[2]*B_nB[2])/
-            (sqrt(BM[0]*BM[0]+BM[1]*BM[1]+BM[2]*BM[2])*sqrt(B_nB[0]*B_nB[0]+B_nB[1]*B_nB[1]+B_nB[2]*B_nB[2]) );
-            std::cout<<cos_etha<<std::endl;
+            BM_normal = cross_product(BM, normals[n_face]);
+            max_cos = -1;
+            left_face2 = left_face1; // in case "if" doesent go off
 
+            for (size_t j = 0; j < 3; j++)
+            {
+                B_left[j] = face_centers[left_face1][j] - face_centers[n_face][j];
+            }
+            std::vector<double> B_left_face;
+            B_left_face.resize(3);
+            for (size_t j = 0; j < 3; j++)
+            {
+                B_left_face[j] = B_left[j] - normals[n_face][j] * dot_product(B_left, normals[n_face]); // projection
+            }
 
+            for (auto neighboor : neighbors[n_face]) // find second most left element
+            {
+                for (size_t j = 0; j < 3; j++)
+                {
+                    B_nB[j] = face_centers[neighboor][j] - face_centers[n_face][j];
+                }
 
+                for (size_t j = 0; j < 3; j++)
+                {
+                    B_nB_face[j] = B_nB[j] - normals[n_face][j] * dot_product(B_nB, normals[n_face]); // projection
+                }
+
+                double cos_etha = dot_product(BM, B_nB_face) / (norm(BM) * norm(B_nB_face));
+
+                double line_cross_check = norm(cross_product(B_nB_face, BM_normal)) / (norm(B_nB_face) * norm(BM_normal)) *
+                                          norm(cross_product(B_left_face, BM_normal)) / (norm(B_left_face) * norm(BM_normal)) *
+                                          dot_product(normals[n_face], cross_product(B_nB_face, BM_normal)) * dot_product(normals[n_face], cross_product(B_left_face, BM_normal));
+                if ((cos_etha > max_cos) && (neighboor != left_face1) && (line_cross_check <= 0))
+                {
+                    max_cos = cos_etha;
+                    left_face2 = neighboor;
+                }
+            }
+
+            std::cout << left_face1 << " " << left_face2 << std::endl;
+
+            // finding H -- point of intersection between lines BiMij and line between face centers of lf1 and lf2
+
+            std::vector<double> H_0 = find_lines_intersection(face_centers[n_face], vertices[face[i]], BM, r);
+            std::cout<<H_0[0]<<"|"<<H_0[1]<<"|"<<H_0[2]<<std::endl;
+
+            double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2]);
+
+            // double beta1 =
         }
 
         //}
@@ -191,6 +254,7 @@ public:
         int maxiter = 4;
         int iter = 0;
 
+        int start_face = point_in_face(a)[0];
         int current_face = point_in_face(a)[0];
         int end_face = point_in_face(b)[0];
         std::vector<double> bma, intersection, intersection_prev;
@@ -213,21 +277,21 @@ public:
 
             if (point_in_face(intersection)[0] == current_face)
             {
-                current_face = point_in_face(intersection)[0];
+                current_face = point_in_face(intersection)[1];
             }
             else
             {
-                current_face = point_in_face(intersection)[1];
+                current_face = point_in_face(intersection)[0];
             }
 
             intersection_prev = intersection;
-
             iter++;
         }
 
+        intersection = intersection_prev;
+
         dist += sqrt((b[0] - intersection[0]) * (b[0] - intersection[0]) +
                      (b[1] - intersection[1]) * (b[1] - intersection[1]) + (b[2] - intersection[2]) * (b[2] - intersection[2]));
-
         return dist;
     }
 
@@ -254,17 +318,12 @@ public:
 
         for (size_t i = 0; i < 3; i++) // projected line vector
         {
-            bma_face[i] = bma[i] - normals[face_num][i] *
-                                       (bma[0] * normals[face_num][0] +
-                                        bma[1] * normals[face_num][1] +
-                                        bma[2] * normals[face_num][2]);
+            bma_face[i] = bma[i] - normals[face_num][i] * dot_product(bma, normals[face_num]);
         }
-
-        double bma_face_norm = sqrt(bma_face[0] * bma_face[0] + bma_face[1] * bma_face[1] + bma_face[2] * bma_face[2]);
 
         for (size_t i = 0; i < 3; i++) // projected line vector
         {
-            bma_face[i] /= bma_face_norm;
+            bma_face[i] /= norm(bma_face);
         }
 
         for (size_t i = 0; i < n_edges; i++) // finding edge that our projected vector crosses
@@ -275,21 +334,17 @@ public:
 
                 if (i < n_edges - 1)
                 {
-                    r[j] = -a[j] + (vertices[faces[face_num][i]][j] + vertices[faces[face_num][i + 1]][j]) / 2;
+                    r[j] = (vertices[faces[face_num][i]][j] + vertices[faces[face_num][i + 1]][j]) / 2;
                 }
                 else
                 {
-                    r[j] = -a[j] + (vertices[faces[face_num][i]][j] + vertices[faces[face_num][0]][j]) / 2;
+                    r[j] = (vertices[faces[face_num][i]][j] + vertices[faces[face_num][0]][j]) / 2;
                 }
             }
 
-            double sinetha = sqrt((bma_face[1] * r[2] - bma_face[2] * r[1]) * (bma_face[1] * r[2] - bma_face[2] * r[1]) +
-                                  (bma_face[2] * r[0] - bma_face[0] * r[2]) * (bma_face[2] * r[0] - bma_face[0] * r[2]) +
-                                  (bma_face[0] * r[1] - bma_face[1] * r[0]) * (bma_face[0] * r[1] - bma_face[1] * r[0])) /
-                             (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
+            double sinetha = norm(cross_product(bma_face, r)) / (norm(bma_face) * norm(r));
 
-            double cosetha = (bma_face[0] * r[0] + bma_face[1] * r[1] + bma_face[2] * r[2]) /
-                             (sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]));
+            double cosetha = dot_product(bma_face, r) / (norm(bma_face) * norm(r));
 
             if (i == 0)
             {
@@ -315,11 +370,9 @@ public:
             r_edge[i] = vertices[faces[face_num][edge2]][i] - vertices[faces[face_num][edge1]][i];
         }
 
-        double r_edge_norm = sqrt(r_edge[0] * r_edge[0] + r_edge[1] * r_edge[1] + r_edge[2] * r_edge[2]);
-
         for (size_t i = 0; i < 3; i++)
         {
-            r_edge[i] /= r_edge_norm;
+            r_edge[i] /= norm(r_edge);
         }
 
         intersection = find_lines_intersection(a, vertices[faces[face_num][edge1]], bma_face, r_edge);
@@ -467,4 +520,29 @@ public:
             std::cout << std::endl;
         }
     };
+
+protected:
+    std::vector<double> cross_product(std::vector<double> a, std::vector<double> b)
+    {
+        std::vector<double> res;
+        res.resize(3);
+        res[0] = a[1] * b[2] - a[2] * b[1]; // cross prod
+        res[1] = a[2] * b[0] - a[0] * b[2];
+        res[2] = a[0] * b[1] - a[1] * b[0];
+
+        return res;
+    }
+
+    double dot_product(std::vector<double> a, std::vector<double> b)
+    {
+        double res;
+        res = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+        return res;
+    }
+
+    double norm(std::vector<double> a)
+    {
+        return sqrt(dot_product(a, a));
+    }
 };

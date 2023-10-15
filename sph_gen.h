@@ -102,18 +102,18 @@ SurfaceMesh octahedron()
     return mesh;
 }
 
-SurfaceMesh square(double a, size_t n_size)
+SurfaceMesh square(size_t n_size)
 { // a = size of sqare
     SurfaceMesh mesh;
 
-    double dx = a / (n_size-1);
+    double dx = 1. / (n_size-1);
 
     // adding vertices
     for (size_t i = 0; i < n_size; i++)
     {
         for (size_t j = 0; j < n_size; j++)
         {
-            mesh.add_vertex(Point(i * dx, j * dx, 0));
+            mesh.add_vertex(Point(i * dx, j * dx, -sqrt(i*i+j*j)*dx/100));
         }
     }
 

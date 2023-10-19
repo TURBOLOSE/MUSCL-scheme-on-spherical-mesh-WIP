@@ -10,8 +10,8 @@ int main()
     size_t N = 4; // n of vertices in col/row (total = NxN)
 
 
-    SurfaceMesh mesh = quad_sphere(0);
-
+    //SurfaceMesh mesh = quad_sphere(0);
+    SurfaceMesh mesh = icosphere(0);
 
 
     MUSCL_base test(mesh);

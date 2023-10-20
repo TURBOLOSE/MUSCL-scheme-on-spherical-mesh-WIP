@@ -22,7 +22,10 @@ int main()
 
 
     //std::vector<double> r1 {0,1./3-1e-3,-0.00333333};
-    std::vector<double> r1 {0.333333,0.666667-1e-3,-0.00745356};
+    vector3d<double> r1 {0.333333,0.666667-1e-3,-0.00745356};
+    
+
+
 
     //std::cout<<test.broken_distance(r1,r2)<<std::endl;
 

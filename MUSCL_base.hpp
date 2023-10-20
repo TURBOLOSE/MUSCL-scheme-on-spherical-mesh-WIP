@@ -2,6 +2,7 @@
 
 #include "pmp/surface_mesh.h"
 #include "sph_gen.h"
+#include "vec3d.hpp"
 
 #include <iostream>
 #include <vector>
@@ -17,11 +18,11 @@ class MUSCL_base
 
 protected:
     SurfaceMesh mesh;
-    std::vector<std::vector<double>> vertices; // coordinates of points
-    std::vector<std::vector<int>> faces;       // indexes of vertices that make a face
-    std::vector<std::vector<int>> neighbors;   // indexes of neighbor faces of a given face
-    std::vector<std::vector<double>> face_centers;
-    std::vector<std::vector<double>> normals;
+    std::vector<vector3d<double>> vertices;  // coordinates of points
+    std::vector<std::vector<int>> faces;     // indexes of vertices that make a face
+    std::vector<std::vector<int>> neighbors; // indexes of neighbor faces of a given face
+    std::vector<vector3d<double>> face_centers;
+    std::vector<vector3d<double>> normals;
     std::vector<std::vector<std::vector<int>>> faces_for_flux;
     // 4 indeces(2+ and 2-) of faces for + and - flux through edge for every edge of every face
 
@@ -31,7 +32,7 @@ public:
         // std::cout << "vertices: " << mesh.n_vertices() << std::endl;
         // std::cout << "edges: " << mesh.n_edges() << std::endl;
         // std::cout << "faces: " << mesh.n_faces() << std::endl;
-        std::vector<double> r1, r2;
+        vector3d<double> r1, r2;
 
         vertices.resize(mesh.n_vertices());
         faces.resize(mesh.n_faces());
@@ -43,8 +44,6 @@ public:
         auto points = mesh.get_vertex_property<Point>("v:point");
         for (auto vertice : mesh.vertices())
         {
-            vertices[i].resize(points[vertice].size());
-
             for (size_t j = 0; j < points[vertice].size(); j++)
             {
                 vertices[i][j] = points[vertice][j];
@@ -97,39 +96,27 @@ public:
 
         for (size_t i = 0; i < mesh.n_faces(); i++)
         {
-            face_centers[i].resize(3);
-            for (size_t j = 0; j < 3; j++) // 3d points
+            // for (size_t j = 0; j < 3; j++) // 3d points
+            //{
+            for (size_t k = 0; k < faces[i].size(); k++)
             {
-                for (size_t k = 0; k < faces[i].size(); k++)
-                {
-                    face_centers[i][j] += vertices[faces[i][k]][j];
-                }
-
-                face_centers[i][j] /= faces[i].size();
+                face_centers[i] += vertices[faces[i][k]];
             }
-        }
 
-        r1.resize(3);
-        r2.resize(3);
+            face_centers[i] /= faces[i].size();
+            //}
+        }
 
         for (size_t i = 0; i < mesh.n_faces(); i++)
         {
-
-            normals[i].resize(3);
-
             std::transform(vertices[faces[i][0]].begin(), vertices[faces[i][0]].end(),
                            vertices[faces[i][1]].begin(), r1.begin(), std::minus<double>()); // r1=vertice_1-vertice_0
 
             std::transform(vertices[faces[i][1]].begin(), vertices[faces[i][1]].end(),
                            vertices[faces[i][2]].begin(), r2.begin(), std::minus<double>()); // r2=vertice_2-vertice_1
 
-            normals[i].resize(3);
             normals[i] = cross_product(r1, r2);
-
-            double norm = sqrt(normals[i][0] * normals[i][0] + normals[i][1] * normals[i][1] + normals[i][2] * normals[i][2]);
-
-            std::transform(normals[i].begin(), normals[i].end(), normals[i].begin(),
-                           std::bind(std::multiplies<double>(), std::placeholders::_1, 1 / norm));
+            normals[i] /= normals[i].norm();
         }
 
         process_mesh();
@@ -137,14 +124,7 @@ public:
 
     void process_mesh()
     {
-        std::vector<double> BM, B_nB, B_nB_face, BM_normal, B_left, B1B2, r; // vectors from B to M and from B_n to B
-        BM_normal.resize(3);
-        BM.resize(3);
-        B_nB_face.resize(3);
-        B_left.resize(3);
-        B_nB.resize(3);
-        B1B2.resize(3);
-        r.resize(3);
+        vector3d<double> BM, B_nB, B_nB_face, BM_normal, B_left, B1B2, r; // vectors from B to M and from B_n to B
         double max_cos = -1;
         int left_face1, left_face2, right_face1, right_face2;
 
@@ -165,24 +145,17 @@ public:
                 else
                 {
                     BM[j] = (vertices[face[i]][j] + vertices[face[i + 1]][j]) / 2 - face_centers[n_face][j];
-                    ;
                     r[j] = (vertices[face[i + 1]][j] - vertices[face[i]][j]);
                 }
             }
 
             for (auto neighboor : neighbors[n_face]) // find 1st most left element
             {
-                for (size_t j = 0; j < 3; j++)
-                {
-                    B_nB[j] = face_centers[neighboor][j] - face_centers[n_face][j]; // not projection
-                }
 
-                for (size_t j = 0; j < 3; j++)
-                {
-                    B_nB_face[j] = B_nB[j] - normals[n_face][j] * dot_product(B_nB, normals[n_face]); // projection
-                }
+                B_nB = face_centers[neighboor] - face_centers[n_face];                   // not projected yet
+                B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
-                double cos_etha = dot_product(BM, B_nB_face) / (norm(BM) * norm(B_nB_face));
+                double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
                 if (cos_etha > max_cos)
                 {
                     max_cos = cos_etha;
@@ -194,33 +167,21 @@ public:
             max_cos = -1;
             left_face2 = left_face1; // in case "if" doesent go off
 
-            for (size_t j = 0; j < 3; j++)
-            {
-                B_left[j] = face_centers[left_face1][j] - face_centers[n_face][j];
-            }
-            std::vector<double> B_left_face;
-            B_left_face.resize(3);
-            for (size_t j = 0; j < 3; j++)
-            {
-                B_left_face[j] = B_left[j] - normals[n_face][j] * dot_product(B_left, normals[n_face]); // projection
-            }
+            B_left = face_centers[left_face1] - face_centers[n_face]; // vector in direction of B_left_1
+
+            vector3d<double> B_left_face;
+            B_left_face = B_left - normals[n_face] * dot_product(B_left, normals[n_face]); // projection
 
             for (auto neighboor : neighbors[n_face]) // find second most left element
             {
-                for (size_t j = 0; j < 3; j++)
-                {
-                    B_nB[j] = face_centers[neighboor][j] - face_centers[n_face][j];
-                }
 
-                for (size_t j = 0; j < 3; j++)
-                {
-                    B_nB_face[j] = B_nB[j] - normals[n_face][j] * dot_product(B_nB, normals[n_face]); // projection
-                }
+                B_nB = face_centers[neighboor] - face_centers[n_face];
+                B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
-                double cos_etha = dot_product(BM, B_nB_face) / (norm(BM) * norm(B_nB_face));
+                double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
 
-                double line_cross_check = norm(cross_product(B_nB_face, BM_normal)) / (norm(B_nB_face) * norm(BM_normal)) *
-                                          norm(cross_product(B_left_face, BM_normal)) / (norm(B_left_face) * norm(BM_normal)) *
+                double line_cross_check = (cross_product(B_nB_face, BM_normal)).norm() / (B_nB_face.norm() * BM_normal.norm()) *
+                                          (cross_product(B_left_face, BM_normal).norm()) / (B_left_face.norm() * BM_normal.norm()) *
                                           dot_product(normals[n_face], cross_product(B_nB_face, BM_normal)) * dot_product(normals[n_face], cross_product(B_left_face, BM_normal));
                 if ((cos_etha > max_cos) && (neighboor != left_face1) && (line_cross_check <= 0))
                 {
@@ -229,23 +190,27 @@ public:
                 }
             }
 
-            std::cout << left_face1 << " " << left_face2 << std::endl;
+            // std::cout << left_face1 << " " << left_face2 << std::endl;
 
             // finding H -- point of intersection between lines BiMij and line between face centers of lf1 and lf2
 
-            // std::vector<double> H_0 = find_lines_intersection(face_centers[n_face], vertices[face[i]], BM, r);
+            // vector3d<double> H_0 = find_lines_intersection(face_centers[n_face], vertices[face[i]], BM, r);
 
             double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2]);
-            std::cout<<B1B2_d<<std::endl;
-            // double beta1 =
+            std::cout<<B1B2_d<<" "<< (face_centers[left_face1]-face_centers[left_face2]).norm()<<std::endl;
+            face_centers[left_face1].print(); face_centers[left_face2].print();
+            std::cout<<std::endl;
+
+
+
+
+            //  double beta1 =
         }
-
-
 
         //}
     };
 
-    double broken_distance(std::vector<double> a, std::vector<double> b)
+    double broken_distance(vector3d<double> a, vector3d<double> b)
     {
         // broken distance between 2 points if broken line made out of 2 parts
         // dim(a)=3; dim(b)=3
@@ -258,17 +223,13 @@ public:
         int start_face = point_in_face(a)[0];
         int current_face = point_in_face(a)[0];
         int end_face = point_in_face(b)[0];
-        std::vector<double> bma, intersection, intersection_prev;
+        vector3d<double> bma, intersection, intersection_prev;
         intersection_prev = a;
-        bma.resize(3);
 
         while ((current_face != end_face) && (iter < maxiter))
         {
 
-            for (size_t i = 0; i < 3; i++) // line vector
-            {
-                bma[i] = b[i] - a[i];
-            }
+            bma = b - a; // line vector
 
             intersection = broken_distance_base(intersection_prev, b, bma, current_face);
 
@@ -308,7 +269,7 @@ public:
         return dist;
     }
 
-    std::vector<double> broken_distance_base(std::vector<double> a, std::vector<double> b, std::vector<double> bma, int face_num)
+    vector3d<double> broken_distance_base(vector3d<double> a, vector3d<double> b, vector3d<double> bma, int face_num)
     {
         // returns intersection point from a to b among projection of bma inside  face with index face_num
 
@@ -318,49 +279,32 @@ public:
         int edge1, edge2;
         signed int sign;
         signed int sign_prev = 0;
-        std::vector<double> bma_face, r, r_edge; // b-a and (b-a) projected to face, r-- edge vector
-        std::vector<double> intersection;        // rhs of linear system and intersection points
+        vector3d<double> bma_face, r, r_edge; // b-a and (b-a) projected to face, r-- edge vector
+        vector3d<double> intersection;        // rhs of linear system and intersection points
         Eigen::Matrix<double, 3, 3> dist_matrix;
         Eigen::Matrix<double, 3, 1> rhs;
 
         size_t n_edges = faces[face_num].size();
 
-        intersection.resize(3);
-        bma_face.resize(3);
-        r.resize(3);
-        r_edge.resize(3);
-
-        for (size_t i = 0; i < 3; i++) // projected line vector
-        {
-            bma_face[i] = bma[i] - normals[face_num][i] * dot_product(bma, normals[face_num]);
-        }
-
-        for (size_t i = 0; i < 3; i++) // projected line vector
-        {
-            bma_face[i] /= norm(bma_face);
-        }
-
+        bma_face = bma - normals[face_num] * dot_product(bma, normals[face_num]);
+        bma_face /= bma_face.norm();
 
         for (size_t i = 0; i < n_edges; i++) // finding edge that our projected vector crosses
         {
 
-            for (size_t j = 0; j < 3; j++) // vector from a to edge centers
+            if (i < n_edges - 1)
             {
-
-                if (i < n_edges - 1)
-                {
-                    r[j] = (vertices[faces[face_num][i]][j] + vertices[faces[face_num][i + 1]][j]) / 2 - a[i];
-                }
-                else
-                {
-                    r[j] = (vertices[faces[face_num][i]][j] + vertices[faces[face_num][0]][j]) / 2 - a[i];
-                }
+                r = (vertices[faces[face_num][i]] + vertices[faces[face_num][i + 1]]) / 2 - a;
+            }
+            else
+            {
+                r = (vertices[faces[face_num][i]] + vertices[faces[face_num][0]]) / 2 - a;
             }
 
-            double sinetha = norm(cross_product(bma_face, r)) / (norm(bma_face) * norm(r)) *
-                             dot_product(cross_product(bma_face, r), normals[face_num]) / norm(cross_product(bma_face, r));
+            double sinetha = (cross_product(bma_face, r)).norm() / (bma_face.norm() * r.norm()) *
+                             dot_product(cross_product(bma_face, r), normals[face_num]) / (cross_product(bma_face, r)).norm();
 
-            double cosetha = dot_product(bma_face, r) / (norm(bma_face) * norm(r));
+            double cosetha = dot_product(bma_face, r) / (bma_face.norm() * r.norm());
 
             if (i == 0)
             {
@@ -380,11 +324,9 @@ public:
             }
         }
 
-        for (size_t i = 0; i < 3; i++)
         // edge vector
-        {
-            r_edge[i] = vertices[faces[face_num][edge2]][i] - vertices[faces[face_num][edge1]][i];
-        }
+
+        r_edge = vertices[faces[face_num][edge2]] - vertices[faces[face_num][edge1]];
 
         /*for (size_t i = 0; i < 3; i++)
         {
@@ -396,14 +338,13 @@ public:
         return intersection;
     };
 
-    std::vector<double> find_lines_intersection(std::vector<double> x1, std::vector<double> x2,
-                                                std::vector<double> n1, std::vector<double> n2)
+    vector3d<double> find_lines_intersection(vector3d<double> x1, vector3d<double> x2,
+                                             vector3d<double> n1, vector3d<double> n2)
     {
         // x1 and x2 -- starting points of lines
         // n1 and n2 -- vectors of lines
         // method returns coordinates of point of intersection
-        std::vector<double> res;
-        res.resize(3);
+        vector3d<double> res;
         double t0, t1, t, tau;
         double prec = 1e-7; // compare with 0
 
@@ -514,26 +455,20 @@ public:
         return res;
     }
 
-    std::vector<int> point_in_face(std::vector<double> r)
+    std::vector<int> point_in_face(vector3d<double> r)
     { // dim(r)=3;
         // finds face in which point r is in
         int count = 0;
         std::vector<int> res;
         int flag = 0;
         double dotpr;
-        std::vector<double> r_face;
+        vector3d<double> r_face;
         double eps = 1e-5; // abs precision
 
         for (auto face : faces)
         {
-            dotpr = 0;
-            // r_face = vertices[face[0]];
             r_face = face_centers[count];
-            for (size_t i = 0; i < 3; i++)
-            {
-                dotpr += (r_face[i] - r[i]) * normals[count][i];
-            }
-
+            dotpr = dot_product((r_face - r),normals[count]);
             if (abs(dotpr) < eps) // compare with 0
             {
                 res.push_back(count);
@@ -542,7 +477,6 @@ public:
 
             count++;
         }
-        // std::cout<<std::endl;
         if (flag == 0)
             std::cout << "point_in_face: no face has been found" << std::endl;
 
@@ -584,10 +518,9 @@ public:
     };
 
 protected:
-    std::vector<double> cross_product(std::vector<double> a, std::vector<double> b)
+    vector3d<double> cross_product(vector3d<double> a, vector3d<double> b)
     {
-        std::vector<double> res;
-        res.resize(3);
+        vector3d<double> res;
         res[0] = a[1] * b[2] - a[2] * b[1]; // cross prod
         res[1] = a[2] * b[0] - a[0] * b[2];
         res[2] = a[0] * b[1] - a[1] * b[0];
@@ -595,16 +528,11 @@ protected:
         return res;
     }
 
-    double dot_product(std::vector<double> a, std::vector<double> b)
+    double dot_product(vector3d<double> a, vector3d<double> b)
     {
         double res;
         res = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
         return res;
-    }
-
-    double norm(std::vector<double> a)
-    {
-        return sqrt(dot_product(a, a));
     }
 };

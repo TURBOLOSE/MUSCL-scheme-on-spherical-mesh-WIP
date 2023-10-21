@@ -11,12 +11,14 @@ int main()
 
 
     //SurfaceMesh mesh = quad_sphere(0);
-    SurfaceMesh mesh = icosphere(0);
+    //SurfaceMesh mesh = icosphere(0);
+    SurfaceMesh mesh = icosphere_hex(0);
 
 
     MUSCL_base test(mesh);
     
     
+
     //test.print_vertices();
     //test.print_neighbors();
 

@@ -124,7 +124,7 @@ public:
 
     void process_mesh()
     {
-        vector3d<double> BM, B_nB, B_nB_face, BM_normal, B_left, B1B2, r; // vectors from B to M and from B_n to B
+        vector3d<double> BM, B_nB, B_nB_face, BM_normal, B_left, B1B2, r, Hm; // vectors from B to M and from B_n to B
         double max_cos = -1;
         int left_face1, left_face2, right_face1, right_face2;
 
@@ -132,27 +132,32 @@ public:
         //{
         int n_face = 1;
         std::vector<int> face = faces[n_face];
+
         for (size_t i = 0; i < face.size(); i++)
         {
             max_cos = -1;
-            for (size_t j = 0; j < 3; j++)
+
+            if (i == face.size() - 1)
             {
-                if (i == face.size() - 1)
-                {
-                    BM[j] = (vertices[face[i]][j] + vertices[face[0]][j]) / 2 - face_centers[n_face][j];
-                    r[j] = (vertices[face[0]][j] - vertices[face[i]][j]);
-                }
-                else
-                {
-                    BM[j] = (vertices[face[i]][j] + vertices[face[i + 1]][j]) / 2 - face_centers[n_face][j];
-                    r[j] = (vertices[face[i + 1]][j] - vertices[face[i]][j]);
-                }
+                BM = (vertices[face[i]] + vertices[face[0]]) / 2 - face_centers[n_face];
+                r = (vertices[face[0]] - vertices[face[i]]);
+
+                // vertices[face[i]].print();
+                // vertices[face[0]].print();
+            }
+            else
+            {
+                BM = (vertices[face[i]] + vertices[face[i + 1]]) / 2 - face_centers[n_face];
+                r = (vertices[face[i + 1]] - vertices[face[i]]);
+
+                // vertices[face[i]].print();
+                // vertices[face[i+1]].print();
             }
 
             for (auto neighboor : neighbors[n_face]) // find 1st most left element
             {
 
-                B_nB = face_centers[neighboor] - face_centers[n_face];                   // not projected yet
+                B_nB = face_centers[n_face] - face_centers[neighboor];                   // not projected yet
                 B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
                 double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
@@ -175,7 +180,7 @@ public:
             for (auto neighboor : neighbors[n_face]) // find second most left element
             {
 
-                B_nB = face_centers[neighboor] - face_centers[n_face];
+                B_nB = face_centers[n_face] - face_centers[neighboor];
                 B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
                 double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
@@ -195,19 +200,40 @@ public:
             // finding H -- point of intersection between lines BiMij and line between face centers of lf1 and lf2
 
             // vector3d<double> H_0 = find_lines_intersection(face_centers[n_face], vertices[face[i]], BM, r);
-
-            double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2]);
-            std::cout<<B1B2_d<<" "<< (face_centers[left_face1]-face_centers[left_face2]).norm()<<std::endl;
-            face_centers[left_face1].print(); face_centers[left_face2].print();
-            std::cout<<std::endl;
+        }
+       
 
 
+        vector3d<double> B1B2_proj1 = (face_centers[left_face2] - face_centers[left_face1]) -
+                                      normals[left_face1] * dot_product((face_centers[left_face2] - face_centers[left_face1]), normals[left_face1]);
+
+        vector3d<double> B1B2_proj2 = (face_centers[left_face1] - face_centers[left_face2]) -
+                                      normals[left_face2] * dot_product((face_centers[left_face1] - face_centers[left_face2]), normals[left_face2]);
+
+        vector3d<double> p1 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj1,
+                                                          face_centers[n_face], BM, normals[n_face]);
+
+        vector3d<double> p2 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj2,
+                                                          face_centers[n_face], BM, normals[n_face]);
 
 
-            //  double beta1 =
+        if (is_on_surface(p1))
+        {
+            Hm = p1;
+        }
+        else if (is_on_surface(p2))
+        {
+            Hm = p2;
+        }
+        else
+        {
+            std::cout << "process_mesh: could not find H_minus" << std::endl;
         }
 
-        //}
+        double Hm_dist=broken_distance(face_centers[n_face], Hm);
+        double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2]);
+
+
     };
 
     double broken_distance(vector3d<double> a, vector3d<double> b)
@@ -233,21 +259,7 @@ public:
 
             intersection = broken_distance_base(intersection_prev, b, bma, current_face);
 
-            dist += sqrt((intersection[0] - intersection_prev[0]) * (intersection[0] - intersection_prev[0]) +
-                         (intersection[1] - intersection_prev[1]) * (intersection[1] - intersection_prev[1]) +
-                         (intersection[2] - intersection_prev[2]) * (intersection[2] - intersection_prev[2]));
-
-            /*std::cout << "v1:(" << vertices[faces[start_face][0]][0] << "," << vertices[faces[start_face][0]][1] << "," << vertices[faces[start_face][0]][2] << std::endl;
-            std::cout << "v1:(" << vertices[faces[start_face][1]][0] << "," << vertices[faces[start_face][1]][1] << "," << vertices[faces[start_face][1]][2] << std::endl;
-            std::cout << "v1:(" << vertices[faces[start_face][2]][0] << "," << vertices[faces[start_face][2]][1] << "," << vertices[faces[start_face][2]][2] << std::endl;
-
-            std::cout << "v2:(" << vertices[faces[end_face][0]][0] << "," << vertices[faces[end_face][0]][1] << "," << vertices[faces[end_face][0]][2] << std::endl;
-            std::cout << "v2:(" << vertices[faces[end_face][1]][0] << "," << vertices[faces[end_face][1]][1] << "," << vertices[faces[end_face][1]][2] << std::endl;
-            std::cout << "v2:(" << vertices[faces[end_face][2]][0] << "," << vertices[faces[end_face][2]][1] << "," << vertices[faces[end_face][2]][2] << std::endl;
-
-            std::cout << a[0] << " " << a[1] << " " << a[2] << std::endl;
-            std::cout << b[0] << " " << b[1] << " " << b[2] << std::endl;
-            std::cout << intersection[0] << "," << intersection[1] << "," << intersection[2] << std::endl;*/
+            dist += (intersection - intersection_prev).norm();
 
             if (point_in_face(intersection)[0] == current_face)
             {
@@ -264,8 +276,7 @@ public:
 
         intersection = intersection_prev;
 
-        dist += sqrt((b[0] - intersection[0]) * (b[0] - intersection[0]) +
-                     (b[1] - intersection[1]) * (b[1] - intersection[1]) + (b[2] - intersection[2]) * (b[2] - intersection[2]));
+        dist += (b - intersection).norm();
         return dist;
     }
 
@@ -274,8 +285,8 @@ public:
         // returns intersection point from a to b among projection of bma inside  face with index face_num
 
         double dist = 0;
-        double min_etha;
-
+        double prec = 1e-9;
+        double min_etha, sinetha, cosetha;
         int edge1, edge2;
         signed int sign;
         signed int sign_prev = 0;
@@ -301,10 +312,19 @@ public:
                 r = (vertices[faces[face_num][i]] + vertices[faces[face_num][0]]) / 2 - a;
             }
 
-            double sinetha = (cross_product(bma_face, r)).norm() / (bma_face.norm() * r.norm()) *
-                             dot_product(cross_product(bma_face, r), normals[face_num]) / (cross_product(bma_face, r)).norm();
+            if (abs(dot_product(cross_product(bma_face, r), normals[face_num])) < prec)
+            {
 
-            double cosetha = dot_product(bma_face, r) / (bma_face.norm() * r.norm());
+                sinetha = 0;
+            }
+            else
+            {
+
+                sinetha = (cross_product(bma_face, r)).norm() / (bma_face.norm() * r.norm()) *
+                          dot_product(cross_product(bma_face, r), normals[face_num]) / abs(dot_product(cross_product(bma_face, r), normals[face_num]));
+            }
+
+            cosetha = dot_product(bma_face, r) / (bma_face.norm() * r.norm());
 
             if (i == 0)
             {
@@ -322,16 +342,14 @@ public:
                     edge2 = 0;
                 }
             }
+
+            // std::cout << dot_product(cross_product(bma_face, r), normals[face_num]) << std::endl;
+
+            // cross_product(bma_face, r).print();
+            // normals[face_num].print();
         }
 
-        // edge vector
-
         r_edge = vertices[faces[face_num][edge2]] - vertices[faces[face_num][edge1]];
-
-        /*for (size_t i = 0; i < 3; i++)
-        {
-            r_edge[i] /= norm(r_edge);
-        }*/
 
         intersection = find_lines_intersection(a, vertices[faces[face_num][edge1]], bma_face, r_edge);
 
@@ -352,6 +370,9 @@ public:
 
         if (abs(n2[0]) > prec)
         {
+
+            // std::cout<<abs(n1[1] - n2[1] * n1[0] / n2[0])<<" "<<abs(n1[2] - n2[2] * n1[0] / n2[0])<<std::endl;
+
             if (abs(n1[1] - n2[1] * n1[0] / n2[0]) > prec)
             {
                 t0 = (x2[1] - x1[1] + n2[1] * (x1[0] - x2[0]) / n2[0]) / (n1[1] - n2[1] * n1[0] / n2[0]);
@@ -360,7 +381,7 @@ public:
             {
                 t1 = (x2[2] - x1[2] + n2[2] * (x1[0] - x2[0]) / n2[0]) / (n1[2] - n2[2] * n1[0] / n2[0]);
             }
-            else
+            if ((abs(n1[1] - n2[1] * n1[0] / n2[0]) < prec) && (abs(n1[2] - n2[2] * n1[0] / n2[0]) < prec))
             {
                 std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
                 t0 = 0;
@@ -390,7 +411,7 @@ public:
             {
                 t0 = (x2[2] - x1[2] + n2[2] * (x1[1] - x2[1]) / n2[1]) / (n1[2] - n2[2] * n1[1] / n2[1]);
             }
-            else
+            if (abs(n1[2] - n2[2] * n1[1] / n2[1]) < prec && abs(n1[0] - n2[0] * n1[1] / n2[1]) < prec)
             {
                 std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
                 t0 = 0;
@@ -420,7 +441,7 @@ public:
             {
                 t0 = (x2[1] - x1[1] + n2[1] * (x1[2] - x2[2]) / n2[2]) / (n1[1] - n2[1] * n1[2] / n2[2]);
             }
-            else
+            if (abs(n1[1] - n2[1] * n1[2] / n2[2]) < prec && abs(n1[0] - n2[0] * n1[2] / n2[2]) < prec)
             {
                 std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
                 t = 0;
@@ -455,6 +476,32 @@ public:
         return res;
     }
 
+    vector3d<double> find_line_surf_intersection(vector3d<double> xl, vector3d<double> nl,
+                                                 vector3d<double> xs, vector3d<double> vs1, vector3d<double> vs2)
+    {
+        // xl -- line starting point, nl -- line vector
+        // xs -- surface starting point,  vs1,2 -- any vector in surface(non parallel)
+
+        vector3d<double> res;
+        double A, B, C, D, t;
+        double eps = 1e-7;
+        if (cross_product(vs1, vs2).norm() < eps)
+        {
+            std::cout << "find_line_surf_intersection:parallel vectors cannot define surface" << std::endl;
+        }
+
+        A = vs1[1] * vs2[2] - vs1[2] * vs2[1];
+        B = vs1[2] * vs2[0] - vs1[0] * vs2[2];
+        C = vs1[0] * vs2[1] - vs1[1] * vs2[0];
+        D = -xs[0] * A - xs[1] * B - xs[2] * C;
+
+        t = -(D + A * xl[0] + B * xl[1] + C * xl[2]) / (A * nl[0] + B * nl[1] + C * nl[2]);
+
+        res = xl + nl * t;
+
+        return res;
+    }
+
     std::vector<int> point_in_face(vector3d<double> r)
     { // dim(r)=3;
         // finds face in which point r is in
@@ -468,7 +515,7 @@ public:
         for (auto face : faces)
         {
             r_face = face_centers[count];
-            dotpr = dot_product((r_face - r),normals[count]);
+            dotpr = dot_product((r_face - r), normals[count]);
             if (abs(dotpr) < eps) // compare with 0
             {
                 res.push_back(count);
@@ -482,6 +529,29 @@ public:
 
         return res;
     };
+
+    bool is_on_surface(vector3d<double> r)
+    {
+        int count = 0;
+        bool res = false;
+        double dotpr;
+        vector3d<double> r_face;
+        double eps = 1e-5; // abs precision
+
+        for (auto face : faces)
+        {
+            r_face = face_centers[count];
+            dotpr = dot_product((r_face - r), normals[count]);
+            if (abs(dotpr) < eps) // compare with 0
+            {
+                res = true;
+            }
+
+            count++;
+        }
+
+        return res;
+    }
 
     void print_vertices()
     {

@@ -86,7 +86,7 @@ public:
 
 
     void print(){
-        std::cout<<(*this)[0]<<" "<<(*this)[1]<<(*this)[2]<<std::endl;
+        std::cout<<"("<<(*this)[0]<<","<<(*this)[1]<<","<<(*this)[2]<<")"<<std::endl;
     }
 
     

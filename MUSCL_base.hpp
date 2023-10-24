@@ -13,7 +13,7 @@
 
 using namespace pmp;
 
-class MUSCL_base
+class MUSCL_base_geometry
 {
 
 protected:
@@ -23,22 +23,32 @@ protected:
     std::vector<std::vector<int>> neighbors; // indexes of neighbor faces of a given face
     std::vector<vector3d<double>> face_centers;
     std::vector<vector3d<double>> normals;
-    std::vector<std::vector<std::vector<int>>> faces_for_flux;
-    // 4 indeces(2+ and 2-) of faces for + and - flux through edge for every edge of every face
+
+    std::vector<std::vector<std::vector<int>>> flux_faces_plus;  //+ flux face numbers for each face for each vertice
+    std::vector<std::vector<std::vector<int>>> flux_faces_minus; //- flux face numbers for each face for each vertice
+    std::vector<std::vector<double>> H_minus;                    // distances to  H_minus for each face for each vertice
+    std::vector<std::vector<double>> H_plus;                     // distances to H_plus for each face for each vertice
+
+    std::vector<std::vector<std::vector<double>>> betas_plus;  // baricentric distances to H_plus from face centers for each face for each vertice
+    std::vector<std::vector<std::vector<double>>> betas_minus; // baricentric distances to H_minus from face centers for each face for each vertice
 
 public:
-    MUSCL_base(SurfaceMesh mesh_in) : mesh(mesh_in)
+    MUSCL_base_geometry(SurfaceMesh mesh_in) : mesh(mesh_in)
     {
-        // std::cout << "vertices: " << mesh.n_vertices() << std::endl;
-        // std::cout << "edges: " << mesh.n_edges() << std::endl;
-        // std::cout << "faces: " << mesh.n_faces() << std::endl;
+
         vector3d<double> r1, r2;
 
         vertices.resize(mesh.n_vertices());
+        flux_faces_plus.resize(mesh.n_faces());
         faces.resize(mesh.n_faces());
+        flux_faces_minus.resize(mesh.n_faces());
         face_centers.resize(mesh.n_faces());
+        H_minus.resize(mesh.n_faces());
         neighbors.resize(mesh.n_faces());
+        H_plus.resize(mesh.n_faces());
         normals.resize(mesh.n_faces());
+        betas_plus.resize(mesh.n_faces());
+        betas_minus.resize(mesh.n_faces());
 
         size_t i = 0; // getting vertices from SurfaceMesh
         auto points = mesh.get_vertex_property<Point>("v:point");
@@ -124,62 +134,79 @@ public:
 
     void process_mesh()
     {
-        vector3d<double> BM, B_nB, B_nB_face, BM_normal, B_left, B1B2, r, Hm; // vectors from B to M and from B_n to B
-        double max_cos = -1;
+        vector3d<double> BM, B_nB, B_nB_face, BM_normal, B_left, B_right, B1B2, r, Hm, Hp;
+        vector3d<double> B_left_face, B_right_face;
+        double max_cos_left = -1, max_cos_right = -1;
         int left_face1, left_face2, right_face1, right_face2;
 
         // for (auto face : faces)
         //{
         int n_face = 1;
         std::vector<int> face = faces[n_face];
+        flux_faces_minus[n_face].resize(face.size());
+        betas_minus[n_face].resize(face.size());
+        H_minus[n_face].resize(face.size());
+
+        flux_faces_plus[n_face].resize(face.size());
+        betas_plus[n_face].resize(face.size());
+        H_plus[n_face].resize(face.size());
 
         for (size_t i = 0; i < face.size(); i++)
         {
-            max_cos = -1;
+            max_cos_left = -1;
+            max_cos_right = -1;
 
             if (i == face.size() - 1)
             {
                 BM = (vertices[face[i]] + vertices[face[0]]) / 2 - face_centers[n_face];
                 r = (vertices[face[0]] - vertices[face[i]]);
-
-                // vertices[face[i]].print();
-                // vertices[face[0]].print();
             }
             else
             {
                 BM = (vertices[face[i]] + vertices[face[i + 1]]) / 2 - face_centers[n_face];
                 r = (vertices[face[i + 1]] - vertices[face[i]]);
-
-                // vertices[face[i]].print();
-                // vertices[face[i+1]].print();
             }
 
-            for (auto neighboor : neighbors[n_face]) // find 1st most left element
+            for (auto neighboor : neighbors[n_face]) // find 1st most left and most right element
             {
-
+                // left face
                 B_nB = face_centers[n_face] - face_centers[neighboor];                   // not projected yet
                 B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
                 double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
-                if (cos_etha > max_cos)
+                if (cos_etha > max_cos_left)
                 {
-                    max_cos = cos_etha;
+                    max_cos_left = cos_etha;
                     left_face1 = neighboor;
+                }
+
+                // right face
+                B_nB = face_centers[neighboor] - face_centers[n_face];                   // not projected yet
+                B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
+
+                cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
+                if (cos_etha > max_cos_right)
+                {
+                    max_cos_right = cos_etha;
+                    right_face1 = neighboor;
                 }
             }
 
             BM_normal = cross_product(BM, normals[n_face]);
-            max_cos = -1;
+            max_cos_left = -1;
+            max_cos_right = -1;
             left_face2 = left_face1; // in case "if" doesent go off
+            right_face2 = right_face1;
 
             B_left = face_centers[left_face1] - face_centers[n_face]; // vector in direction of B_left_1
+            B_right = face_centers[right_face1] - face_centers[n_face]; // vector in direction of B_right_1
 
-            vector3d<double> B_left_face;
-            B_left_face = B_left - normals[n_face] * dot_product(B_left, normals[n_face]); // projection
+            B_left_face = B_left - normals[n_face] * dot_product(B_left, normals[n_face]);    // projection
+            B_right_face = B_right - normals[n_face] * dot_product(B_right, normals[n_face]); // projection
 
-            for (auto neighboor : neighbors[n_face]) // find second most left element
+            for (auto neighboor : neighbors[n_face]) // find second most left and right elements
             {
-
+                // left face
                 B_nB = face_centers[n_face] - face_centers[neighboor];
                 B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
@@ -188,52 +215,117 @@ public:
                 double line_cross_check = (cross_product(B_nB_face, BM_normal)).norm() / (B_nB_face.norm() * BM_normal.norm()) *
                                           (cross_product(B_left_face, BM_normal).norm()) / (B_left_face.norm() * BM_normal.norm()) *
                                           dot_product(normals[n_face], cross_product(B_nB_face, BM_normal)) * dot_product(normals[n_face], cross_product(B_left_face, BM_normal));
-                if ((cos_etha > max_cos) && (neighboor != left_face1) && (line_cross_check <= 0))
+
+                if ((cos_etha > max_cos_left) && (neighboor != left_face1) && (line_cross_check <= 0))
                 {
-                    max_cos = cos_etha;
+                    max_cos_left = cos_etha;
                     left_face2 = neighboor;
+                }
+                // right face
+                B_nB = face_centers[neighboor] - face_centers[n_face];
+                B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
+
+                cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
+
+                line_cross_check = (cross_product(B_nB_face, BM_normal)).norm() / (B_nB_face.norm() * BM_normal.norm()) *
+                                   (cross_product(B_right_face, BM_normal).norm()) / (B_right_face.norm() * BM_normal.norm()) *
+                                   dot_product(normals[n_face], cross_product(B_nB_face, BM_normal)) *
+                                   dot_product(normals[n_face], cross_product(B_right_face, BM_normal));
+
+                if ((cos_etha > max_cos_right) && (neighboor != right_face1) && (line_cross_check <= 0))
+                {
+                    max_cos_right = cos_etha;
+                    right_face2 = neighboor;
                 }
             }
 
-            // std::cout << left_face1 << " " << left_face2 << std::endl;
+            vector3d<double> B1B2_proj1 = (face_centers[left_face2] - face_centers[left_face1]) -
+                                          normals[left_face1] * dot_product((face_centers[left_face2] - face_centers[left_face1]), normals[left_face1]);
 
-            // finding H -- point of intersection between lines BiMij and line between face centers of lf1 and lf2
+            vector3d<double> B1B2_proj2 = (face_centers[left_face1] - face_centers[left_face2]) -
+                                          normals[left_face2] * dot_product((face_centers[left_face1] - face_centers[left_face2]), normals[left_face2]);
 
-            // vector3d<double> H_0 = find_lines_intersection(face_centers[n_face], vertices[face[i]], BM, r);
+            vector3d<double> p1 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj1,
+                                                              face_centers[n_face], BM, normals[n_face]);
+
+            vector3d<double> p2 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj2,
+                                                              face_centers[n_face], BM, normals[n_face]);
+
+            if (is_on_surface(p1))
+            {
+                Hm = p1;
+            }
+            else if (is_on_surface(p2))
+            {
+                Hm = p2;
+            }
+            else
+            {
+                std::cout << "process_mesh: could not find H_minus" << std::endl;
+            }
+
+            B1B2_proj1 = (face_centers[right_face2] - face_centers[right_face1]) -
+                         normals[right_face1] * dot_product((face_centers[right_face2] - face_centers[right_face1]), normals[right_face1]);
+
+            B1B2_proj2 = (face_centers[right_face1] - face_centers[right_face2]) -
+                         normals[right_face2] * dot_product((face_centers[right_face1] - face_centers[right_face2]), normals[right_face2]);
+
+            p1 = find_line_surf_intersection(face_centers[right_face1], B1B2_proj1,
+                                             face_centers[n_face], BM, normals[n_face]);
+
+            p2 = find_line_surf_intersection(face_centers[right_face1], B1B2_proj2,
+                                             face_centers[n_face], BM, normals[n_face]);
+
+            if (is_on_surface(p1))
+            {
+                Hp = p1;
+            }
+            else if (is_on_surface(p2))
+            {
+                Hp = p2;
+            }
+            else
+            {
+                std::cout << "process_mesh: could not find H_plus" << std::endl;
+            }
+
+            double Hm_dist = broken_distance(face_centers[n_face], Hm);
+            double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2]);
+
+            H_minus[n_face][i] = Hm_dist;
+            flux_faces_minus[n_face][i].push_back(left_face1);
+            flux_faces_minus[n_face][i].push_back(left_face2);
+
+            betas_minus[n_face][i].push_back(broken_distance(face_centers[left_face2], Hm) / B1B2_d);
+            betas_minus[n_face][i].push_back(broken_distance(face_centers[left_face1], Hm) / B1B2_d);
+
+            double Hp_dist = broken_distance(face_centers[n_face], Hp);
+            double B1B2p_d = broken_distance(face_centers[right_face1], face_centers[right_face2]);
+
+            H_plus[n_face][i] = Hp_dist;
+            flux_faces_plus[n_face][i].push_back(right_face1);
+            flux_faces_plus[n_face][i].push_back(right_face2);
+
+            betas_plus[n_face][i].push_back(broken_distance(face_centers[right_face2], Hp) / B1B2p_d);
+            betas_plus[n_face][i].push_back(broken_distance(face_centers[right_face1], Hp) / B1B2p_d);
+
+           /*vertices[faces[n_face][0]].print();
+            vertices[faces[n_face][1]].print();
+            vertices[faces[n_face][2]].print();
+
+            std::cout << std::endl;
+            vertices[faces[right_face1][0]].print();
+            vertices[faces[right_face1][1]].print();
+            vertices[faces[right_face1][2]].print();
+            std::cout << std::endl;
+            vertices[faces[right_face2][0]].print();
+            vertices[faces[right_face2][1]].print();
+            vertices[faces[right_face2][2]].print();
+            std::cout << "betas=" << broken_distance(face_centers[right_face2], Hp) / B1B2p_d
+                      << " " << broken_distance(face_centers[right_face1], Hp) / B1B2p_d << std::endl;
+
+            Hp.print();*/
         }
-       
-
-
-        vector3d<double> B1B2_proj1 = (face_centers[left_face2] - face_centers[left_face1]) -
-                                      normals[left_face1] * dot_product((face_centers[left_face2] - face_centers[left_face1]), normals[left_face1]);
-
-        vector3d<double> B1B2_proj2 = (face_centers[left_face1] - face_centers[left_face2]) -
-                                      normals[left_face2] * dot_product((face_centers[left_face1] - face_centers[left_face2]), normals[left_face2]);
-
-        vector3d<double> p1 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj1,
-                                                          face_centers[n_face], BM, normals[n_face]);
-
-        vector3d<double> p2 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj2,
-                                                          face_centers[n_face], BM, normals[n_face]);
-
-
-        if (is_on_surface(p1))
-        {
-            Hm = p1;
-        }
-        else if (is_on_surface(p2))
-        {
-            Hm = p2;
-        }
-        else
-        {
-            std::cout << "process_mesh: could not find H_minus" << std::endl;
-        }
-
-        double Hm_dist=broken_distance(face_centers[n_face], Hm);
-        double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2]);
-
-
     };
 
     double broken_distance(vector3d<double> a, vector3d<double> b)

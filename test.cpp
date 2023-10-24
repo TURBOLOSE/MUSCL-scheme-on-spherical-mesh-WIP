@@ -11,11 +11,11 @@ int main()
 
 
     //SurfaceMesh mesh = quad_sphere(0);
-    //SurfaceMesh mesh = icosphere(0);
-    SurfaceMesh mesh = icosphere_hex(0);
+    SurfaceMesh mesh = icosphere(0);
+    //SurfaceMesh mesh = icosphere_hex(0);
 
 
-    MUSCL_base test(mesh);
+    MUSCL_base_geometry test(mesh);
     
     
 

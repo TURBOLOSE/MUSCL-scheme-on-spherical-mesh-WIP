@@ -63,7 +63,7 @@ public:
 
     constexpr vector3d& operator/=(const num_t number) {  //by scalar
 
-        std::transform( this->begin(), this->end(), this->begin(),  [&number](auto& c){return c/number;});
+        std::transform( this->begin(), this->end(), this->begin(),  [&number](num_t& c){return c/number;});
         return *this;
     };
 

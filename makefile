@@ -1,6 +1,6 @@
 .PHONY: clean, time
 
-MAIN_DEPEND = test.cpp  sph_gen.h MUSCL_base.hpp
+MAIN_DEPEND = test.cpp  sph_gen.h MUSCL_base.hpp MUSCL_geometry.hpp
 SOURCE_FILES = test.cpp pmp/surface_mesh.cpp pmp/algorithms/subdivision.cpp pmp/algorithms/differential_geometry.cpp
 OBJ_FILES = $(SOURCE_FILES:.cpp=.o)
 CC = g++

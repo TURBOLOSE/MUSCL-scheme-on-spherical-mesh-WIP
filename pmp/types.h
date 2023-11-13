@@ -3,6 +3,8 @@
 
 #pragma once
 
+#define PMP_SCALAR_TYPE_64
+
 #include <cstdint>
 
 //#include "pmp/mat_vec.h"

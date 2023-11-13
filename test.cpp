@@ -1,4 +1,5 @@
 #include <iostream>
+#include "MUSCL_geometry.hpp"
 #include "MUSCL_base.hpp"
 
 using namespace pmp;
@@ -6,20 +7,24 @@ using namespace pmp;
 int main()
 {
 
-    double a = 1;
-    size_t N = 4; // n of vertices in col/row (total = NxN)
 
-
-    //SurfaceMesh mesh = quad_sphere(0);
-    SurfaceMesh mesh = icosphere(0);
-    //SurfaceMesh mesh = icosphere_hex(0);
+    SurfaceMesh mesh = quad_sphere(1);
+    //SurfaceMesh mesh = icosphere(0);
+    //SurfaceMesh mesh = icosphere_hex(1);
 
 
     MUSCL_base_geometry test(mesh);
-    
+    //test.print_vertices();
     
 
-    //test.print_vertices();
+    std::vector<std::array<double,4>> U_in;
+    U_in.resize(mesh.n_faces());
+
+
+    //MUSCL_base test2(mesh, U_in,1.,1.,1.,1.,1.);
+    
+
+
     //test.print_neighbors();
 
 

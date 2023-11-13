@@ -8,9 +8,9 @@ int main()
 {
 
 
-    SurfaceMesh mesh = quad_sphere(1);
+    SurfaceMesh mesh = quad_sphere(0);
     //SurfaceMesh mesh = icosphere(0);
-    //SurfaceMesh mesh = icosphere_hex(1);
+    //SurfaceMesh mesh = icosphere_hex(3);
 
 
     MUSCL_base_geometry test(mesh);

@@ -1,6 +1,6 @@
 #pragma once
 #include "pmp/algorithms/subdivision.h"
-
+#define PMP_SCALAR_TYPE_64
 using namespace pmp;
 
 SurfaceMesh tetrahedron()
@@ -8,10 +8,10 @@ SurfaceMesh tetrahedron()
     SurfaceMesh mesh;
 
     // choose coordinates on the unit sphere
-    double a = 1.0f / 3.0f;
-    double b = sqrt(8.0f / 9.0f);
-    double c = sqrt(2.0f / 9.0f);
-    double d = sqrt(2.0f / 3.0f);
+    double a = 1./ 3.;
+    double b = sqrt(8. / 9.);
+    double c = sqrt(2. / 9.);
+    double d = sqrt(2. / 3.);
 
     // add the 4 vertices
     auto v0 = mesh.add_vertex(Point(0, 0, 1));
@@ -159,9 +159,9 @@ SurfaceMesh icosahedron()
 {
     SurfaceMesh mesh;
 
-    double phi = (1.0f + sqrt(5.0f)) * 0.5f; // golden ratio
-    double a = 1.0f;
-    double b = 1.0f / phi;
+    double phi = (1. + sqrt(5.)) * 0.5; // golden ratio
+    double a = 1.0;
+    double b = 1.0 / phi;
 
     // add vertices
     auto v1 = mesh.add_vertex(Point(0, b, -a));

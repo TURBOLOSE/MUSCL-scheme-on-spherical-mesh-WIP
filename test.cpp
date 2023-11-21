@@ -7,37 +7,30 @@ using namespace pmp;
 int main()
 {
 
+    SurfaceMesh mesh = quad_sphere(1);
+    // SurfaceMesh mesh = icosphere(2);
+    //  SurfaceMesh mesh = icosphere_hex(1);
 
-    SurfaceMesh mesh = quad_sphere(0);
-    //SurfaceMesh mesh = icosphere(0);
-    //SurfaceMesh mesh = icosphere_hex(3);
+     MUSCL_base_geometry test(mesh);
 
 
-    MUSCL_base_geometry test(mesh);
-    //test.print_vertices();
-    
-
-    std::vector<std::array<double,4>> U_in;
+    /*int dim = 4;
+    std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
+    for (size_t i=0; i<mesh.n_faces(); i++)
+    {
+        U_in[i].push_back(1);
+        U_in[i].push_back(1);
+        U_in[i].push_back(1);
+        U_in[i].push_back(1);
+    }
+
+    MUSCL_base test2(mesh, U_in, dim, 1, 5. / 3);*/
 
 
-    //MUSCL_base test2(mesh, U_in,1.,1.,1.,1.,1.);
-    
+    // test.print_neighbors();
 
-
-    //test.print_neighbors();
-
-
-    //std::vector<double> r1 {0,1./3-1e-3,-0.00333333};
-    vector3d<double> r1 {0.333333,0.666667-1e-3,-0.00745356};
-    
-
-
-
-    //std::cout<<test.broken_distance(r1,r2)<<std::endl;
-
-    //std::cout<<test.point_in_face(r)<<std::endl;
-
+    // std::vector<double> r1 {0,1./3-1e-3,-0.00333333};
 
     return 0;
 }

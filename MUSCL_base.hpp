@@ -2,16 +2,18 @@
 
 #include "MUSCL_geometry.hpp"
 
-class MUSCL_base : MUSCL_base_geometry
+class MUSCL_base : public MUSCL_base_geometry
 {
 protected:
-    std::vector<std::vector<double>> U;
-    std::vector<std::vector<std::vector<double>>> nu_plus, nu_minus, U_plus, U_minus; // nu^plus_ij nu^minus_ij
-    double dt, C, gam, M, N, h0;
+    std::vector<std::vector<double>> U, U_temp;
+    std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
+    // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
+    double dt, gam, M, N, h0, t;
     int dim;
+    size_t steps;
 
 public:
-    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double C, double gam) : MUSCL_base_geometry(mesh), U(U_in), gam(gam), C(C), dim(dim)
+    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
     {
 
         double h0_temp;
@@ -22,25 +24,27 @@ public:
         }
 
         // memory allocation
-        nu_plus.resize(this->n_faces());
-        nu_minus.resize(this->n_faces());
-        U_minus.resize(this->n_faces());
+        flux_var_plus.resize(this->n_faces());
+        flux_var_minus.resize(this->n_faces());
         U_plus.resize(this->n_faces());
+        U_minus.resize(this->n_faces());
+        U_temp.resize(this->n_faces());
 
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
-            nu_plus[i].resize(faces[i].size());
-            nu_minus[i].resize(faces[i].size());
-            U_minus[i].resize(faces[i].size());
+            flux_var_plus[i].resize(faces[i].size());
+            flux_var_minus[i].resize(faces[i].size());
             U_plus[i].resize(faces[i].size());
+            U_minus[i].resize(faces[i].size());
+            U_temp[i].resize(dim);
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
-                nu_plus[i][j].resize(dim);
-                nu_minus[i][j].resize(dim);
-                U_minus[i][j].resize(dim);
+                flux_var_plus[i][j].resize(dim);
+                flux_var_minus[i][j].resize(dim);
                 U_plus[i][j].resize(dim);
+                U_minus[i][j].resize(dim);
             }
         }
 
@@ -74,42 +78,188 @@ public:
             }
         }
 
-        M = 1; // temp
-        find_M();
-        dt = h0 / (2 * M * N); // first dt set
-
-
-
+        t = 0;
+        steps = 0;
     };
 
-    void do_step()
+    void do_step(double dt0)
+    { // RK2
+        
+        dt=dt0;
+        U_temp = U;
+        find_U_edges();
+        find_flux_var();
+        find_M();
+
+        //dt = h0 / (2 * M * N); // update dt
+
+        res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
+
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
+
+            for (size_t k = 0; k < dim; k++)
+            {
+                U[i][k] += U_temp[i][k]; // results in U=U+dt/2*phi(U)
+            }
+        }
+
+        find_U_edges();
+        find_flux_var();
+        res2d(dt); // U=dt*phi(U+dt/2*phi(U))
+
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
+
+            for (size_t k = 0; k < dim; k++)
+            {
+                U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
+            }
+        }
+
+        //std::cout <<"dt= "<< dt << std::endl;
+        t += dt;
+        steps++;
+    }
+
+    double time()
     {
+
+        return t;
     }
 
 protected:
     double limiter(double r, double etha_plus, double etha_minus)
     { // classical Superbee limiter for irregular grids
         // CFL independent
+
+        if (std::isnan(r))
+        {
+            r = 1;
+        }
+
         return std::max(0., std::max(std::min(1., etha_minus * r), std::min(r, etha_plus)));
     };
 
-private:
-    void find_M() // computes value M = max (d phi/ d U1, - d phi/ d U2 )
+    void res2d(double dt_here) // space step
+    // takes data from U matrix
     {
 
-        // std::cout<<U_H_plus(1,1)[0]<<" "<<U_H_plus(1,1)[1]<<" "<<U_H_plus(1,1)[2]<<" "<<U_H_plus(1,1)[3]<<std::endl;
-    }
-
-    void find_U_edges()
-    {
         for (size_t i = 0; i < this->n_faces(); i++)
         {
+            for (size_t k = 0; k < dim; k++)
+                U[i][k] = 0;
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
                 for (size_t k = 0; k < dim; k++)
                 {
+                    U[i][k] += dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j + 1]]).norm() / surface_area[i]) *
+                              (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
                 }
+
+                /*if (i == 5)
+                {
+                    std::cout << flux_var_plus[i][j][0] << " " << flux_var_minus[i][j][0] << std::endl;
+                    std::cout << U[i][0] << std::endl;
+                }*/
+            }
+        }
+    }
+
+    virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
+
+private:
+    void find_M()
+    // computes value M = max (d phi/ d U1, - d phi/ d U2 )
+    // requires recently updated flux_var_plus, flux_var_minus
+    {
+        double max, f1, f2;
+        max = 0.001;
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
+            for (size_t j = 0; j < faces[i].size(); j++)
+            {
+                for (size_t k = 0; k < dim; k++)
+                {
+                    f1 = flux_var_plus[i][j][k] / U_plus[i][j][k];
+                    f2 = -flux_var_minus[i][j][k] / U_minus[i][j][k];
+
+                    if (!std::isnan(f1) && !std::isinf(f1) && f1 > max)
+                        max = f1;
+
+                    if (!std::isnan(f2) && !std::isinf(f2) && f2 > max)
+                        max = f2;
+                }
+            }
+        }
+
+        M = max;
+
+    }
+
+    void find_flux_var()
+    {
+
+        std::vector<double> phi_ii, phi_iji, phi_ijji;
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
+            for (size_t j = 0; j < faces[i].size(); j++)
+            {
+                phi_ii = flux_star(U[i], U[i], i, j);
+                phi_iji = flux_star(U_plus[i][j], U[i], i, j);
+                phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
+                for (size_t k = 0; k < dim; k++)
+                {
+                    flux_var_plus[i][j][k] = (phi_iji[k] - phi_ii[k]);
+                    flux_var_minus[i][j][k] = (phi_ijji[k] - phi_iji[k]);
+                }
+
+                /*if(i==5){
+
+                     // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
+                     // std::cout<<U_plus[i][j][0]<<" "<<U_plus[i][j][1]<<" "<<U_plus[i][j][2]<<" "<<U_plus[i][j][3]<<std::endl;
+                     // std::cout<<U_minus[i][j][0]<<" "<<U_minus[i][j][1]<<" "<<U_minus[i][j][2]<<" "<<U_minus[i][j][3]<<std::endl;
+                     // std::cout<<std::endl;
+
+                     //std::cout<<phi_ii[0]<<" "<<phi_ii[1]<<" "<<phi_ii[2]<<" "<<phi_ii[3]<<std::endl;
+                     //std::cout<<phi_iji[0]<<" "<<phi_iji[1]<<" "<<phi_iji[2]<<" "<<phi_iji[3]<<std::endl;
+                     //std::cout<<phi_ijji[0]<<" "<<phi_ijji[1]<<" "<<phi_ijji[2]<<" "<<phi_ijji[3]<<std::endl;
+                    // std::cout<<flux_var_plus[i][j][0]<<" "<<flux_var_minus[i][j][0]<<std::endl;
+                     //std::cout<<std::endl;
+                 }*/
+            }
+        }
+    }
+
+    void find_U_edges() // finding U_ij and U_ji
+    {
+
+        std::vector<double> pp, pm;
+        int j0, neighboor_num;
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
+            for (size_t j = 0; j < faces[i].size(); j++)
+            {
+
+                neighboor_num = neighbors_edge[i][j];
+                j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
+
+                pp = p_plus(i, j);
+                pm = p_minus(i, j);
+
+                for (size_t k = 0; k < dim; k++)
+                {
+                    U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
+                    U_minus[neighboor_num][j0][k] = U_plus[i][j][k];
+                }
+
+                /*if (i == 1)
+                {
+                    std::cout << limiter(pm[0] / pp[0], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) << "\n";
+                    std::cout<<pp[0]<<" "<<pp[1]<<" "<<pp[2]<<" "<<pp[3]<<std::endl;
+                    std::cout<<pm[0]<<" "<<pm[1]<<" "<<pm[2]<<" "<<pm[3]<<std::endl;
+                }*/
             }
         }
     };
@@ -165,17 +315,5 @@ private:
             res[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
         }
         return res;
-    }
-
-    std::vector<double> flux_temp(std::vector<double> u0)
-    {
-        // placeholder, remove later
-        return u0;
-    }
-
-    std::vector<double> HLLC_temp(std::vector<double> u0)
-    {
-        // placeholder, remove later
-        return flux_temp(u0);
     }
 };

@@ -406,8 +406,8 @@ public:
 
                 // check to which face Hm belongs
                 // is faster and safer tham point_in_face
-                if (abs(dot_product((Hm - vertices[faces[left_face1][0]]), normals[left_face1])) <
-                    abs(dot_product((Hm - vertices[faces[left_face2][0]]), normals[left_face2])))
+                if (std::abs(dot_product((Hm - vertices[faces[left_face1][0]]), normals[left_face1])) <
+                    std::abs(dot_product((Hm - vertices[faces[left_face2][0]]), normals[left_face2])))
                 {
                     Hm_face = left_face1;
                 }
@@ -416,8 +416,8 @@ public:
                     Hm_face = left_face2;
                 }
 
-                if (abs(dot_product((Hp - vertices[faces[right_face1][0]]), normals[right_face1])) <
-                    abs(dot_product((Hp - vertices[faces[right_face2][0]]), normals[right_face2])))
+                if (std::abs(dot_product((Hp - vertices[faces[right_face1][0]]), normals[right_face1])) <
+                    std::abs(dot_product((Hp - vertices[faces[right_face2][0]]), normals[right_face2])))
                 {
                     Hp_face = right_face1;
                 }
@@ -567,7 +567,7 @@ public:
                 r = (vertices[faces[face_num][i]] + vertices[faces[face_num][0]]) / 2 - a;
             }
 
-            if (abs(dot_product(cross_product(bma_face, r), normals[face_num])) < prec)
+            if (std::abs(dot_product(cross_product(bma_face, r), normals[face_num])) < prec)
             {
 
                 sinetha = 0;
@@ -576,20 +576,20 @@ public:
             {
 
                 sinetha = (cross_product(bma_face, r)).norm() / (bma_face.norm() * r.norm()) *
-                          dot_product(cross_product(bma_face, r), normals[face_num]) / abs(dot_product(cross_product(bma_face, r), normals[face_num]));
+                          dot_product(cross_product(bma_face, r), normals[face_num]) / std::abs(dot_product(cross_product(bma_face, r), normals[face_num]));
             }
 
             cosetha = dot_product(bma_face, r) / (bma_face.norm() * r.norm());
 
             if (i == 0)
             {
-                min_etha = abs(std::atan2(sinetha, cosetha));
+                min_etha = std::abs(std::atan2(sinetha, cosetha));
                 edge1 = 0;
                 edge2 = 1;
             }
-            else if (abs(std::atan2(sinetha, cosetha)) < min_etha)
+            else if (std::abs(std::atan2(sinetha, cosetha)) < min_etha)
             {
-                min_etha = abs(std::atan2(sinetha, cosetha));
+                min_etha = std::abs(std::atan2(sinetha, cosetha));
                 edge1 = i;
                 edge2 = i + 1;
                 if (edge2 == n_edges)
@@ -621,22 +621,22 @@ public:
         double t0, t1, t, tau;
         double prec = 1e-5; // compare with 0
 
-        // std::cout<<"here->"<<abs(n2[0]) <<" "<<abs(n2[1])<<" "<< abs(n2[2])<<std::endl;
+        // std::cout<<"here->"<<std::abs(n2[0]) <<" "<<std::abs(n2[1])<<" "<< std::abs(n2[2])<<std::endl;
 
-        if (abs(n2[0]) > prec)
+        if (std::abs(n2[0]) > prec)
         {
 
-            // std::cout<<abs(n1[1] - n2[1] * n1[0] / n2[0])<<" "<<abs(n1[2] - n2[2] * n1[0] / n2[0])<<std::endl;
+            // std::cout<<std::abs(n1[1] - n2[1] * n1[0] / n2[0])<<" "<<std::abs(n1[2] - n2[2] * n1[0] / n2[0])<<std::endl;
 
-            if (abs(n1[1] - n2[1] * n1[0] / n2[0]) > prec)
+            if (std::abs(n1[1] - n2[1] * n1[0] / n2[0]) > prec)
             {
                 t0 = (x2[1] - x1[1] + n2[1] * (x1[0] - x2[0]) / n2[0]) / (n1[1] - n2[1] * n1[0] / n2[0]);
             }
-            if (abs(n1[2] - n2[2] * n1[0] / n2[0]) > prec)
+            if (std::abs(n1[2] - n2[2] * n1[0] / n2[0]) > prec)
             {
                 t1 = (x2[2] - x1[2] + n2[2] * (x1[0] - x2[0]) / n2[0]) / (n1[2] - n2[2] * n1[0] / n2[0]);
             }
-            if ((abs(n1[1] - n2[1] * n1[0] / n2[0]) < prec) && (abs(n1[2] - n2[2] * n1[0] / n2[0]) < prec))
+            if ((std::abs(n1[1] - n2[1] * n1[0] / n2[0]) < prec) && (std::abs(n1[2] - n2[2] * n1[0] / n2[0]) < prec))
             {
                 std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
                 t0 = 0;
@@ -645,7 +645,7 @@ public:
             double err0 = x1[2] + n1[2] * t0 - x2[2] - n2[2] * (x1[0] - x2[0] + n1[0] * t0) / n2[0];
             double err1 = x1[1] + n1[1] * t0 - x2[1] - n2[1] * (x1[0] - x2[0] + n1[0] * t1) / n2[0];
 
-            if (abs(err0) < abs(err1))
+            if (std::abs(err0) < std::abs(err1))
             {
                 t = t0;
             }
@@ -656,17 +656,17 @@ public:
 
             tau = (x1[0] - x2[0] + n1[0] * t) / n2[0];
         }
-        else if (abs(n2[1]) > prec)
+        else if (std::abs(n2[1]) > prec)
         {
-            if (abs(n1[0] - n2[0] * n1[1] / n2[1]) > prec)
+            if (std::abs(n1[0] - n2[0] * n1[1] / n2[1]) > prec)
             {
                 t0 = (x2[0] - x1[0] + n2[0] * (x1[1] - x2[1]) / n2[1]) / (n1[0] - n2[0] * n1[1] / n2[1]);
             }
-            if (abs(n1[2] - n2[2] * n1[1] / n2[1]) > prec)
+            if (std::abs(n1[2] - n2[2] * n1[1] / n2[1]) > prec)
             {
                 t0 = (x2[2] - x1[2] + n2[2] * (x1[1] - x2[1]) / n2[1]) / (n1[2] - n2[2] * n1[1] / n2[1]);
             }
-            if (abs(n1[2] - n2[2] * n1[1] / n2[1]) < prec && abs(n1[0] - n2[0] * n1[1] / n2[1]) < prec)
+            if (std::abs(n1[2] - n2[2] * n1[1] / n2[1]) < prec && std::abs(n1[0] - n2[0] * n1[1] / n2[1]) < prec)
             {
                 std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
                 t0 = 0;
@@ -676,7 +676,7 @@ public:
             double err0 = x1[2] + n1[2] * t0 - x2[2] - n2[2] * (x1[1] - x2[1] + n1[1] * t0) / n2[1];
             double err1 = x1[0] + n1[0] * t0 - x2[0] - n2[0] * (x1[1] - x2[1] + n1[1] * t1) / n2[1];
 
-            if (abs(err0) < abs(err1))
+            if (std::abs(err0) < std::abs(err1))
             {
                 t = t0;
             }
@@ -686,17 +686,17 @@ public:
             }
             tau = (x1[1] - x2[1] + n1[1] * t) / n2[1];
         }
-        else if (abs(n2[2]) > prec)
+        else if (std::abs(n2[2]) > prec)
         {
-            if (abs(n1[0] - n2[0] * n1[2] / n2[2]) > prec)
+            if (std::abs(n1[0] - n2[0] * n1[2] / n2[2]) > prec)
             {
                 t0 = (x2[0] - x1[0] + n2[0] * (x1[2] - x2[2]) / n2[2]) / (n1[0] - n2[0] * n1[2] / n2[2]);
             }
-            if (abs(n1[1] - n2[1] * n1[2] / n2[2]) > prec)
+            if (std::abs(n1[1] - n2[1] * n1[2] / n2[2]) > prec)
             {
                 t0 = (x2[1] - x1[1] + n2[1] * (x1[2] - x2[2]) / n2[2]) / (n1[1] - n2[1] * n1[2] / n2[2]);
             }
-            if (abs(n1[1] - n2[1] * n1[2] / n2[2]) < prec && abs(n1[0] - n2[0] * n1[2] / n2[2]) < prec)
+            if (std::abs(n1[1] - n2[1] * n1[2] / n2[2]) < prec && std::abs(n1[0] - n2[0] * n1[2] / n2[2]) < prec)
             {
                 std::cout << "find_lines_intersection error: lines dont intersect" << std::endl;
                 t = 0;
@@ -706,7 +706,7 @@ public:
             double err0 = x1[1] + n1[1] * t0 - x2[1] - n2[1] * (x1[2] - x2[2] + n1[2] * t0) / n2[2];
             double err1 = x1[0] + n1[0] * t0 - x2[0] - n2[0] * (x1[2] - x2[2] + n1[2] * t1) / n2[2];
 
-            if (abs(err0) < abs(err1))
+            if (std::abs(err0) < std::abs(err1))
             {
                 t = t0;
             }
@@ -765,7 +765,7 @@ public:
         int flag = 0;
         int rel_min_ind;
         double dotpr, min;
-        double eps = 1e-3; // abs precision
+        double eps = 1e-3; // std::abs precision
 
         min = 10;
 
@@ -773,15 +773,15 @@ public:
         {
 
             dotpr = dot_product((r - vertices[faces[count][0]]), normals[count]);
-            if (abs(dotpr) < eps) // compare with 0
+            if (std::abs(dotpr) < eps) // compare with 0
             {
                 res.push_back(count);
                 flag += 1;
             }
 
-            if (abs(dotpr) < min)
+            if (std::abs(dotpr) < min)
             {
-                min = abs(dotpr);
+                min = std::abs(dotpr);
                 rel_min_ind = count;
             }
 
@@ -809,22 +809,22 @@ public:
         int flag = 0;
         int rel_min_ind;
         double dotpr, min;
-        double eps = 1e-3; // abs precision
+        double eps = 1e-3; // std::abs precision
 
         min = 10;
 
         for (auto nei : neighbors[face_clue])
         {
             dotpr = dot_product((r - vertices[faces[nei][0]]), normals[nei]);
-            if (abs(dotpr) < eps) // compare with 0
+            if (std::abs(dotpr) < eps) // compare with 0
             {
                 res.push_back(nei);
                 flag += 1;
             }
 
-            if (abs(dotpr) < min)
+            if (std::abs(dotpr) < min)
             {
-                min = abs(dotpr);
+                min = std::abs(dotpr);
                 rel_min_ind = count;
             }
         }
@@ -844,13 +844,13 @@ public:
         bool res = false;
         double dotpr;
         vector3d<double> r_face;
-        double eps = 1e-3; // abs precision
+        double eps = 1e-3; // std::abs precision
 
         for (auto face : faces)
         {
             r_face = face_centers[count];
             dotpr = dot_product((r_face - r), normals[count]);
-            if (abs(dotpr) < eps) // compare with 0
+            if (std::abs(dotpr) < eps) // compare with 0
             {
                 res = true;
             }
@@ -896,6 +896,20 @@ public:
             }
             std::cout << std::endl;
         }
+    };
+
+
+    void write_neighbors()
+    {
+        std::ofstream outfile;
+        outfile.open("results/face_centers.dat", std::ios::out);
+
+        for (auto face_center : face_centers)
+        {
+            outfile<< face_center[0] << " "<< face_center[1] << " "<< face_center[2];
+            outfile << std::endl;
+        }
+        outfile.close();
     };
 
     void print_neighbors_edge()

@@ -135,7 +135,7 @@ protected:
 
         if (std::isnan(r))
         {
-            r = 1;
+            r = 0;
         }
 
         return std::max(0., std::max(std::min(1., etha_minus * r), std::min(r, etha_plus)));

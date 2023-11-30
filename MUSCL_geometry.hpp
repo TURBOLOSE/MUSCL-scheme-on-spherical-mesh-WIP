@@ -443,9 +443,12 @@ public:
                 H_minus[n_face][i] = Hm_dist;
                 flux_faces_minus[n_face][i].push_back(left_face1);
                 flux_faces_minus[n_face][i].push_back(left_face2);
+                
+                double hm2=broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
+                double hm1=broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
 
-                betas_minus[n_face][i].push_back(broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face) / B1B2_d);
-                betas_minus[n_face][i].push_back(broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face) / B1B2_d);
+                betas_minus[n_face][i].push_back(hm2/(hm1+hm2));
+                betas_minus[n_face][i].push_back(hm1/(hm1+hm2));
 
                 double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
 
@@ -460,18 +463,22 @@ public:
                 flux_faces_plus[n_face][i].push_back(right_face1);
                 flux_faces_plus[n_face][i].push_back(right_face2);
 
-                betas_plus[n_face][i].push_back(broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face) / B1B2p_d);
-                betas_plus[n_face][i].push_back(broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face) / B1B2p_d);
 
-                if (betas_plus[n_face][i][0] + betas_plus[n_face][i][1] > 1.1)
+                double hp2=broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face);
+                double hp1=broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face);
+
+
+                betas_plus[n_face][i].push_back(hp2 / (hp1+hp2));
+                betas_plus[n_face][i].push_back(hp1 / (hp1+hp2));
+
+                if (std::abs(betas_plus[n_face][i][0] + betas_plus[n_face][i][1])-1 > 1e-8)
                 {
                     std::cout << "sum of betas_plus is not 1" << std::endl;
-                    // std::cout << n_face << " " << i << std::endl;
-                    // std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
-                    // std::cout << B1B2p_d << " " << broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face) << " " << broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face) << std::endl;
+                    std::cout<<betas_plus[n_face][i][0] + betas_plus[n_face][i][1]<<std::endl;
+                    std::cout<<n_face<<" "<<i<<std::endl;
                 }
 
-                if (betas_minus[n_face][i][0] + betas_minus[n_face][i][1] > 1.1)
+                if (std::abs(betas_minus[n_face][i][0] + betas_minus[n_face][i][1])-1 > 1e-8)
                 {
                     std::cout << "sum of betas_minus is not 1" << std::endl;
                 }
@@ -619,7 +626,7 @@ public:
         // method returns coordinates of point of intersection
         vector3d<double> res;
         double t0, t1, t, tau;
-        double prec = 1e-5; // compare with 0
+        double prec = 1e-10; // compare with 0
 
         // std::cout<<"here->"<<std::abs(n2[0]) <<" "<<std::abs(n2[1])<<" "<< std::abs(n2[2])<<std::endl;
 
@@ -899,7 +906,7 @@ public:
     };
 
 
-    void write_neighbors()
+    void write_face_centers()
     {
         std::ofstream outfile;
         outfile.open("results/face_centers.dat", std::ios::out);

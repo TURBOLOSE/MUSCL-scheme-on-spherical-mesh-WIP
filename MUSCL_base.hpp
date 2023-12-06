@@ -108,6 +108,9 @@ public:
         find_flux_var();
         res2d(dt); // U=dt*phi(U+dt/2*phi(U))
 
+
+
+        double temp=0;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -115,11 +118,15 @@ public:
             {
                 U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
             }
+            temp+=U[i][0];
         }
-
-        //std::cout <<"dt= "<< dt << std::endl;
+        std::cout<<temp<<std::endl;
+        //std::cout <<"dt= "<< h0 / (2 * M * N) << std::endl;
         t += dt;
         steps++;
+
+
+
     }
 
     double time()

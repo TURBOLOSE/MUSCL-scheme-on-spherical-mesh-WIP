@@ -19,14 +19,13 @@ class MUSCL_base_geometry
 {
 
 protected:
-
     std::vector<vector3d<double>> vertices;       // coordinates of points
     std::vector<std::vector<int>> faces;          // indexes of vertices that make a face
     std::vector<std::vector<int>> neighbors;      // indexes of neighbor faces of a given face
     std::vector<std::vector<int>> neighbors_edge; // indexes of neighbor faces of a given face that share at least an edge
     std::vector<vector3d<double>> face_centers;
-    std::vector<vector3d<double>> normals;          //normals to surface
-    std::vector<std::vector<vector3d<double>>> edge_normals; //normals to edge
+    std::vector<vector3d<double>> normals;                   // normals to surface
+    std::vector<std::vector<vector3d<double>>> edge_normals; // normals to edge
     std::vector<double> surface_area;
 
     std::vector<std::vector<std::vector<int>>> flux_faces_plus;  //+ flux face numbers for each face for each vertice
@@ -34,7 +33,7 @@ protected:
     std::vector<std::vector<double>> H_minus;                    // distances from the center of face to  H_minus for each face for each vertice
     std::vector<std::vector<double>> H_plus;                     // distances fromt the center of face to to H_plus for each face for each vertice
 
-    std::vector<std::vector<double>> BM_dist; //distances from face centers to edge centers
+    std::vector<std::vector<double>> BM_dist; // distances from face centers to edge centers
 
     std::vector<std::vector<std::vector<double>>> betas_plus;  // baricentric distances to H_plus from face centers for each face for each vertice
     std::vector<std::vector<std::vector<double>>> betas_minus; // baricentric distances to H_minus from face centers for each face for each vertice
@@ -42,7 +41,7 @@ protected:
 public:
     MUSCL_base_geometry(SurfaceMesh mesh)
     {
-        
+
         vector3d<double> r1, r2;
 
         vertices.resize(mesh.n_vertices());
@@ -115,7 +114,6 @@ public:
             i++;
         }
 
-        
         /*std::vector<int> temp;
         std::vector<int> v1, v2;
 
@@ -152,7 +150,7 @@ public:
 
                 if (j != faces[i].size() - 1)
                 {
-                    f2 = faces[i][j+1];
+                    f2 = faces[i][j + 1];
                 }
                 else
                 {
@@ -234,9 +232,7 @@ public:
             }
         }
 
-
         process_mesh();
-
     };
 
     void process_mesh()
@@ -272,11 +268,15 @@ public:
                 else
                 {
                     BM = (vertices[face[i]] + vertices[face[i + 1]]) / 2 - face_centers[n_face];
-                    r = (vertices[face[i]] - vertices[face[i+1]]);
+                    r = (vertices[face[i]] - vertices[face[i + 1]]);
                 }
 
-                edge_normals[n_face][i]=cross_product(normals[n_face],r);
-                edge_normals[n_face][i]/=edge_normals[n_face][i].norm();
+                //edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
+                //edge_normals[n_face][i] = cross_product(r, normals[neighbors_edge[n_face][i]]); //v2
+                edge_normals[n_face][i] = cross_product(normals[n_face], r)+
+                cross_product(r, normals[neighbors_edge[n_face][i]]);  //v3
+
+                edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 
                 BM_dist[n_face].push_back((BM).norm());
 
@@ -443,12 +443,12 @@ public:
                 H_minus[n_face][i] = Hm_dist;
                 flux_faces_minus[n_face][i].push_back(left_face1);
                 flux_faces_minus[n_face][i].push_back(left_face2);
-                
-                double hm2=broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
-                double hm1=broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
 
-                betas_minus[n_face][i].push_back(hm2/(hm1+hm2));
-                betas_minus[n_face][i].push_back(hm1/(hm1+hm2));
+                double hm2 = broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
+                double hm1 = broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
+
+                betas_minus[n_face][i].push_back(hm2 / (hm1 + hm2));
+                betas_minus[n_face][i].push_back(hm1 / (hm1 + hm2));
 
                 double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
 
@@ -463,26 +463,25 @@ public:
                 flux_faces_plus[n_face][i].push_back(right_face1);
                 flux_faces_plus[n_face][i].push_back(right_face2);
 
+                double hp2 = broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face);
+                double hp1 = broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face);
 
-                double hp2=broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face);
-                double hp1=broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face);
+                betas_plus[n_face][i].push_back(hp2 / (hp1 + hp2));
+                betas_plus[n_face][i].push_back(hp1 / (hp1 + hp2));
 
-
-                betas_plus[n_face][i].push_back(hp2 / (hp1+hp2));
-                betas_plus[n_face][i].push_back(hp1 / (hp1+hp2));
-
-                if (std::abs(betas_plus[n_face][i][0] + betas_plus[n_face][i][1])-1 > 1e-8)
+                if (std::abs(betas_plus[n_face][i][0] + betas_plus[n_face][i][1]) - 1 > 1e-8)
                 {
                     std::cout << "sum of betas_plus is not 1" << std::endl;
-                    std::cout<<betas_plus[n_face][i][0] + betas_plus[n_face][i][1]<<std::endl;
-                    std::cout<<n_face<<" "<<i<<std::endl;
+                    std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
+                    std::cout << n_face << " " << i << std::endl;
                 }
 
-                if (std::abs(betas_minus[n_face][i][0] + betas_minus[n_face][i][1])-1 > 1e-8)
+                if (std::abs(betas_minus[n_face][i][0] + betas_minus[n_face][i][1]) - 1 > 1e-8)
                 {
                     std::cout << "sum of betas_minus is not 1" << std::endl;
+                    std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
+                    std::cout << n_face << " " << i << std::endl;
                 }
-
             }
         }
     };
@@ -882,12 +881,22 @@ public:
 
     void print_vertices()
     {
-        for (auto face : faces)
+
+        for (auto vertice : vertices)
         {
-            for (auto face_element : face)
+            std::cout << "(";
+            for (auto vertice_el : vertice)
             {
-                std::cout << "(" << vertices[face_element][0] << "|" << vertices[face_element][1] << "|" << vertices[face_element][2] << ")";
+                std::cout << vertice_el;
+
+                if(vertice_el != *(vertice.end()-1)   ){
+                    std::cout<<",";
+                }
+                else{
+                    std::cout<<")";
+                }
             }
+
             std::cout << std::endl;
         }
     };
@@ -905,7 +914,6 @@ public:
         }
     };
 
-
     void write_face_centers()
     {
         std::ofstream outfile;
@@ -913,7 +921,37 @@ public:
 
         for (auto face_center : face_centers)
         {
-            outfile<< face_center[0] << " "<< face_center[1] << " "<< face_center[2];
+            outfile << face_center[0] << " " << face_center[1] << " " << face_center[2];
+            outfile << std::endl;
+        }
+        outfile.close();
+    };
+
+    void write_faces()
+    {
+        std::ofstream outfile;
+        outfile.open("results/faces.dat", std::ios::out);
+
+        for (auto face : faces)
+        {
+            for (auto face_el : face)
+                outfile << face_el << " ";
+
+            outfile << std::endl;
+        }
+        outfile.close();
+    };
+
+    void write_vertices()
+    {
+        std::ofstream outfile;
+        outfile.open("results/vertices.dat", std::ios::out);
+
+        for (auto vertice : vertices)
+        {
+            for (auto vertice_el : vertice)
+                outfile << vertice_el << " ";
+
             outfile << std::endl;
         }
         outfile.close();

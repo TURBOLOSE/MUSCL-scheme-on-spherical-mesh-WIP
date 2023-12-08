@@ -84,14 +84,21 @@ public:
 
     void do_step(double dt0)
     { // RK2
-        
-        dt=dt0;
+
+        dt = dt0;
         U_temp = U;
         find_U_edges();
         find_flux_var();
         find_M();
 
-        //dt = h0 / (2 * M * N); // update dt
+        /*if(dt > h0 / (2 * M * N)){
+            dt=h0 / (2 * M * N);
+        }*/
+
+        if (dt > h0 * 0.1)
+        {
+            dt = h0 * 0.1;
+        }
 
         res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
 
@@ -108,9 +115,7 @@ public:
         find_flux_var();
         res2d(dt); // U=dt*phi(U+dt/2*phi(U))
 
-
-
-        double temp=0;
+        double temp = 0;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -118,15 +123,13 @@ public:
             {
                 U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
             }
-            temp+=U[i][0];
+            temp += U[i][0];
         }
-        std::cout<<temp<<std::endl;
-        //std::cout <<"dt= "<< h0 / (2 * M * N) << std::endl;
+
+        std::cout<<"rho_total="<<temp<<std::endl;
+        // std::cout <<"dt= "<< h0 / (2 * M * N) << std::endl;
         t += dt;
         steps++;
-
-
-
     }
 
     double time()
@@ -161,18 +164,22 @@ protected:
             {
                 for (size_t k = 0; k < dim; k++)
                 {
-                    U[i][k] += dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j + 1]]).norm() / surface_area[i]) *
-                              (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
-                }
+                    if (j == faces[i].size() - 1)
+                    {
+                        U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][0]]).norm() / surface_area[i]) *
+                                   (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
+                    }
+                    else
+                    {
+                        U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j + 1]]).norm() / surface_area[i]) *
+                                   (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
+                    }
 
-                /*if (i == 5)
-                {
-                    std::cout << flux_var_plus[i][j][0] << " " << flux_var_minus[i][j][0] << std::endl;
-                    std::cout << U[i][0] << std::endl;
-                }*/
+                    //std::cout << i << " " << j << " " << flux_var_plus[i][j][0] << " " << flux_var_minus[i][j][0] << std::endl;
+                }
             }
         }
-    }
+    };
 
     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
 
@@ -202,7 +209,6 @@ private:
         }
 
         M = max;
-
     }
 
     void find_flux_var()
@@ -221,20 +227,6 @@ private:
                     flux_var_plus[i][j][k] = (phi_iji[k] - phi_ii[k]);
                     flux_var_minus[i][j][k] = (phi_ijji[k] - phi_iji[k]);
                 }
-
-                /*if(i==5){
-
-                     // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
-                     // std::cout<<U_plus[i][j][0]<<" "<<U_plus[i][j][1]<<" "<<U_plus[i][j][2]<<" "<<U_plus[i][j][3]<<std::endl;
-                     // std::cout<<U_minus[i][j][0]<<" "<<U_minus[i][j][1]<<" "<<U_minus[i][j][2]<<" "<<U_minus[i][j][3]<<std::endl;
-                     // std::cout<<std::endl;
-
-                     //std::cout<<phi_ii[0]<<" "<<phi_ii[1]<<" "<<phi_ii[2]<<" "<<phi_ii[3]<<std::endl;
-                     //std::cout<<phi_iji[0]<<" "<<phi_iji[1]<<" "<<phi_iji[2]<<" "<<phi_iji[3]<<std::endl;
-                     //std::cout<<phi_ijji[0]<<" "<<phi_ijji[1]<<" "<<phi_ijji[2]<<" "<<phi_ijji[3]<<std::endl;
-                    // std::cout<<flux_var_plus[i][j][0]<<" "<<flux_var_minus[i][j][0]<<std::endl;
-                     //std::cout<<std::endl;
-                 }*/
             }
         }
     }
@@ -260,13 +252,6 @@ private:
                     U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
                     U_minus[neighboor_num][j0][k] = U_plus[i][j][k];
                 }
-
-                /*if (i == 1)
-                {
-                    std::cout << limiter(pm[0] / pp[0], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) << "\n";
-                    std::cout<<pp[0]<<" "<<pp[1]<<" "<<pp[2]<<" "<<pp[3]<<std::endl;
-                    std::cout<<pm[0]<<" "<<pm[1]<<" "<<pm[2]<<" "<<pm[3]<<std::endl;
-                }*/
             }
         }
     };

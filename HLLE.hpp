@@ -122,12 +122,11 @@ protected:
 
             for (size_t i = 0; i < 4; i++)
             {
-                F[i] = (S_R * FL[i] - S_L * FR[i] + S_R * S_L * (ul[i] - ur[i])) / (S_R - S_L);
+                F[i] = (S_R * FL[i] - S_L * FR[i] + S_R * S_L * (ur[i] - ul[i])) / (S_R - S_L);
             }
         }
         else if (S_R <= 0)
         {
-
             F = FR;
         }
 

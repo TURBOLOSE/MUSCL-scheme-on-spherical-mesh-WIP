@@ -2,6 +2,20 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import imageio
+import os
+
+
+
+def make_gif(path):
+    _, _, files = next(os.walk(path))
+    images = []
+    for filename in files:
+        images.append(imageio.imread(path+"/"+filename))
+    imageio.mimsave('plots/res.gif', images, duration=5)
+
+
+
 
 
 maxstep=600
@@ -87,7 +101,8 @@ norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
 #     ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
 # fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),
 #              cax=ax[1], orientation='horizontal', label='Density')
-# fig.show()
+
+
 
 
 
@@ -95,14 +110,15 @@ for i in range(maxstep):
     if(i % skipstep==0 ):
         rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
         fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
+        fig.suptitle('t='+str(data_rho.loc[i,0]))
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
         fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Density')
-        fig.savefig('plots/fig'+str(i)+'.png', bbox_inches='tight')
+        fig.savefig('plots/fig'+"{0:0>3}".format(i)+'.png', bbox_inches='tight')
 
 #fig.show()
 
 
 
-
+make_gif("plots/quad_4_uni_true")
 

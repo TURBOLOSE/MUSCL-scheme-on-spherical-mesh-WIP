@@ -17,9 +17,10 @@ omega=np.array([0,0,1])
 
 for face_num, R in enumerate(face_centers):
     #if( R[2] >=0):
-    #    omega=np.array([0,0,1])
+       #omega=np.array([0,0,1])
+       #rho[face_num]*=2
     #else:
-     #   omega=np.array([0,0,-1])
+        #omega=np.array([0,0,-1])
     l.append(rho[face_num]*np.cross(R,np.cross(omega,R)))
 
 

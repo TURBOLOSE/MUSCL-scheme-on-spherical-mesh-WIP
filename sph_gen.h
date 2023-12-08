@@ -33,7 +33,7 @@ SurfaceMesh hexahedron()
     SurfaceMesh mesh;
 
     // choose coordinates on the unit sphere
-    double a = 1.0f / sqrt(3.0f);
+    double a = 1. / sqrt(3.);
 
     // add the 8 vertices
     auto v0 = mesh.add_vertex(Point(-a, -a, -a));
@@ -143,7 +143,7 @@ void project_to_unit_sphere(SurfaceMesh &mesh)
     {
         auto p = mesh.position(v);
         auto n = norm(p);
-        mesh.position(v) = (1.0 / n) * p;
+        mesh.position(v) = (1. / n) * p;
     }
 }
 

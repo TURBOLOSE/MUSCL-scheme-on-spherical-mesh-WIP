@@ -6,13 +6,11 @@ using namespace pmp;
 int main()
 {
 
-     //SurfaceMesh mesh = quad_sphere(3);
+     SurfaceMesh mesh = quad_sphere(4);
      //SurfaceMesh mesh = icosphere(2);
-    SurfaceMesh mesh = icosphere_hex(3);
+    //SurfaceMesh mesh = icosphere_hex(2);
 
-   //double dt = 0.0015;
-
-    double dt = 0.0015;
+    double dt = 0.0002;
     size_t maxstep = 600;
 
     int dim = 4;
@@ -27,6 +25,10 @@ int main()
     {
         U_in[i].resize(dim);
     }
+
+
+
+    //MUSCL_base_geometry test(mesh);
 
     double element;
     std::vector<double> temp;
@@ -52,12 +54,7 @@ int main()
 
     test2.write_t_rho();
 
-    std::vector<double> u0;
-    u0.resize(4);
-    u0[0] = 2;
-    u0[1] = 0;
-    u0[2] = 0;
-    u0[3] = 1;
+
 
     for (size_t i = 0; i < maxstep; i++)
     {

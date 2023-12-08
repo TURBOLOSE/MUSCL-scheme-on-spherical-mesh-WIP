@@ -429,9 +429,6 @@ public:
 
                     double Hm_dist = broken_distance(face_centers[n_face], Hm, n_face, Hm_face);
 
-
-        
-
                     if (Hm_dist > 1.5 * (Hm - face_centers[n_face]).norm())
                     {
                         std::cout << "check distances" << std::endl;
@@ -444,7 +441,7 @@ public:
                     H_minus[n_face][i] = Hm_dist;
                     flux_faces_minus[n_face][i].push_back(left_face1);
                     flux_faces_minus[n_face][i].push_back(left_face2);
-
+              
                     double hm2 = broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
                     double hm1 = broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
 
@@ -452,6 +449,8 @@ public:
                     betas_minus[n_face][i].push_back(hm1 / (hm1 + hm2));
 
                     double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
+
+
 
                     if (Hp_dist > 1.5 * (Hp - face_centers[n_face]).norm())
                     {
@@ -537,19 +536,16 @@ public:
             iter++;
         }
 
-        //intersection.print();
-
         intersection = intersection_prev;
-
         dist += (b - intersection).norm();
 
 
-
+        if(start_face != end_face){
         bma=a-b;
         intersection=broken_distance_base(b, a, bma, end_face);
         dist += (a - intersection).norm();
         dist += (b - intersection).norm();
-        
+        }
 
 
         dist/=2.;
@@ -889,17 +885,7 @@ public:
         return res;
     }
 
-    double area(std::vector<vector3d<double>> shape) // returns value of s area between points
-    {
 
-        double S = 0;
-        for (size_t i = 0; i < shape.size(); i++)
-        {
-
-            (shape[0] - shape[i]).print();
-        }
-        return S;
-    }
 
     void print_vertices()
     {

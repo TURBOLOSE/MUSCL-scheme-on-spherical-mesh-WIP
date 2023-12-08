@@ -102,8 +102,10 @@ norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
 # fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),
 #              cax=ax[1], orientation='horizontal', label='Density')
 
+face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
 
-
+theta_fc=-np.arccos(face_centers.loc[:,2])+np.pi/2
+np.max(np.abs(np.array(data_rho.loc[0,1:len(faces)])-np.cos(theta_fc)))
 
 
 for i in range(maxstep):
@@ -120,5 +122,5 @@ for i in range(maxstep):
 
 
 
-make_gif("plots/quad_4_uni_true")
+make_gif("plots/quad_4_true_longer")
 

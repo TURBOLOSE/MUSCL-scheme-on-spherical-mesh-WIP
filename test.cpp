@@ -6,11 +6,11 @@ using namespace pmp;
 int main()
 {
 
-     SurfaceMesh mesh = quad_sphere(4);
-     //SurfaceMesh mesh = icosphere(2);
-    //SurfaceMesh mesh = icosphere_hex(2);
+     //SurfaceMesh mesh = quad_sphere(4);
+     SurfaceMesh mesh = icosphere(3);
+    //SurfaceMesh mesh = icosphere_hex(3);
 
-    double dt = 0.0002;
+    double dt = 0.002;
     size_t maxstep = 600;
 
     int dim = 4;
@@ -28,7 +28,6 @@ int main()
 
 
 
-    //MUSCL_base_geometry test(mesh);
 
     double element;
     std::vector<double> temp;
@@ -51,8 +50,8 @@ int main()
     test2.write_face_centers();
     test2.write_faces();
     test2.write_vertices();
-
     test2.write_t_rho();
+    test2.write_t_curl();
 
 
 
@@ -60,6 +59,7 @@ int main()
     {
         test2.do_step(dt);
         test2.write_t_rho();
+        test2.write_t_curl();
     }
 
     // test.print_neighbors();

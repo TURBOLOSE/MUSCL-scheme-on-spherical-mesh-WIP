@@ -100,6 +100,8 @@ public:
             dt = h0 * 0.1;
         }
 
+        //std::cout<<h0 * 0.1<<std::endl;
+
         res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
 
         for (size_t i = 0; i < this->n_faces(); i++)
@@ -164,18 +166,28 @@ protected:
             {
                 for (size_t k = 0; k < dim; k++)
                 {
-                    if (j == faces[i].size() - 1)
+                    if (j == (faces[i].size() - 1))
                     {
                         U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][0]]).norm() / surface_area[i]) *
                                    (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
+
+                        if(std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k]))){
+                        std::cout << i << " " << j <<"kek"<<std::endl;
+                            }
                     }
                     else
                     {
                         U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j + 1]]).norm() / surface_area[i]) *
                                    (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
+
+                                   if(std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
+                                   {
+                                    std::cout << i << " " << j <<"kek"<<std::endl;
+                                   }
                     }
 
                     //std::cout << i << " " << j << " " << flux_var_plus[i][j][0] << " " << flux_var_minus[i][j][0] << std::endl;
+                    //std::cout << i << " " << j << " " << U[i][0] << " " << flux_var_minus[i][j][0] << std::endl;
                 }
             }
         }

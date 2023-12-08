@@ -6,7 +6,7 @@ class MUSCL_HLLE : public MUSCL_base
 {
 
 private:
-    std::ofstream outfile;
+    std::ofstream outfile, outfile_curl;
 
 public:
     MUSCL_HLLE(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
@@ -15,6 +15,10 @@ public:
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
         outfile.open("results/rho.dat", std::ios::out | std::ios::app);
+
+        outfile_curl.open("results/curl.dat", std::ios::out | std::ios::trunc);
+        outfile_curl.close();
+        outfile_curl.open("results/curl.dat", std::ios::out | std::ios::app);
     }
 
     void print_rho()
@@ -34,6 +38,25 @@ public:
             outfile << U_i[0] << " ";
         }
         outfile << "\n";
+    };
+
+    void write_t_curl()
+    {
+         vector3d<double> vel, l_vec, rxV;
+        outfile_curl << this->time() << "  ";
+        for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
+        {
+            
+            l_vec[0] = U[n_face][1];
+            l_vec[1] = U[n_face][2];
+            l_vec[2] = U[n_face][3];
+            vel = cross_product(face_centers[n_face], l_vec);
+            vel /= (-U[n_face][0] * (face_centers[n_face].norm() * face_centers[n_face].norm()));
+
+            rxV=cross_product(face_centers[n_face],vel);
+            outfile_curl << rxV.norm()<< " ";
+        }
+        outfile_curl << "\n";
     };
 
 protected:

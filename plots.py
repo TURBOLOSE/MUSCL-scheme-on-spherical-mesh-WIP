@@ -19,7 +19,7 @@ def make_gif(path):
 
 
 maxstep=600
-skipstep=20
+skipstep=100
 
 
 data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
@@ -43,11 +43,6 @@ faces=faces_new
 
 theta=-np.arccos(vertices[:,2])+np.pi/2
 phi=np.arctan2(vertices[:,1],vertices[:,0])
-
-
-
-
-
 
 
 x_plot=phi/(np.sqrt(2)) #projection

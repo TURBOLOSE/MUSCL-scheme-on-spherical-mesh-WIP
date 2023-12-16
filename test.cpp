@@ -1,25 +1,28 @@
 #include <iostream>
 #include "HLLE.hpp"
+#include "HLLE_p.hpp"
+#include "HLLC.hpp"
+
 
 using namespace pmp;
 
 int main()
 {
 
-     //SurfaceMesh mesh = quad_sphere(4);
-     SurfaceMesh mesh = icosphere(3);
+     SurfaceMesh mesh = quad_sphere(1);
+     //SurfaceMesh mesh = icosphere(3);
     //SurfaceMesh mesh = icosphere_hex(3);
 
     double dt = 0.002;
-    size_t maxstep = 600;
-
+    size_t maxstep = 1;
     int dim = 4;
-    double gam = 1;
+    double gam = 1.4;
+    std::ifstream inData("input/input.dat");
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
     vector3d<double> vel, L;
 
-    // MUSCL_base_geometry test(mesh);
+    //MUSCL_base_geometry test(mesh);
 
     for (size_t i = 0; i < mesh.n_faces(); i++)
     {
@@ -31,7 +34,7 @@ int main()
 
     double element;
     std::vector<double> temp;
-    std::ifstream inData("input/input.dat");
+
     while (!inData.eof() && inData >> element)
     {
         temp.push_back(element);
@@ -45,7 +48,10 @@ int main()
         }
     }
 
-    MUSCL_HLLE test2(mesh, U_in, dim, gam);
+
+    MUSCL_HLLE test2(mesh, U_in, 4, gam);
+    //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
+    //MUSCL_HLLC test2(mesh, U_in, dim, gam);
 
     test2.write_face_centers();
     test2.write_faces();

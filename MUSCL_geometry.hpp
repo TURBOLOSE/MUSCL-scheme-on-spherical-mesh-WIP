@@ -272,8 +272,9 @@ public:
                 }
 
                  //edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
-                 //edge_normals[n_face][i] = cross_product(r, normals[neighbors_edge[n_face][i]]); //v2
-                edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
+                 //edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
+                //edge_normals[n_face][i] = cross_product(normals[n_face], r) +cross_product(normals[neighbors_edge[n_face][i]],r); // v3 (???)
+                edge_normals[n_face][i] = cross_product(normals[n_face], r) -cross_product(normals[neighbors_edge[n_face][i]],r); // v4
 
                 edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 
@@ -425,65 +426,88 @@ public:
                     Hp_face = right_face2;
                 }
 
+                double Hm_dist = broken_distance(face_centers[n_face], Hm, n_face, Hm_face);
 
+                if (Hm_dist > 1.5 * (Hm - face_centers[n_face]).norm())
+                {
+                    std::cout << "check distances" << std::endl;
+                }
 
-                    double Hm_dist = broken_distance(face_centers[n_face], Hm, n_face, Hm_face);
+                double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2], left_face1, left_face2);
 
-                    if (Hm_dist > 1.5 * (Hm - face_centers[n_face]).norm())
-                    {
-                        std::cout << "check distances" << std::endl;
-                    }
+                H_minus[n_face][i] = Hm_dist;
+                flux_faces_minus[n_face][i].push_back(left_face1);
+                flux_faces_minus[n_face][i].push_back(left_face2);
 
+                double hm2 = broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
+                double hm1 = broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
 
+                betas_minus[n_face][i].push_back(hm2 / (hm1 + hm2));
+                betas_minus[n_face][i].push_back(hm1 / (hm1 + hm2));
 
-                    double B1B2_d = broken_distance(face_centers[left_face1], face_centers[left_face2], left_face1, left_face2);
+                double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
 
-                    H_minus[n_face][i] = Hm_dist;
-                    flux_faces_minus[n_face][i].push_back(left_face1);
-                    flux_faces_minus[n_face][i].push_back(left_face2);
-              
-                    double hm2 = broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
-                    double hm1 = broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
+                if (Hp_dist > 1.5 * (Hp - face_centers[n_face]).norm())
+                {
+                    std::cout << "check distances" << std::endl;
+                }
 
-                    betas_minus[n_face][i].push_back(hm2 / (hm1 + hm2));
-                    betas_minus[n_face][i].push_back(hm1 / (hm1 + hm2));
+                double B1B2p_d = broken_distance(face_centers[right_face1], face_centers[right_face2], right_face1, right_face2);
 
-                    double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
+                H_plus[n_face][i] = Hp_dist;
+                flux_faces_plus[n_face][i].push_back(right_face1);
+                flux_faces_plus[n_face][i].push_back(right_face2);
 
+                double hp2 = broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face);
+                double hp1 = broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face);
 
+                betas_plus[n_face][i].push_back(hp2 / (hp1 + hp2));
+                betas_plus[n_face][i].push_back(hp1 / (hp1 + hp2));
 
-                    if (Hp_dist > 1.5 * (Hp - face_centers[n_face]).norm())
-                    {
-                        std::cout << "check distances" << std::endl;
-                    }
+                if (std::abs(betas_plus[n_face][i][0] + betas_plus[n_face][i][1]) - 1 > 1e-8)
+                {
+                    std::cout << "sum of betas_plus is not 1" << std::endl;
+                    std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
+                    std::cout << n_face << " " << i << std::endl;
+                }
 
-                    double B1B2p_d = broken_distance(face_centers[right_face1], face_centers[right_face2], right_face1, right_face2);
+                if (std::abs(betas_minus[n_face][i][0] + betas_minus[n_face][i][1]) - 1 > 1e-8)
+                {
+                    std::cout << "sum of betas_minus is not 1" << std::endl;
+                    std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
+                    std::cout << n_face << " " << i << std::endl;
+                }
 
-                    H_plus[n_face][i] = Hp_dist;
-                    flux_faces_plus[n_face][i].push_back(right_face1);
-                    flux_faces_plus[n_face][i].push_back(right_face2);
+                int neighboor_num = neighbors_edge[n_face][i];
+                int j0 = (std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), n_face) - neighbors_edge[neighboor_num].begin());
 
-                    double hp2 = broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face);
-                    double hp1 = broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face);
+                /*int j1 = j0 + 1;
+                int i1 = i + 1;
+                if ((j0 + 1) == faces[n_face].size())
+                    j1 = 0;
 
-                    betas_plus[n_face][i].push_back(hp2 / (hp1 + hp2));
-                    betas_plus[n_face][i].push_back(hp1 / (hp1 + hp2));
+                if ((i + 1) == faces[n_face].size())
+                    i1 = 0;
 
-                    if (std::abs(betas_plus[n_face][i][0] + betas_plus[n_face][i][1]) - 1 > 1e-8)
-                    {
-                        std::cout << "sum of betas_plus is not 1" << std::endl;
-                        std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
-                        std::cout << n_face << " " << i << std::endl;
-                    }
+                std::cout << n_face << " " << neighbors_edge[neighboor_num][j0] << std::endl;
+                std::cout << faces[n_face][i] << " " << faces[n_face][i1] << std::endl;
+                std::cout << faces[neighboor_num][j0] << " " << faces[neighboor_num][j1] << std::endl;
+                std::cout << std::endl;*/
 
-                    if (std::abs(betas_minus[n_face][i][0] + betas_minus[n_face][i][1]) - 1 > 1e-8)
-                    {
-                        std::cout << "sum of betas_minus is not 1" << std::endl;
-                        std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
-                        std::cout << n_face << " " << i << std::endl;
-                    }
+                
             }
         }
+
+        /*vertices[faces[3][0]].print();
+        vertices[faces[3][1]].print();
+        vertices[faces[3][2]].print();
+        vertices[faces[3][3]].print();
+
+        ((vertices[faces[3][0]]/2+vertices[faces[3][1]]/2)+edge_normals[3][0]*0.1).print();
+        ((vertices[faces[3][1]]/2+vertices[faces[3][2]]/2)+edge_normals[3][1]*0.1).print();
+        ((vertices[faces[3][2]]/2+vertices[faces[3][3]]/2)+edge_normals[3][2]*0.1).print();
+        ((vertices[faces[3][3]]/2+vertices[faces[3][0]]/2)+edge_normals[3][3]*0.1).print();*/
+
     };
 
     /*double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face){
@@ -507,7 +531,6 @@ public:
         vector3d<double> bma, intersection, intersection_prev;
         std::vector<int> intersect_faces;
         intersection_prev = a;
-
 
         while ((current_face != end_face) && (iter < maxiter))
         {
@@ -539,16 +562,15 @@ public:
         intersection = intersection_prev;
         dist += (b - intersection).norm();
 
-
-        if(start_face != end_face){
-        bma=a-b;
-        intersection=broken_distance_base(b, a, bma, end_face);
-        dist += (a - intersection).norm();
-        dist += (b - intersection).norm();
+        if (start_face != end_face)
+        {
+            bma = a - b;
+            intersection = broken_distance_base(b, a, bma, end_face);
+            dist += (a - intersection).norm();
+            dist += (b - intersection).norm();
         }
 
-
-        dist/=2.;
+        dist /= 2.;
 
         return dist;
     }
@@ -625,8 +647,6 @@ public:
         r_edge = vertices[faces[face_num][edge2]] - vertices[faces[face_num][edge1]];
 
         intersection = find_lines_intersection(a, vertices[faces[face_num][edge1]], bma_face, r_edge);
-
-
 
         return intersection;
     };
@@ -752,8 +772,6 @@ public:
 
         return res;
     }
-
-
 
     vector3d<double> find_line_surf_intersection(vector3d<double> xl, vector3d<double> nl,
                                                  vector3d<double> xs, vector3d<double> vs1, vector3d<double> vs2)
@@ -884,8 +902,6 @@ public:
 
         return res;
     }
-
-
 
     void print_vertices()
     {

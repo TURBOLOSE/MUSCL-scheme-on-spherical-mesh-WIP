@@ -100,7 +100,7 @@ public:
             dt = h0 * 0.1;
         }
 
-        //std::cout<<h0 * 0.1<<std::endl;
+        // std::cout<<h0 * 0.1<<std::endl;
 
         res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
 
@@ -128,7 +128,7 @@ public:
             temp += U[i][0];
         }
 
-        std::cout<<"rho_total="<<temp<<std::endl;
+        std::cout << "rho_total=" << temp << std::endl;
         // std::cout <<"dt= "<< h0 / (2 * M * N) << std::endl;
         t += dt;
         steps++;
@@ -164,30 +164,26 @@ protected:
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
+
+                int j1 = j + 1;
+
                 for (size_t k = 0; k < dim; k++)
                 {
                     if (j == (faces[i].size() - 1))
+                        j1 = 0;
+
+                    // if (j0 == (faces[i].size() - 1))
+                    //     j01 = 0;
+
+                    U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j1]]).norm() / surface_area[i]) *
+                               (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
+                    // -((vertices[faces[neighboor_num][j0]] - vertices[faces[neighboor_num][j01]]).norm() / surface_area[neighboor_num]) *
+                    // (flux_var_plus[neighboor_num][j0][k] + flux_var_minus[neighboor_num][j0][k]));
+
+                    if (std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
                     {
-                        U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][0]]).norm() / surface_area[i]) *
-                                   (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
-
-                        if(std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k]))){
-                        std::cout << i << " " << j <<"kek"<<std::endl;
-                            }
+                        std::cout << i << " " << j << " NaN in flux detected!" << std::endl;
                     }
-                    else
-                    {
-                        U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j + 1]]).norm() / surface_area[i]) *
-                                   (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
-
-                                   if(std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
-                                   {
-                                    std::cout << i << " " << j <<"kek"<<std::endl;
-                                   }
-                    }
-
-                    //std::cout << i << " " << j << " " << flux_var_plus[i][j][0] << " " << flux_var_minus[i][j][0] << std::endl;
-                    //std::cout << i << " " << j << " " << U[i][0] << " " << flux_var_minus[i][j][0] << std::endl;
                 }
             }
         }
@@ -231,6 +227,11 @@ private:
         {
             for (size_t j = 0; j < faces[i].size(); j++)
             {
+
+                int neighboor_num = neighbors_edge[i][j];
+                int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
+                // int j01= j0+1;
+
                 phi_ii = flux_star(U[i], U[i], i, j);
                 phi_iji = flux_star(U_plus[i][j], U[i], i, j);
                 phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
@@ -239,6 +240,14 @@ private:
                     flux_var_plus[i][j][k] = (phi_iji[k] - phi_ii[k]);
                     flux_var_minus[i][j][k] = (phi_ijji[k] - phi_iji[k]);
                 }
+                
+                //std::cout << i << " " << j << " " << phi_iji[0]<<" "<<phi_ii[0]<<" "<<phi_ijji[0] << std::endl;
+                //std::cout << std::endl;
+
+
+                std::cout << i << " " << j << " " << flux_var_plus[i][j][0] + flux_var_minus[i][j][0] << std::endl;
+                std::cout << i << " " << j << " " << flux_var_plus[neighboor_num][j0][0] + flux_var_minus[neighboor_num][j0][0] << std::endl;
+                std::cout << std::endl;
             }
         }
     }

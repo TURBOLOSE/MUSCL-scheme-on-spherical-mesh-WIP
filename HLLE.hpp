@@ -50,6 +50,8 @@ public:
             l_vec[0] = U[n_face][1];
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
+
+
             vel = cross_product(face_centers[n_face], l_vec);
             vel /= (-U[n_face][0] * (face_centers[n_face].norm() * face_centers[n_face].norm()));
 
@@ -59,30 +61,43 @@ public:
         outfile_curl << "\n";
     };
 
-protected:
+public:
     const double a = 1;
 
     // U = {rho, l1, l2, l3}
     std::vector<double> flux(std::vector<double> u_in, int n_face, int n_edge)
     {
-
         std::vector<double> res;
         res.resize(4);
         double PI, ndv, L, A, R;
-        vector3d<double> vel, l_vec, nxR;
+        vector3d<double> R_vec,vel, l_vec, nxR,edge_center;
 
-        R = face_centers[n_face].norm();
+        int n_edge_1=n_edge+1;
+        if((n_edge_1)==faces[n_face].size()){
+            n_edge_1=0;
+        }
+
+
+        edge_center=(vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]])/2.;
+
         PI = a * a * u_in[0];
+
+
+        R_vec=face_centers[n_face];
+        //R_vec=edge_center;
+        R=R_vec.norm();
+
 
         l_vec[0] = u_in[1];
         l_vec[1] = u_in[2];
         l_vec[2] = u_in[3];
 
-        vel = cross_product(face_centers[n_face], l_vec);
+        vel = cross_product(R_vec, l_vec);
         vel /= (-u_in[0] * R * R);
 
+
         ndv = dot_product(edge_normals[n_face][n_edge], vel);
-        nxR = cross_product(edge_normals[n_face][n_edge], face_centers[n_face]);
+        nxR = cross_product(edge_normals[n_face][n_edge], R_vec);
 
         if (n_edge < faces[n_face].size() - 1)
         {
@@ -96,29 +111,14 @@ protected:
 
         A = surface_area[n_face];
 
+
+        //std::cout<<dot_product(vel, edge_normals[n_face][n_edge])<<std::endl;
+
+
         res[0] = u_in[0] * dot_product(vel, edge_normals[n_face][n_edge]);
         res[1] = L / A * (u_in[1] * ndv + nxR[0] * PI);
         res[2] = L / A * (u_in[2] * ndv + nxR[1] * PI);
         res[3] = L / A * (u_in[3] * ndv + nxR[2] * PI);
-
-        /*if (n_face == 1)
-        {
-            std::cout<<face_centers[n_face].norm()<<std::endl;
-            face_centers[n_face].print();
-            edge_normals[n_face][n_edge].print();
-            vel.print();
-
-            std::cout<<"=>"<<L / A<<" "<<ndv<<" "<<nxR[2]<<" "<<PI<<std::endl;
-
-
-            std::cout << res[0] << " " << res[1] << " " << res[2] << " " << res[3] << std::endl;
-            std::cout << std::endl;
-        }*/
-
-        /*if(n_face==1){
-
-            std::cout<<res[0]<<" "<<res[1]<<" "<<res[2]<<" "<<res[3]<<std::endl;
-        }*/
 
         return res;
     }
@@ -127,6 +127,7 @@ protected:
     {
         std::vector<double> FL, FR, F, c_vel;
         double S_R, S_L;
+
         F.resize(4);
 
         c_vel = char_vel(ul, ur, n_face, n_edge);
@@ -135,6 +136,8 @@ protected:
 
         FL = flux(ul, n_face, n_edge);
         FR = flux(ur, n_face, n_edge);
+
+
 
         if (S_L >= 0)
         {
@@ -160,7 +163,18 @@ protected:
         // returns vector {S_L, S_R}
         std::vector<double> res;
         double a_L, a_R, S_L, S_R, p_L, p_R;
-        vector3d<double> vel_r, vec_r, vel_l, vec_l;
+        vector3d<double> vel_r, vec_r, vel_l, vec_l,edge_center;
+
+        int n_edge_1=n_edge+1;
+        if((n_edge_1)==faces[n_face].size()){
+            n_edge_1=0;
+        }
+
+
+        edge_center=face_centers[n_face];
+        //edge_center=(vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]])/2.;
+
+
 
         vec_l[1] = u_L[1];
         vec_l[2] = u_L[2];
@@ -170,8 +184,8 @@ protected:
         vec_r[2] = u_R[2];
         vec_r[3] = u_R[3];
 
-        vel_r = cross_product(face_centers[n_face], vec_r) / (-u_R[0] * (face_centers[n_face].norm()) * (face_centers[n_face].norm()));
-        vel_l = cross_product(face_centers[n_face], vec_l) / (-u_L[0] * (face_centers[n_face].norm()) * (face_centers[n_face].norm()));
+        vel_r = cross_product(edge_center, vec_r) / (-u_R[0] * (edge_center.norm()) * (edge_center.norm()));
+        vel_l = cross_product(edge_center, vec_l) / (-u_L[0] * (edge_center.norm()) * (edge_center.norm()));
 
         p_L = a * a * u_L[0];
         p_R = a * a * u_R[0];

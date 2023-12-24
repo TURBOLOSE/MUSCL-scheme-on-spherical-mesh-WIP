@@ -9,12 +9,12 @@ using namespace pmp;
 int main()
 {
 
-     SurfaceMesh mesh = quad_sphere(1);
+     SurfaceMesh mesh = quad_sphere(5);
      //SurfaceMesh mesh = icosphere(3);
     //SurfaceMesh mesh = icosphere_hex(3);
 
     double dt = 0.002;
-    size_t maxstep = 1;
+    size_t maxstep = 1570;
     int dim = 4;
     double gam = 1.4;
     std::ifstream inData("input/input.dat");
@@ -59,6 +59,31 @@ int main()
     test2.write_t_rho();
     test2.write_t_curl();
 
+    
+    /*std::vector<double> vec1=test2.flux(U_in[4],4,0);
+    std::vector<double> vec2=test2.flux(U_in[4],4,1);
+    std::vector<double> vec3=test2.flux(U_in[4],4,2);
+    std::vector<double> vec4=test2.flux(U_in[4],4,3);
+
+    std::cout<<vec1[0]<<" "<<vec1[1]<<" "<<vec1[2]<<" "<<vec1[3]<<std::endl;
+    std::cout<<vec2[0]<<" "<<vec2[1]<<" "<<vec2[2]<<" "<<vec2[3]<<std::endl;
+    std::cout<<vec3[0]<<" "<<vec3[1]<<" "<<vec3[2]<<" "<<vec3[3]<<std::endl;
+    std::cout<<vec4[0]<<" "<<vec4[1]<<" "<<vec4[2]<<" "<<vec4[3]<<std::endl;*/
+    
+
+    /*int n_face = 0;
+    int n_edge = 1;
+    
+
+    std::vector<double> vec2=test2.flux_star(U_in[0], U_in[4],0,0);
+    std::cout<<"HLLE(ul, ur): "<<vec2[0]<<" "<<vec2[1]<<" "<<vec2[2]<<" "<<vec2[3]<<std::endl;
+    std::cout<<std::endl;
+
+
+
+    vec2=test2.flux_star(U_in[4], U_in[0],4,3);
+    std::cout<<"HLLE(ur, ul): "<<vec2[0]<<" "<<vec2[1]<<" "<<vec2[2]<<" "<<vec2[3]<<std::endl;
+    std::cout<<std::endl;*/
 
 
     for (size_t i = 0; i < maxstep; i++)
@@ -68,9 +93,6 @@ int main()
         test2.write_t_curl();
     }
 
-    // test.print_neighbors();
-
-    // std::vector<double> r1 {0,1./3-1e-3,-0.00333333};
 
     return 0;
 }

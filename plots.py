@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import plotly.express as px
 import imageio
 import os
 
@@ -18,9 +19,8 @@ def make_gif(path):
 
 
 
-maxstep=600
-skipstep=100
 
+skipstep=157
 
 data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
 vertices=np.array(data.loc[:,:])
@@ -30,6 +30,8 @@ vertices=np.array(data.loc[:,:])
 data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
 
 data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
+
+maxstep=len(data_rho.loc[:,0])-1
 
 faces=np.array(data_faces.loc[:,:])
 
@@ -104,7 +106,7 @@ np.max(np.abs(np.array(data_rho.loc[0,1:len(faces)])-np.cos(theta_fc)))
 
 
 for i in range(maxstep):
-    if(i % skipstep==0 ):
+    if(((i+1) % skipstep)==0 ):
         rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
         fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
         fig.suptitle('t='+str(data_rho.loc[i,0]))
@@ -117,5 +119,30 @@ for i in range(maxstep):
 
 
 
-make_gif("plots/quad_4_true_longer")
+
+rho=np.array(data_rho.loc[maxstep,1:len(faces)])
+
+axis_dist=[]
+
+
+
+
+# for face_center in np.array(face_centers):
+#     axis_dist.append(np.sqrt(face_center[0]**2+face_center[1]**2))
+
+
+# fig=px.scatter(x=axis_dist, y=rho,  labels={"x": "R", "y":"rho"})
+# fig.show()
+
+# fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
+# fig.show()
+
+
+#fig=px.scatter(x=theta_fc, y=np.exp(5./7*np.sin(np.pi/2+theta_fc)**3),  labels={"x": "theta", "y":"rho"})
+#fig.show()
+
+
+
+
+# make_gif("plots/quad_4_true_longer")
 

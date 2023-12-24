@@ -260,10 +260,12 @@ public:
                 max_cos_left = -1;
                 max_cos_right = -1;
 
+
                 if (i == face.size() - 1)
                 {
                     BM = (vertices[face[i]] + vertices[face[0]]) / 2 - face_centers[n_face];
                     r = (vertices[face[i]] - vertices[face[0]]);
+                    
                 }
                 else
                 {
@@ -271,10 +273,10 @@ public:
                     r = (vertices[face[i]] - vertices[face[i + 1]]);
                 }
 
-                 //edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
-                 //edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
-                //edge_normals[n_face][i] = cross_product(normals[n_face], r) +cross_product(normals[neighbors_edge[n_face][i]],r); // v3 (???)
-                edge_normals[n_face][i] = cross_product(normals[n_face], r) -cross_product(normals[neighbors_edge[n_face][i]],r); // v4
+                // edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
+                // edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r)*(-1); //v2
+                edge_normals[n_face][i] = cross_product(normals[n_face], r)-cross_product(normals[neighbors_edge[n_face][i]],r); // v3
+                // edge_normals[n_face][i] = cross_product(BM + face_centers[n_face], r); //v4
 
                 edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 
@@ -478,10 +480,12 @@ public:
                     std::cout << n_face << " " << i << std::endl;
                 }
 
+
+                /*
                 int neighboor_num = neighbors_edge[n_face][i];
                 int j0 = (std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), n_face) - neighbors_edge[neighboor_num].begin());
 
-                /*int j1 = j0 + 1;
+                int j1 = j0 + 1;
                 int i1 = i + 1;
                 if ((j0 + 1) == faces[n_face].size())
                     j1 = 0;
@@ -493,8 +497,6 @@ public:
                 std::cout << faces[n_face][i] << " " << faces[n_face][i1] << std::endl;
                 std::cout << faces[neighboor_num][j0] << " " << faces[neighboor_num][j1] << std::endl;
                 std::cout << std::endl;*/
-
-                
             }
         }
 
@@ -503,11 +505,10 @@ public:
         vertices[faces[3][2]].print();
         vertices[faces[3][3]].print();
 
-        ((vertices[faces[3][0]]/2+vertices[faces[3][1]]/2)+edge_normals[3][0]*0.1).print();
-        ((vertices[faces[3][1]]/2+vertices[faces[3][2]]/2)+edge_normals[3][1]*0.1).print();
-        ((vertices[faces[3][2]]/2+vertices[faces[3][3]]/2)+edge_normals[3][2]*0.1).print();
-        ((vertices[faces[3][3]]/2+vertices[faces[3][0]]/2)+edge_normals[3][3]*0.1).print();*/
-
+        ((vertices[faces[3][0]] / 2 + vertices[faces[3][1]] / 2) + edge_normals[3][0] * 0.05).print();
+        ((vertices[faces[3][1]] / 2 + vertices[faces[3][2]] / 2) + edge_normals[3][1] * 0.05).print();
+        ((vertices[faces[3][2]] / 2 + vertices[faces[3][3]] / 2) + edge_normals[3][2] * 0.05).print();
+        ((vertices[faces[3][3]] / 2 + vertices[faces[3][0]] / 2) + edge_normals[3][3] * 0.05).print();*/
     };
 
     /*double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face){

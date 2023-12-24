@@ -42,27 +42,26 @@ public:
 
     void write_t_curl()
     {
-         vector3d<double> vel, l_vec, rxV;
+        vector3d<double> vel, l_vec, rxV;
         outfile_curl << this->time() << "  ";
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
-            
+
             l_vec[0] = U[n_face][1];
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
 
-
             vel = cross_product(face_centers[n_face], l_vec);
             vel /= (-U[n_face][0] * (face_centers[n_face].norm() * face_centers[n_face].norm()));
 
-            rxV=cross_product(face_centers[n_face],vel);
-            outfile_curl << rxV.norm()<< " ";
+            rxV = cross_product(face_centers[n_face], vel);
+            outfile_curl << rxV.norm() << " ";
         }
         outfile_curl << "\n";
     };
 
 public:
-    const double a = 1;
+    const double a = sqrt(1.4);
 
     // U = {rho, l1, l2, l3}
     std::vector<double> flux(std::vector<double> u_in, int n_face, int n_edge)
@@ -70,23 +69,21 @@ public:
         std::vector<double> res;
         res.resize(4);
         double PI, ndv, L, A, R;
-        vector3d<double> R_vec,vel, l_vec, nxR,edge_center;
+        vector3d<double> R_vec, vel, l_vec, nxR, edge_center;
 
-        int n_edge_1=n_edge+1;
-        if((n_edge_1)==faces[n_face].size()){
-            n_edge_1=0;
+        int n_edge_1 = n_edge + 1;
+        if ((n_edge_1) == faces[n_face].size())
+        {
+            n_edge_1 = 0;
         }
 
-
-        edge_center=(vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]])/2.;
+        edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
 
         PI = a * a * u_in[0];
 
-
-        R_vec=face_centers[n_face];
-        //R_vec=edge_center;
-        R=R_vec.norm();
-
+        //R_vec = face_centers[n_face];
+        R_vec=edge_center;
+        R = R_vec.norm();
 
         l_vec[0] = u_in[1];
         l_vec[1] = u_in[2];
@@ -95,11 +92,11 @@ public:
         vel = cross_product(R_vec, l_vec);
         vel /= (-u_in[0] * R * R);
 
-
         ndv = dot_product(edge_normals[n_face][n_edge], vel);
         nxR = cross_product(edge_normals[n_face][n_edge], R_vec);
 
-        if (n_edge < faces[n_face].size() - 1)
+
+        /*if (n_edge < faces[n_face].size() - 1)
         {
 
             L = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge + 1]]).norm();
@@ -109,24 +106,35 @@ public:
             L = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][0]]).norm();
         }
 
-        A = surface_area[n_face];
+        A = surface_area[n_face];*/
 
-
-        //std::cout<<dot_product(vel, edge_normals[n_face][n_edge])<<std::endl;
-
+        // std::cout<<dot_product(vel, edge_normals[n_face][n_edge])<<std::endl;
 
         res[0] = u_in[0] * dot_product(vel, edge_normals[n_face][n_edge]);
-        res[1] = L / A * (u_in[1] * ndv + nxR[0] * PI);
-        res[2] = L / A * (u_in[2] * ndv + nxR[1] * PI);
-        res[3] = L / A * (u_in[3] * ndv + nxR[2] * PI);
+        //res[1] = L / A * (u_in[1] * ndv + nxR[0] * PI);
+        //res[2] = L / A * (u_in[2] * ndv + nxR[1] * PI);
+        //res[3] = L / A * (u_in[3] * ndv + nxR[2] * PI);
+        res[1] = (u_in[1] * ndv + nxR[0] * PI);
+        res[2] = (u_in[2] * ndv + nxR[1] * PI);
+        res[3] = (u_in[3] * ndv + nxR[2] * PI);
+
 
         return res;
     }
-    
+
     std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge)
     {
+
         std::vector<double> FL, FR, F, c_vel;
         double S_R, S_L;
+
+        int neighboor_num = neighbors_edge[n_face][n_edge];
+        int j0 = std::find(neighbors_edge[neighboor_num].begin(), 
+        neighbors_edge[neighboor_num].end(), n_face) - neighbors_edge[neighboor_num].begin();
+        int j01 = j0 + 1;
+
+        if (j0 == (faces[n_face].size() - 1))
+            j01 = 0;
 
         F.resize(4);
 
@@ -135,7 +143,17 @@ public:
         S_R = c_vel[1];
 
         FL = flux(ul, n_face, n_edge);
-        FR = flux(ur, n_face, n_edge);
+        //FR = flux(ur, n_face, n_edge);
+        FR = flux(ur, neighboor_num, j0);
+
+
+        //std::cout<<"flux(ul): "<<FL[0]<<" "<<FL[1]<<" "<<FL[2]<<" "<<FL[3]<<std::endl;
+        //std::cout<<"flux(ur): "<<FR[0]<<" "<<FR[1]<<" "<<FR[2]<<" "<<FR[3]<<std::endl;
+
+        /*if(ul != ur){
+            for (size_t i = 0; i < dim; i++)
+                FR[i]=-FR[i];
+        }*/
 
 
 
@@ -146,7 +164,7 @@ public:
         else if (S_L < 0 && S_R > 0)
         {
 
-            for (size_t i = 0; i < 4; i++)
+            for (size_t i = 0; i < dim; i++)
             {
                 F[i] = (S_R * FL[i] - S_L * FR[i] + S_R * S_L * (ur[i] - ul[i])) / (S_R - S_L);
             }
@@ -158,23 +176,22 @@ public:
 
         return F;
     }
+
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
     {
         // returns vector {S_L, S_R}
         std::vector<double> res;
         double a_L, a_R, S_L, S_R, p_L, p_R;
-        vector3d<double> vel_r, vec_r, vel_l, vec_l,edge_center;
+        vector3d<double> vel_r, vec_r, vel_l, vec_l, edge_center;
 
-        int n_edge_1=n_edge+1;
-        if((n_edge_1)==faces[n_face].size()){
-            n_edge_1=0;
+        int n_edge_1 = n_edge + 1;
+        if ((n_edge_1) == faces[n_face].size())
+        {
+            n_edge_1 = 0;
         }
 
-
-        edge_center=face_centers[n_face];
-        //edge_center=(vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]])/2.;
-
-
+        //edge_center = face_centers[n_face];
+        edge_center=(vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]])/2.;
 
         vec_l[1] = u_L[1];
         vec_l[2] = u_L[2];
@@ -190,8 +207,8 @@ public:
         p_L = a * a * u_L[0];
         p_R = a * a * u_R[0];
 
-        a_L = sqrt(gam * p_L / u_L[0]);
-        a_R = sqrt(gam * p_R / u_R[0]);
+        a_L = a;
+        a_R = a;
 
         int shift = 0;
 

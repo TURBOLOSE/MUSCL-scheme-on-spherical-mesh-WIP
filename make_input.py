@@ -9,13 +9,15 @@ def make_input_4(): #no energy as separate variable
 
     face_centers=np.array(face_centers)
 
-    #rho=np.ones(N)
+
     l=[]
 
     omega=np.array([0,0,1])
     theta_face_centers=np.arccos(face_centers[:,2])
 
-    rho=np.exp( (np.linalg.norm(face_centers[0])**2)*(np.linalg.norm(omega)**2)/1.4*np.sin(np.pi-theta_face_centers)**3)
+
+    rho=np.ones(N)
+    #rho=np.exp( (np.linalg.norm(face_centers[0])**2)*(np.linalg.norm(omega)**2)/1.4*np.sin(np.pi-theta_face_centers)**3)
 
 
     for face_num, R in enumerate(face_centers):

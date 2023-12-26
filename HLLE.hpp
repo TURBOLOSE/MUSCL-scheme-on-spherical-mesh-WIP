@@ -61,7 +61,7 @@ public:
     };
 
 public:
-    const double a = sqrt(1.4);
+    const double a = 1;
 
     // U = {rho, l1, l2, l3}
     std::vector<double> flux(std::vector<double> u_in, int n_face, int n_edge)
@@ -81,8 +81,8 @@ public:
 
         PI = a * a * u_in[0];
 
-        //R_vec = face_centers[n_face];
-        R_vec=edge_center;
+        R_vec = face_centers[n_face];
+        //R_vec = edge_center;
         R = R_vec.norm();
 
         l_vec[0] = u_in[1];
@@ -95,29 +95,10 @@ public:
         ndv = dot_product(edge_normals[n_face][n_edge], vel);
         nxR = cross_product(edge_normals[n_face][n_edge], R_vec);
 
-
-        /*if (n_edge < faces[n_face].size() - 1)
-        {
-
-            L = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge + 1]]).norm();
-        }
-        else
-        {
-            L = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][0]]).norm();
-        }
-
-        A = surface_area[n_face];*/
-
-        // std::cout<<dot_product(vel, edge_normals[n_face][n_edge])<<std::endl;
-
         res[0] = u_in[0] * dot_product(vel, edge_normals[n_face][n_edge]);
-        //res[1] = L / A * (u_in[1] * ndv + nxR[0] * PI);
-        //res[2] = L / A * (u_in[2] * ndv + nxR[1] * PI);
-        //res[3] = L / A * (u_in[3] * ndv + nxR[2] * PI);
         res[1] = (u_in[1] * ndv + nxR[0] * PI);
         res[2] = (u_in[2] * ndv + nxR[1] * PI);
         res[3] = (u_in[3] * ndv + nxR[2] * PI);
-
 
         return res;
     }
@@ -129,8 +110,9 @@ public:
         double S_R, S_L;
 
         int neighboor_num = neighbors_edge[n_face][n_edge];
-        int j0 = std::find(neighbors_edge[neighboor_num].begin(), 
-        neighbors_edge[neighboor_num].end(), n_face) - neighbors_edge[neighboor_num].begin();
+        int j0 = std::find(neighbors_edge[neighboor_num].begin(),
+                           neighbors_edge[neighboor_num].end(), n_face) -
+                 neighbors_edge[neighboor_num].begin();
         int j01 = j0 + 1;
 
         if (j0 == (faces[n_face].size() - 1))
@@ -143,18 +125,8 @@ public:
         S_R = c_vel[1];
 
         FL = flux(ul, n_face, n_edge);
-        //FR = flux(ur, n_face, n_edge);
-        FR = flux(ur, neighboor_num, j0);
-
-
-        //std::cout<<"flux(ul): "<<FL[0]<<" "<<FL[1]<<" "<<FL[2]<<" "<<FL[3]<<std::endl;
-        //std::cout<<"flux(ur): "<<FR[0]<<" "<<FR[1]<<" "<<FR[2]<<" "<<FR[3]<<std::endl;
-
-        /*if(ul != ur){
-            for (size_t i = 0; i < dim; i++)
-                FR[i]=-FR[i];
-        }*/
-
+        FR = flux(ur, n_face, n_edge);
+        //FR = flux(ur, neighboor_num, j0);
 
 
         if (S_L >= 0)
@@ -190,8 +162,8 @@ public:
             n_edge_1 = 0;
         }
 
-        //edge_center = face_centers[n_face];
-        edge_center=(vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]])/2.;
+        edge_center = face_centers[n_face];
+        // edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
 
         vec_l[1] = u_L[1];
         vec_l[2] = u_L[2];
@@ -221,4 +193,55 @@ public:
 
         return res;
     }
+
+    std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
+    { // classical Superbee limiter for irregular grids
+        // CFL independent
+        double etha_minus, etha_plus;
+        vector3d<double> R_vec, l_vec, vel;
+        double R, c, nu_plus;
+        std::vector<double> res;
+        res.resize(4);
+
+        R_vec = face_centers[n_face];
+        R = R_vec.norm();
+
+        l_vec[0] = U[n_face][1];
+        l_vec[1] = U[n_face][2];
+        l_vec[2] = U[n_face][3];
+
+        vel = cross_product(R_vec, l_vec);
+        vel /= (-U[n_face][0] * R * R);
+
+        c = a;
+
+        int n_edge_1 = n_edge + 1;
+        if ((n_edge_1) == faces[n_face].size())
+        {
+            n_edge_1 = 0;
+        }
+
+        nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
+                  ((vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm() / surface_area[n_face]);
+
+        etha_plus = H_plus[n_face][n_edge] / BM_dist[n_face][n_edge];
+        etha_plus = H_minus[n_face][n_edge] / BM_dist[n_face][n_edge];
+
+        for (size_t i = 0; i < dim; i++)
+        {
+            /*res[i] = std::max(0., 
+            std::max(std::min(1., etha_minus * u_r[i] * 2 / (2 * faces[n_face].size() * nu_plus)), 
+            std::min(u_r[i], etha_plus)));*/
+            res[i] = std::max(0., 
+            std::max(std::min(1., etha_minus * u_r[i]), 
+            std::min(u_r[i], etha_plus)));
+
+            if (std::isnan(u_r[i]))
+            {
+                res[i] = 0;
+            }
+        }
+
+        return res;
+    };
 };

@@ -16,11 +16,11 @@ def make_gif(path):
     imageio.mimsave('plots/res.gif', images, duration=5)
 
 
+skipstep=200
 
 
 
 
-skipstep=157
 
 data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
 vertices=np.array(data.loc[:,:])

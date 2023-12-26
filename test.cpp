@@ -13,11 +13,12 @@ int main()
      //SurfaceMesh mesh = icosphere(3);
     //SurfaceMesh mesh = icosphere_hex(3);
 
+
     double dt = 0.002;
-    size_t maxstep = 1570;
+    size_t maxstep = 1000;
     int dim = 4;
     double gam = 1.4;
-    std::ifstream inData("input/input.dat");
+    std::ifstream inData("input/input_quad_5.dat");
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
     vector3d<double> vel, L;

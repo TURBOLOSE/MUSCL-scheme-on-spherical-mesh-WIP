@@ -136,7 +136,7 @@ public:
             l3+=U[i][3];
         }
 
-        std::cout << "t= " << t << " rho_total=" << temp<<" l_total_norm= "<<
+        std::cout << "t= " << t << " rho_total=" << 1.-temp/faces.size()<<" l_total_norm= "<<
         sqrt(l1*l1+l2*l2+l3*l3) 
         <<" l_total = ("<<l1<<","<<l2<<","<<l3<<")" << std::endl;
         // std::cout <<"dt= "<< h0 / (2 * M * N) << std::endl;
@@ -151,7 +151,7 @@ public:
     }
 
 protected:
-    double limiter(double r, double etha_plus, double etha_minus)
+    /*double limiter(double r, double etha_plus, double etha_minus)
     { // classical Superbee limiter for irregular grids
         // CFL independent
 
@@ -161,7 +161,7 @@ protected:
         }
 
         return std::max(0., std::max(std::min(1., etha_minus * r), std::min(r, etha_plus)));
-    };
+    };*/
 
     void res2d(double dt_here) // space step
     // takes data from U matrix
@@ -199,16 +199,16 @@ protected:
                         std::cout << i << " " << j << " NaN in flux detected!" << std::endl;
                     }
 
-                    // std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][0] + flux_var_minus[i][j][0] << std::endl;
-                    // std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][0] + flux_var_minus[neighboor_num][j0][0] << std::endl;
-                    // std::cout << std::endl;
+                    //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][0] + flux_var_minus[i][j][0] << std::endl;
+                    //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][0] + flux_var_minus[neighboor_num][j0][0] << std::endl;
+                    //std::cout << std::endl;
                 }
             }
         }
     };
 
     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
-
+    virtual std::vector<double>  limiter(std::vector<double> u_r, int n_face, int n_edge)  = 0;
 private:
     void find_M()
     // computes value M = max (d phi/ d U1, - d phi/ d U2 )
@@ -297,8 +297,10 @@ private:
         {
         int neighboor_num = neighbors_edge[i][j];
         int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
-        //std::cout << i << " " << j << " " << neighboor_num << " " << j0 << " " << flux_var_plus[i][j][1] + flux_var_minus[i][j][1] << std::endl;
-        //std::cout << i << " " << j << " " << neighboor_num << " " << j0 << " " << flux_var_plus[neighboor_num][j0][1] + flux_var_minus[neighboor_num][j0][1] << std::endl;
+        
+        
+        //std::cout << i << " " << j << " " << neighboor_num << " " << j0 << " " << flux_var_plus[i][j][0] + flux_var_minus[i][j][0] << std::endl;
+        //std::cout << i << " " << j << " " << neighboor_num << " " << j0 << " " << flux_var_plus[neighboor_num][j0][0] + flux_var_minus[neighboor_num][j0][0] << std::endl;
 
         /*if(std::abs(flux_var_plus[i][j][elem] + flux_var_minus[i][j][elem]+
         flux_var_plus[neighboor_num][j0][elem]+flux_var_minus[neighboor_num][j0][elem]) >1e-8){
@@ -314,7 +316,7 @@ private:
     void find_U_edges() // finding U_ij and U_ji
     {
 
-        std::vector<double> pp, pm;
+        std::vector<double> pp, pm, lim;
         int j0, neighboor_num;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
@@ -328,8 +330,14 @@ private:
                 pm = p_minus(i, j);
 
                 for (size_t k = 0; k < dim; k++)
+                pm[k]/=pp[k];
+
+                lim=limiter(pm,i,j);
+                for (size_t k = 0; k < dim; k++)
                 {
-                    U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
+                    //U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
+
+                    U_plus[i][j][k] = U[i][k] + pp[k] * lim[k] * BM_dist[i][j];
                     U_minus[neighboor_num][j0][k] = U_plus[i][j][k];
                 }
             }

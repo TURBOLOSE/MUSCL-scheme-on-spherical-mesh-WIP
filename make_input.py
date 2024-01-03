@@ -12,7 +12,7 @@ def make_input_4(): #no energy as separate variable
 
     l=[]
 
-    omega=np.array([0,0,1])
+    omega=np.array([0,0,3])
     theta_face_centers=np.arccos(face_centers[:,2])
 
 
@@ -62,7 +62,7 @@ def make_input_5():  #adds energy
 
 
 
-make_input_4()
+make_input_5()
 
 
 

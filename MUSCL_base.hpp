@@ -136,10 +136,18 @@ public:
             l3+=U[i][3];
         }
 
-        std::cout << "t= " << t << " rho_total=" << 1.-temp/faces.size()<<" l_total_norm= "<<
+        /*std::cout << "t= " << t << " rho_total=" << 1.-temp/faces.size()<<" l_total_norm= "<<
         sqrt(l1*l1+l2*l2+l3*l3) 
-        <<" l_total = ("<<l1<<","<<l2<<","<<l3<<")" << std::endl;
-        // std::cout <<"dt= "<< h0 / (2 * M * N) << std::endl;
+        <<" l_total = ("<<l1<<","<<l2<<","<<l3<<")" << std::endl;*/
+
+
+
+
+
+        std::cout <<t<<" "<<1.-temp/faces.size() << std::endl;
+
+
+
         t += dt;
         steps++;
     }
@@ -288,28 +296,10 @@ private:
             }
         }
 
-        //int i = 0;
-        //int j = 0;
-        int elem=1;
-         for (size_t i = 0; i < this->n_faces(); i++)
-        {
-         for (size_t j = 0; j < faces[i].size(); j++)
-        {
-        int neighboor_num = neighbors_edge[i][j];
-        int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
-        
-        
-        //std::cout << i << " " << j << " " << neighboor_num << " " << j0 << " " << flux_var_plus[i][j][0] + flux_var_minus[i][j][0] << std::endl;
-        //std::cout << i << " " << j << " " << neighboor_num << " " << j0 << " " << flux_var_plus[neighboor_num][j0][0] + flux_var_minus[neighboor_num][j0][0] << std::endl;
 
-        /*if(std::abs(flux_var_plus[i][j][elem] + flux_var_minus[i][j][elem]+
-        flux_var_plus[neighboor_num][j0][elem]+flux_var_minus[neighboor_num][j0][elem]) >1e-8){
-            std::cout<<"steps="<<steps<<" " << i << " " << j << " " <<std::abs(flux_var_plus[i][j][elem] + flux_var_minus[i][j][elem]+
-        flux_var_plus[neighboor_num][j0][elem]+flux_var_minus[neighboor_num][j0][elem])<<std::endl;
-        }*/
 
-        }
-        }
+     
+        
         //std::cout << std::endl;
     }
 

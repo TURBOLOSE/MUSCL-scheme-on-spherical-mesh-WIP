@@ -138,11 +138,35 @@ axis_dist=[]
 # fig.show()
 
 
-#fig=px.scatter(x=theta_fc, y=np.exp(5./7*np.sin(np.pi/2+theta_fc)**3),  labels={"x": "theta", "y":"rho"})
+# #fig=px.scatter(x=theta_fc, y=np.exp(5./7*np.sin(np.pi/2+theta_fc)**3),  labels={"x": "theta", "y":"rho"})
+# #fig.show()
+
+
+
+# mesh_step=[1,2,3,4,5,1,2,3,4,2,3,4,5]
+# mesh_type=['quad','quad','quad','quad','quad','ico','ico','ico','ico','hex','hex','hex','hex']
+# mesh_errs=[0.00012,5e-6,0.0018,0.0011,0.00055,0.0003,0.0003,0.0004,0.0003, 0.00014,2.33e-5, 2.8e-5,1.67e-5]
+
+
+# df=pd.DataFrame(data={'mesh_step':mesh_step, 'mesh_type':mesh_type, 'mesh_errs': mesh_errs})
+
+
+# fig=px.scatter(df, x='mesh_step', y='mesh_errs', 
+#                color='mesh_type', title='Mesh rho errors depending on type on 1 rotation', log_y=True)
+# fig.update_layout(font=dict(size=30))
+# fig.update_traces(mode="lines+markers")
+# fig.update_traces(marker_size=15)
+# fig.show()
+
+
+# # make_gif("plots/quad_4_true_longer")
+
+
+
+#data=pd.read_table('errors.txt', header=None, delimiter=r"\s+")
+
+#fig=px.scatter(x=data[0], y=data[1],  labels={"x": "t", "y":"relative rho error"})
+#fig.update_layout(font=dict(size=30))
 #fig.show()
 
-
-
-
-# make_gif("plots/quad_4_true_longer")
 

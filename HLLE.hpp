@@ -96,12 +96,13 @@ public:
         nxR = cross_product(edge_normals[n_face][n_edge], R_vec);
 
         res[0] = u_in[0] * dot_product(vel, edge_normals[n_face][n_edge]);
-        res[1] = (u_in[1] * ndv + nxR[0] * PI);
-        res[2] = (u_in[2] * ndv + nxR[1] * PI);
-        res[3] = (u_in[3] * ndv + nxR[2] * PI);
+        res[1] =(u_in[1] * ndv + nxR[0] * PI);
+        res[2] =(u_in[2] * ndv + nxR[1] * PI);
+        res[3] =(u_in[3] * ndv + nxR[2] * PI);
 
         return res;
     }
+
 
     std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge)
     {
@@ -125,8 +126,11 @@ public:
         S_R = c_vel[1];
 
         FL = flux(ul, n_face, n_edge);
-        FR = flux(ur, n_face, n_edge);
-        //FR = flux(ur, neighboor_num, j0);
+        //FR = flux(ur, n_face, n_edge);
+        FR = flux(ur, neighboor_num, j0);
+
+        for (size_t i = 0; i < dim; i++)
+        FR[i]=-FR[i];
 
 
         if (S_L >= 0)
@@ -154,7 +158,7 @@ public:
         // returns vector {S_L, S_R}
         std::vector<double> res;
         double a_L, a_R, S_L, S_R, p_L, p_R;
-        vector3d<double> vel_r, vec_r, vel_l, vec_l, edge_center;
+        vector3d<double> vel_r, vec_r, vel_l, vec_l, edge_center_l,edge_center_r;
 
         int n_edge_1 = n_edge + 1;
         if ((n_edge_1) == faces[n_face].size())
@@ -162,7 +166,16 @@ public:
             n_edge_1 = 0;
         }
 
-        edge_center = face_centers[n_face];
+        int neighboor_num = neighbors_edge[n_face][n_edge];
+        int j0 = std::find(neighbors_edge[neighboor_num].begin(),
+                           neighbors_edge[neighboor_num].end(), n_face) -
+                 neighbors_edge[neighboor_num].begin();
+        int j01 = j0 + 1;
+
+        edge_center_l = face_centers[n_face];
+        //edge_center_r = face_centers[neighboor_num ];
+        edge_center_r= face_centers[n_face];
+
         // edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
 
         vec_l[1] = u_L[1];
@@ -173,8 +186,8 @@ public:
         vec_r[2] = u_R[2];
         vec_r[3] = u_R[3];
 
-        vel_r = cross_product(edge_center, vec_r) / (-u_R[0] * (edge_center.norm()) * (edge_center.norm()));
-        vel_l = cross_product(edge_center, vec_l) / (-u_L[0] * (edge_center.norm()) * (edge_center.norm()));
+        vel_r = cross_product(edge_center_l, vec_r) / (-u_R[0] * (edge_center_l.norm()) * (edge_center_l.norm()));
+        vel_l = cross_product(edge_center_r, vec_l) / (-u_L[0] * (edge_center_r.norm()) * (edge_center_r.norm()));
 
         p_L = a * a * u_L[0];
         p_R = a * a * u_R[0];
@@ -229,12 +242,12 @@ public:
 
         for (size_t i = 0; i < dim; i++)
         {
-            /*res[i] = std::max(0., 
-            std::max(std::min(1., etha_minus * u_r[i] * 2 / (2 * faces[n_face].size() * nu_plus)), 
-            std::min(u_r[i], etha_plus)));*/
             res[i] = std::max(0., 
-            std::max(std::min(1., etha_minus * u_r[i]), 
+            std::max(std::min(1., etha_minus * u_r[i] * 2 / (2 * faces[n_face].size() * nu_plus)), 
             std::min(u_r[i], etha_plus)));
+            /*res[i] = std::max(0., 
+            std::max(std::min(1., etha_minus * u_r[i]), 
+            std::min(u_r[i], etha_plus)));*/
 
             if (std::isnan(u_r[i]))
             {

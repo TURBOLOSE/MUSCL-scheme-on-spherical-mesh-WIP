@@ -8,7 +8,7 @@ protected:
     std::vector<std::vector<double>> U, U_temp;
     std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
     // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
-    double dt, gam, M, N, h0, t, max_vel;
+    double dt, gam, M, N, h0, t, max_vel, rho_full;
     int dim;
     size_t steps;
 
@@ -105,6 +105,8 @@ public:
 
         res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
 
+
+        //std::cout<<std::endl;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -113,16 +115,18 @@ public:
                 U[i][k] += U_temp[i][k]; // results in U=U+dt/2*phi(U)
             }
 
-            // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
+            //std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
         }
-        // std::cout<<std::endl;
+        //std::cout<<std::endl;
 
         find_U_edges();
         find_flux_var();
         res2d(dt); // U=dt*phi(U+dt/2*phi(U))
 
         double temp = 0;
-        double l1,l2,l3=0;
+        double l1, l2, l3 = 0;
+
+        l1=0; l2=0;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -131,22 +135,23 @@ public:
                 U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
             }
             temp += U[i][0];
-            l1+=U[i][1];
-            l2+=U[i][2];
-            l3+=U[i][3];
+            l1 += U[i][1];
+            l2 += U[i][2];
+            l3 += U[i][3];
+
+            //std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
         }
 
-        /*std::cout << "t= " << t << " rho_total=" << 1.-temp/faces.size()<<" l_total_norm= "<<
-        sqrt(l1*l1+l2*l2+l3*l3) 
-        <<" l_total = ("<<l1<<","<<l2<<","<<l3<<")" << std::endl;*/
+
+        if (steps == 0)
+            rho_full = temp;
+
+        std::cout << "t= " << t << " rho_total_err=" << 1. - temp / rho_full << " l_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
+                  << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << std::endl;
 
 
-
-
-
-        std::cout <<t<<" "<<1.-temp/faces.size() << std::endl;
-
-
+        //std::cout<<std::endl;
+        // std::cout <<t<<" "<<1.-temp/faces.size() << std::endl;
 
         t += dt;
         steps++;
@@ -191,7 +196,7 @@ protected:
                 if (j == (faces[i].size() - 1))
                     j1 = 0;
 
-                if (j0 == (faces[i].size() - 1))
+                if (j0 == (faces[neighboor_num].size() - 1))
                     j01 = 0;
 
                 for (size_t k = 0; k < dim; k++)
@@ -199,24 +204,27 @@ protected:
 
                     U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j1]]).norm() / surface_area[i]) *
                                (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
-                    //-((vertices[faces[neighboor_num][j0]] - vertices[faces[neighboor_num][j01]]).norm() / surface_area[neighboor_num]) *
-                    // (flux_var_plus[neighboor_num][j0][k] + flux_var_minus[neighboor_num][j0][k]));
 
                     if (std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
                     {
-                        std::cout << i << " " << j << " NaN in flux detected!" << std::endl;
+                        std::cout <<"time: "<<t<<" face: "<< i << " edge: " << j << " NaN in flux detected!" << std::endl;
                     }
 
-                    //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][0] + flux_var_minus[i][j][0] << std::endl;
-                    //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][0] + flux_var_minus[neighboor_num][j0][0] << std::endl;
-                    //std::cout << std::endl;
                 }
+
+                //std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
+
+                //int component =2;
+                //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;
+                //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] << std::endl;
+                //std::cout << std::endl;
             }
         }
     };
 
     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
-    virtual std::vector<double>  limiter(std::vector<double> u_r, int n_face, int n_edge)  = 0;
+    virtual std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge) = 0;
+
 private:
     void find_M()
     // computes value M = max (d phi/ d U1, - d phi/ d U2 )
@@ -266,41 +274,54 @@ private:
     void find_flux_var()
     {
 
-        std::vector<double> phi_ii, phi_iji, phi_ijji;
-        for (size_t i = 0; i < this->n_faces(); i++)
+        std::vector<double> phi_ii, phi_iji, phi_ijji, r1,r2;
+        phi_ii.resize(dim);
+        phi_iji.resize(dim);
+        phi_ijji.resize(dim);
+
+        for (int i = 0; i < this->n_faces(); ++i)
         {
-            for (size_t j = 0; j < faces[i].size(); j++)
+            for (int j = 0; j < faces[i].size(); ++j)
             {
-
-                int neighboor_num = neighbors_edge[i][j];
-                int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
-
-                phi_ii = flux_star(U[i], U[i], i, j);
-                phi_iji = flux_star(U_plus[i][j], U[i], i, j);
+                
                 phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
-                for (size_t k = 0; k < dim; k++)
-                {
-                    flux_var_plus[i][j][k] = ((phi_iji[k] - phi_ii[k]));
-                    flux_var_minus[i][j][k] = ((phi_ijji[k] - phi_iji[k]));
-                }
 
-                /*if ((i == 0 && j == 0) || (i == 4 && j == 3))
+                //std::cout << i << " " << j << std::endl;
+                //std::cout << U_plus[i][j][0] << " " << U_plus[i][j][1] << " " << U_plus[i][j][2] << " " << U_plus[i][j][3] << std::endl;
+
+                //std::cout << U_minus[i][j][0] << " " << U_minus[i][j][1] << " " << U_minus[i][j][2] << " " << U_minus[i][j][3] << std::endl;
+                //std::cout<<"HLLE_ijji: " << phi_ijji[0] << " " << phi_ijji[1] << " " << phi_ijji[2] << " " << phi_ijji[3] << std::endl;
+                //std::cout<<std::endl;
+                //phi_ii = flux_star(U[i], U[i], i, j);
+                //phi_iji = flux_star(U_plus[i][j], U[i], i, j);
+
+                flux_var_minus[i][j] = phi_ijji;
+
+
+
+                /*if ((i == 4 && j == 1) || (i == 2 && j == 1))
                 {
-                    std::cout << i << " " << j << std::endl;
-                    std::cout << U[i][0] << " " << U[i][1] << " " << U[i][2] << " " << U[i][3] << std::endl;
-                    std::cout << U_plus[i][j][0] << " " << U_plus[i][j][1] << " " << U_plus[i][j][2] << " " << U_plus[i][j][3] << std::endl;
-                    std::cout << U_minus[i][j][0] << " " << U_minus[i][j][1] << " " << U_minus[i][j][2] << " " << U_minus[i][j][3] << std::endl;
-                    std::cout << phi_ii[1] << " " << phi_iji[1] << " " << phi_ijji[1] << std::endl;
+
+                    std::cout <<" i= "<< i << " j= " << j << std::endl;
+                    std::cout<<"U_L:" << U_plus[i][j][0] << " " << U_plus[i][j][1] << " " << U_plus[i][j][2] << " " << U_plus[i][j][3] << std::endl;
+                    std::cout<<"U_R:"  << U_minus[i][j][0] << " " << U_minus[i][j][1] << " " << U_minus[i][j][2] << " " << U_minus[i][j][3] << std::endl;
+
+                    std::cout<<"HLLE_ijji: " << phi_ijji[0] << " " << phi_ijji[1] << " " << phi_ijji[2] << " " << phi_ijji[3] << std::endl;
+                    
+                    phi_ijji=flux_star(U_plus[i][j], U_minus[i][j], i, j);
+                    std::cout <<"HLLE_ijji_manual: "<< phi_ijji[0] << " " << phi_ijji[1]
+                    << " " << phi_ijji[2] << " " << phi_ijji[3] << std::endl;
+
+                    std::cout <<flux_var_plus[i][j][0]+flux_var_minus[i][j][0]<<std::endl;
+                    //std::cout << phi_ii[0] << " " << phi_iji[0] << " " << phi_ijji[0] << std::endl;
                     std::cout << std::endl;
                 }*/
+
+
             }
         }
 
-
-
-     
-        
-        //std::cout << std::endl;
+        // std::cout << std::endl;
     }
 
     void find_U_edges() // finding U_ij and U_ji
@@ -308,9 +329,9 @@ private:
 
         std::vector<double> pp, pm, lim;
         int j0, neighboor_num;
-        for (size_t i = 0; i < this->n_faces(); i++)
+        for (size_t i = 0; i < this->n_faces(); ++i)
         {
-            for (size_t j = 0; j < faces[i].size(); j++)
+            for (size_t j = 0; j < faces[i].size(); ++j)
             {
 
                 neighboor_num = neighbors_edge[i][j];
@@ -320,12 +341,12 @@ private:
                 pm = p_minus(i, j);
 
                 for (size_t k = 0; k < dim; k++)
-                pm[k]/=pp[k];
+                    pm[k] /= pp[k];
 
-                lim=limiter(pm,i,j);
+                lim = limiter(pm, i, j);
                 for (size_t k = 0; k < dim; k++)
                 {
-                    //U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
+                    // U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
 
                     U_plus[i][j][k] = U[i][k] + pp[k] * lim[k] * BM_dist[i][j];
                     U_minus[neighboor_num][j0][k] = U_plus[i][j][k];

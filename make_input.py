@@ -12,20 +12,20 @@ def make_input_4(): #no energy as separate variable
 
     l=[]
 
-    omega=np.array([0,0,3])
+    omega=np.array([0,0,2])
     theta_face_centers=np.arccos(face_centers[:,2])
 
 
-    rho=np.ones(N)
-    #rho=np.exp( (np.linalg.norm(face_centers[0])**2)*(np.linalg.norm(omega)**2)/1.4*np.sin(np.pi-theta_face_centers)**3)
+    #rho=np.ones(N)
+    rho=np.exp( (np.linalg.norm(omega)**2)*np.sin(np.pi-theta_face_centers)**3)
 
 
     for face_num, R in enumerate(face_centers):
         #if( R[2] >=0):
-        #    omega=np.array([0,0,1])
+        #    omega=np.array([0,0,20])
         #else:
-        #    omega=np.array([0,0,-1])
-        l.append(rho[face_num]*np.cross(R,np.cross(omega,R)))
+        #    omega=np.array([0,0,-20])
+        l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/np.linalg.norm(R))
     l=np.array(l)
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2]]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
@@ -40,11 +40,13 @@ def make_input_5():  #adds energy
     face_centers=np.array(face_centers)
 
     rho=np.ones(N)
+
+
     p=np.ones(N)*0.1
     l=[]
 
 
-    omega=np.array([0,0,1])
+    omega=np.array([0,0,0])
 
     for face_num, R in enumerate(face_centers):
         #if( R[2] >=0):
@@ -62,7 +64,7 @@ def make_input_5():  #adds energy
 
 
 
-make_input_5()
+make_input_4()
 
 
 

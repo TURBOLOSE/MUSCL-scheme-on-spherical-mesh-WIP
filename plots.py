@@ -134,12 +134,15 @@ axis_dist=[]
 # fig=px.scatter(x=axis_dist, y=rho,  labels={"x": "R", "y":"rho"})
 # fig.show()
 
-# fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
-# fig.show()
 
 
-# #fig=px.scatter(x=theta_fc, y=np.exp(5./7*np.sin(np.pi/2+theta_fc)**3),  labels={"x": "theta", "y":"rho"})
-# #fig.show()
+rho=np.array(data_rho.loc[maxstep-100,1:len(faces)])
+fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
+fig.show()
+
+
+fig=px.scatter(x=theta_fc, y=np.exp(4*np.sin(np.pi-theta_fc)**3)/55,  labels={"x": "theta", "y":"rho"})
+fig.show()
 
 
 
@@ -163,10 +166,12 @@ axis_dist=[]
 
 
 
-#data=pd.read_table('errors.txt', header=None, delimiter=r"\s+")
+data=pd.read_table('errors_p.txt', header=None, delimiter=r"\s+")
 
-#fig=px.scatter(x=data[0], y=data[1],  labels={"x": "t", "y":"relative rho error"})
-#fig.update_layout(font=dict(size=30))
-#fig.show()
+T_rot=2*np.pi/8
+
+fig=px.scatter(x=data[0]/T_rot, y=data[1],  labels={"x": "N_of_rotations", "y":"relative rho error"}, log_y=True)
+fig.update_layout(font=dict(size=30))
+fig.show()
 
 

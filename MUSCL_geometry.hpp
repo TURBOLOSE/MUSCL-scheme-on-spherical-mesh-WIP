@@ -274,16 +274,16 @@ public:
                 }
 
                 //edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
-                //edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r)*(-1); //v2
-                edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
-                //edge_normals[n_face][i] = cross_product(BM + face_centers[n_face], r); //v4
+                //edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
+                //edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
+                edge_normals[n_face][i] = cross_product(BM + face_centers[n_face], r); //v4
 
                 edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 
 
                 //check if normals are actually going outwards
                 if((BM+edge_normals[n_face][i]*0.01).norm()< BM.norm()){
-                    std::cout<<"kek"<<n_face<<" "<<i<<std::endl;
+                    std::cout<<"wrong edge normal direction in face: "<<n_face<<" on edge: "<<i<<std::endl;
                    edge_normals[n_face][i]*=-1;
                 }
 

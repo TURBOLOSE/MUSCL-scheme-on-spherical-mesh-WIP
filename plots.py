@@ -16,8 +16,7 @@ def make_gif(path):
     imageio.mimsave('plots/res.gif', images, duration=5)
 
 
-skipstep=200
-
+skipstep=1000
 
 
 
@@ -29,9 +28,12 @@ vertices=np.array(data.loc[:,:])
 
 data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
 
+
+
 data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
 
 maxstep=len(data_rho.loc[:,0])-1
+
 
 faces=np.array(data_faces.loc[:,:])
 
@@ -81,8 +83,8 @@ for face_num,face in enumerate(faces): #fix x
 colorm = plt.get_cmap('viridis')
 
 
-min_rho=np.min( data_rho.loc[:,1:len(x_plot)])
-max_rho=np.max( data_rho.loc[:,1:len(x_plot)])
+min_rho=np.min( data_rho.loc[:maxstep,1:len(x_plot)])
+max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
 
 [min_rho,max_rho]
 norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
@@ -115,6 +117,8 @@ for i in range(maxstep):
         fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Density')
         fig.savefig('plots/fig'+"{0:0>3}".format(i)+'.png', bbox_inches='tight')
 
+
+
 #fig.show()
 
 
@@ -135,13 +139,12 @@ axis_dist=[]
 # fig.show()
 
 
-
-rho=np.array(data_rho.loc[maxstep-100,1:len(faces)])
+rho=np.array(data_rho.loc[0,1:len(faces)])
 fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
 fig.show()
 
 
-fig=px.scatter(x=theta_fc, y=np.exp(4*np.sin(np.pi-theta_fc)**3)/55,  labels={"x": "theta", "y":"rho"})
+fig=px.scatter(x=theta_fc, y=np.exp(-4*np.sin(-np.pi/2-theta_fc)**3),  labels={"x": "theta", "y":"rho"})
 fig.show()
 
 

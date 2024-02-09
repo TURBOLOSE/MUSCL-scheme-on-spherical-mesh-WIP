@@ -90,6 +90,7 @@ public:
 
         vel=cross_product(edge_center, l_vec);
         vel /= (-u_in[0])*edge_center.norm();
+        //vel/=edge_center.norm()*edge_center.norm();
 
 
 

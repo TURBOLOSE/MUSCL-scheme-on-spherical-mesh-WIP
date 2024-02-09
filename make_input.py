@@ -13,11 +13,11 @@ def make_input_4(): #no energy as separate variable
     l=[]
 
     omega=np.array([0,0,2])
-    theta_face_centers=np.arccos(face_centers[:,2])
+    theta_face_centers=-np.arccos(face_centers[:,2])+np.pi/2
 
 
     #rho=np.ones(N)
-    rho=np.exp( (np.linalg.norm(omega)**2)*np.sin(np.pi-theta_face_centers)**3)
+    rho=np.exp(-1/3*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2]))**3)
 
 
     for face_num, R in enumerate(face_centers):
@@ -25,7 +25,7 @@ def make_input_4(): #no energy as separate variable
         #    omega=np.array([0,0,20])
         #else:
         #    omega=np.array([0,0,-20])
-        l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/np.linalg.norm(R))
+        l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
     l=np.array(l)
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2]]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
@@ -39,27 +39,39 @@ def make_input_5():  #adds energy
 
     face_centers=np.array(face_centers)
 
-    rho=np.ones(N)
+    #rho=np.ones(N)
 
 
-    p=np.ones(N)*0.1
+
+    p=np.ones(N)
+
+    #rho[3]=3
+    #p[3]=3
+
     l=[]
 
+    omega=np.array([0,0,2])
 
-    omega=np.array([0,0,0])
+    rho=np.exp(-(np.linalg.norm(omega)**2)*np.sin(np.arccos(face_centers[:,2]))**3)
+
 
     for face_num, R in enumerate(face_centers):
         #if( R[2] >=0):
             #omega=np.array([0,0,1])
         #else:
             #omega=np.array([0,0,-1])
-        l.append(rho[face_num]*np.cross(R,np.cross(omega,R)))
+        l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
     l=np.array(l)
     
-    v=np.cross(omega,np.array(face_centers))
+    v=np.cross(omega,np.array(face_centers))/np.array(
+        [np.linalg.norm(face_centers, axis=1),np.linalg.norm(face_centers, axis=1),np.linalg.norm(face_centers, axis=1)]
+        ).transpose()
     E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
+
+
+
 
 
 

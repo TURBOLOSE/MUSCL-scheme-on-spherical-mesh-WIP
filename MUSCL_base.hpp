@@ -62,12 +62,12 @@ public:
 
                 if (face_element < faces[n_face].size() - 1)
                 {
-                    h0_temp = (vertices[faces[n_face][face_element]] - vertices[faces[n_face][face_element + 1]]).norm() /
+                    h0_temp = distance(vertices[faces[n_face][face_element]],vertices[faces[n_face][face_element + 1]]) /
                               surface_area[n_face];
                 }
                 else
                 {
-                    h0_temp = (vertices[faces[n_face][face_element]] - vertices[faces[n_face][0]]).norm() /
+                    h0_temp = distance(vertices[faces[n_face][face_element]],vertices[faces[n_face][0]]) /
                               surface_area[n_face];
                 }
 
@@ -200,7 +200,7 @@ protected:
                 for (size_t k = 0; k < dim; k++)
                 {
 
-                    U[i][k] -= dt_here * ((vertices[faces[i][j]] - vertices[faces[i][j1]]).norm() / surface_area[i]) *
+                    U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *
                                (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
 
                     if (std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
@@ -272,8 +272,6 @@ private:
     {
 
         std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
-        phi_ii.resize(dim);
-        phi_iji.resize(dim);
         phi_ijji.resize(dim);
 
         for (int i = 0; i < this->n_faces(); ++i)

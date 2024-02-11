@@ -214,23 +214,7 @@ public:
             normals[i] /= normals[i].norm();
         }
 
-        for (size_t i = 0; i < faces.size(); i++)
-        {
-            surface_area[i] = 0;
-
-            for (size_t j = 0; j < faces[i].size(); j++)
-            {
-
-                if (j != faces[i].size() - 1)
-                {
-                    surface_area[i] += (cross_product(face_centers[i] - vertices[faces[i][j]], face_centers[i] - vertices[faces[i][j + 1]])).norm() / 2.;
-                }
-                else
-                {
-                    surface_area[i] += (cross_product(face_centers[i] - vertices[faces[i][j]], face_centers[i] - vertices[faces[i][0]])).norm() / 2.;
-                }
-            }
-        }
+        find_surface_areas();
 
         process_mesh();
     };
@@ -260,12 +244,10 @@ public:
                 max_cos_left = -1;
                 max_cos_right = -1;
 
-
                 if (i == face.size() - 1)
                 {
                     BM = (vertices[face[i]] + vertices[face[0]]) / 2 - face_centers[n_face];
                     r = (vertices[face[i]] - vertices[face[0]]);
-                    
                 }
                 else
                 {
@@ -273,20 +255,19 @@ public:
                     r = (vertices[face[i]] - vertices[face[i + 1]]);
                 }
 
-                //edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
-                //edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
-                //edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
-                edge_normals[n_face][i] = cross_product(BM + face_centers[n_face], r); //v4
+                // edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
+                // edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
+                // edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
+                edge_normals[n_face][i] = cross_product(BM + face_centers[n_face], r); // v4
 
                 edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 
-
-                //check if normals are actually going outwards
-                if((BM+edge_normals[n_face][i]*0.01).norm()< BM.norm()){
-                    std::cout<<"wrong edge normal direction in face: "<<n_face<<" on edge: "<<i<<std::endl;
-                   edge_normals[n_face][i]*=-1;
+                // check if normals are actually going outwards
+                if ((BM + edge_normals[n_face][i] * 0.01).norm() < BM.norm())
+                {
+                    std::cout << "wrong edge normal direction in face: " << n_face << " on edge: " << i << std::endl;
+                    edge_normals[n_face][i] *= -1;
                 }
-
 
                 BM_dist[n_face].push_back((BM).norm());
 
@@ -438,7 +419,7 @@ public:
 
                 double Hm_dist = broken_distance(face_centers[n_face], Hm, n_face, Hm_face);
 
-                if (Hm_dist > 1.5 * (Hm - face_centers[n_face]).norm())
+                if (Hm_dist > 2 * (Hm - face_centers[n_face]).norm())
                 {
                     std::cout << "check distances" << std::endl;
                 }
@@ -457,7 +438,7 @@ public:
 
                 double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
 
-                if (Hp_dist > 1.5 * (Hp - face_centers[n_face]).norm())
+                if (Hp_dist > 2 * (Hp - face_centers[n_face]).norm())
                 {
                     std::cout << "check distances" << std::endl;
                 }
@@ -488,9 +469,6 @@ public:
                     std::cout << n_face << " " << i << std::endl;
                 }
 
-
-                
-
                 /*int j1 = j0 + 1;
                 int i1 = i + 1;
                 if ((j0 + 1) == faces[n_face].size())
@@ -506,24 +484,22 @@ public:
             }
         }
 
-   
-
         /*for (size_t n_face = 0; n_face < faces.size(); n_face++)
         {
             for (size_t i = 0; i < faces[n_face].size(); i++)
             {
                 int neighboor_num = neighbors_edge[n_face][i];
                 int j0 = (std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), n_face) - neighbors_edge[neighboor_num].begin());
-                
+
                 std::cout<<n_face<<" "<<i<<std::endl;
                 edge_normals[n_face][i].print();
                 std::cout<<neighboor_num<<" "<<j0<<std::endl;
                 edge_normals[neighboor_num][j0].print();
 
             }
-            
+
         }
-        
+
 
         vertices[faces[0][0]].print();
         vertices[faces[0][1]].print();
@@ -538,16 +514,15 @@ public:
         ((vertices[faces[8][0]] / 2 + vertices[faces[8][1]] / 2) + edge_normals[8][0] * 0.5).print();
         */
 
+        /* vertices[faces[0][0]].print();
+         vertices[faces[0][1]].print();
+         vertices[faces[0][2]].print();
+         vertices[faces[0][3]].print();
 
-       /* vertices[faces[0][0]].print();
-        vertices[faces[0][1]].print();
-        vertices[faces[0][2]].print();
-        vertices[faces[0][3]].print();
-
-        ((vertices[faces[0][0]] / 2 + vertices[faces[0][1]] / 2) + edge_normals[0][0] * 0.5).print();
-        ((vertices[faces[0][1]] / 2 + vertices[faces[0][2]] / 2) + edge_normals[0][1] * 0.5).print();
-        ((vertices[faces[0][2]] / 2 + vertices[faces[0][3]] / 2) + edge_normals[0][2] * 0.5).print();
-        ((vertices[faces[0][3]] / 2 + vertices[faces[0][0]] / 2) + edge_normals[0][3] * 0.5).print();*/
+         ((vertices[faces[0][0]] / 2 + vertices[faces[0][1]] / 2) + edge_normals[0][0] * 0.5).print();
+         ((vertices[faces[0][1]] / 2 + vertices[faces[0][2]] / 2) + edge_normals[0][1] * 0.5).print();
+         ((vertices[faces[0][2]] / 2 + vertices[faces[0][3]] / 2) + edge_normals[0][2] * 0.5).print();
+         ((vertices[faces[0][3]] / 2 + vertices[faces[0][0]] / 2) + edge_normals[0][3] * 0.5).print();*/
     };
 
     /*double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face){
@@ -555,7 +530,7 @@ public:
         return (b-a).norm();
     }*/
 
-    double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face)
+    /*double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face)
     {
         // broken distance between 2 points if broken line made out of 2 parts
         // dim(a)=3; dim(b)=3
@@ -581,7 +556,7 @@ public:
 
             intersection = broken_distance_base(intersection_prev, b, bma, current_face);
 
-            dist += (intersection - intersection_prev).norm();
+            dist += distance(intersection, intersection_prev);
 
             intersect_faces = point_in_face(intersection, current_face);
 
@@ -600,19 +575,25 @@ public:
         }
 
         intersection = intersection_prev;
-        dist += (b - intersection).norm();
+        dist += distance(b, intersection);
 
         if (start_face != end_face)
         {
             bma = a - b;
             intersection = broken_distance_base(b, a, bma, end_face);
-            dist += (a - intersection).norm();
-            dist += (b - intersection).norm();
+            dist += distance(a, intersection);
+            dist += distance(b, intersection);
         }
 
         dist /= 2.;
 
         return dist;
+    }*/
+
+    double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face)
+    {
+
+        return distance(a, b);
     }
 
     vector3d<double> broken_distance_base(vector3d<double> a, vector3d<double> b, vector3d<double> bma, int face_num)
@@ -941,6 +922,61 @@ public:
         }
 
         return res;
+    }
+
+    /*double distance(vector3d<double> a,vector3d<double> b)//straight line
+    {
+        return (a-b).norm();
+    }*/
+
+    double distance(vector3d<double> a, vector3d<double> b) // great circle distance
+    {
+        a /= a.norm();
+        b /= b.norm(); // unit sphere
+        double d = (a - b).norm();
+        return 2 * std::asin(d / 2);
+    }
+
+    void find_surface_areas()
+    {
+        int j1;
+        double S_total=0;
+
+        double a,b,c; //sph triangle sides in radians
+        double A,B,C; //angles of sph triangles
+
+        for (size_t i = 0; i < faces.size(); i++)
+        {
+            surface_area[i] = 0;
+
+            for (size_t j = 0; j < faces[i].size(); j++)
+            {   
+
+                if (j != faces[i].size() - 1)
+                {
+                    j1 = j + 1;
+                }
+                else
+                {
+                    j1 = 0;
+                }
+                a=distance(face_centers[i], vertices[faces[i][j]]);  //distance = arc length on a unit sphere
+                b=distance(face_centers[i], vertices[faces[i][j1]]);
+                c=distance(vertices[faces[i][j]], vertices[faces[i][j1]]);
+
+                A=std::acos( (std::cos(a)-std::cos(b)*std::cos(c))/(std::sin(b)*std::sin(c))  );
+                B=std::acos( (std::cos(b)-std::cos(a)*std::cos(c))/(std::sin(a)*std::sin(c))  );
+                C=std::acos( (std::cos(c)-std::cos(b)*std::cos(a))/(std::sin(b)*std::sin(a))  );
+                
+
+                surface_area[i]+=A+B+C-M_PI;
+
+                S_total+=A+B+C-M_PI;
+                //surface_area[i] += (cross_product(face_centers[i] - vertices[faces[i][j]], face_centers[i] - vertices[faces[i][j1]])).norm() / 2.;
+
+            }
+        }
+
     }
 
     void print_vertices()

@@ -240,7 +240,7 @@ public:
         c = a;
 
         nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
-                  ((vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm() / surface_area[n_face]);
+                  (distance(vertices[faces[n_face][n_edge]],vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
 
         etha_plus = H_plus[n_face][n_edge] / BM_dist[n_face][n_edge];
         etha_plus = H_minus[n_face][n_edge] / BM_dist[n_face][n_edge];

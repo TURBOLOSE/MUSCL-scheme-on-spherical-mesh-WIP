@@ -16,7 +16,7 @@ def make_gif(path):
     imageio.mimsave('plots/res.gif', images, duration=5)
 
 
-skipstep=500
+skipstep=100
 
 
 
@@ -26,7 +26,7 @@ vertices=np.array(data.loc[:,:])
 
 
 
-data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
+data_rho=pd.read_table('results/bernoulli.dat', header=None, delimiter=r"\s+")
 
 
 

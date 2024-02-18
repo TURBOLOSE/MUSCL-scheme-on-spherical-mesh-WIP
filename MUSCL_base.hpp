@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MUSCL_geometry.hpp"
+#include<omp.h>
 
 class MUSCL_base : public MUSCL_base_geometry
 {
@@ -186,17 +187,15 @@ protected:
             for (size_t j = 0; j < faces[i].size(); j++)
             {
 
-                int neighboor_num = neighbors_edge[i][j];
-                int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
-                int j01 = j0 + 1;
+                //int neighboor_num = neighbors_edge[i][j];
+                //int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
+                //int j01 = j0 + 1;
                 int j1 = j + 1;
 
                 if (j == (faces[i].size() - 1))
                     j1 = 0;
-
-                if (j0 == (faces[neighboor_num].size() - 1))
-                    j01 = 0;
-
+                
+                //#pragma omp parallel for
                 for (size_t k = 0; k < dim; k++)
                 {
 
@@ -271,15 +270,16 @@ private:
     void find_flux_var()
     {
 
-        std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
-        phi_ijji.resize(dim);
+        //std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
+        //phi_ijji.resize(dim);
 
+        #pragma omp parallel for
         for (int i = 0; i < this->n_faces(); ++i)
         {
             for (int j = 0; j < faces[i].size(); ++j)
             {
 
-                phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
+                std::vector<double> phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
 
                 // std::cout << i << " " << j << std::endl;
                 // std::cout << U_plus[i][j][0] << " " << U_plus[i][j][1] << " " << U_plus[i][j][2] << " " << U_plus[i][j][3] << std::endl;
@@ -323,27 +323,26 @@ private:
     void find_U_edges() // finding U_ij and U_ji
     {
 
-        std::vector<double> pp, pm, lim;
-        int j0, neighboor_num;
+        //std::vector<double> pp, pm, lim;
+
+        #pragma omp parallel for
         for (size_t i = 0; i < this->n_faces(); ++i)
         {
             for (size_t j = 0; j < faces[i].size(); ++j)
             {
 
-                neighboor_num = neighbors_edge[i][j];
-                j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
+                int neighboor_num = neighbors_edge[i][j];
+                int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
 
-                pp = p_plus(i, j);
-                pm = p_minus(i, j);
+                std::vector<double> pp = p_plus(i, j);
+                std::vector<double> pm = p_minus(i, j);
 
                 for (size_t k = 0; k < dim; k++)
                     pm[k] /= pp[k];
 
-                lim = limiter(pm, i, j);
+                std::vector<double> lim = limiter(pm, i, j);
                 for (size_t k = 0; k < dim; k++)
                 {
-                    // U_plus[i][j][k] = U[i][k] + pp[k] * limiter(pm[k] / pp[k], H_plus[i][j] / BM_dist[i][j], H_minus[i][j] / BM_dist[i][j]) * BM_dist[i][j];
-
                     U_plus[i][j][k] = U[i][k] + pp[k] * lim[k] * BM_dist[i][j];
                     U_minus[neighboor_num][j0][k] = U_plus[i][j][k];
                 }

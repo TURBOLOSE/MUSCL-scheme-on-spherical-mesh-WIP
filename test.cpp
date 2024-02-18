@@ -9,11 +9,11 @@ int main()
 {
 
     //SurfaceMesh mesh = quad_sphere(5);
-    SurfaceMesh mesh = icosphere(3);
+     SurfaceMesh mesh = icosphere(4);
     //SurfaceMesh mesh = icosphere_hex(4);
 
     double dt = 0.002;
-    size_t maxstep = 1;
+    size_t maxstep = 1000;
     int dim = 4;
     double gam = 1.4;
     std::ifstream inData("input/input.dat");
@@ -54,7 +54,7 @@ int main()
     test2.write_faces();
     test2.write_vertices();
     test2.write_t_rho();
-    test2.write_t_curl();
+    //test2.write_t_bernoulli();
     //test2.write_t_p();
 
 
@@ -62,7 +62,7 @@ int main()
     {
         test2.do_step(dt);
         test2.write_t_rho();
-        test2.write_t_curl();
+        //test2.write_t_bernoulli();
         //test2.write_t_p();
 
     }

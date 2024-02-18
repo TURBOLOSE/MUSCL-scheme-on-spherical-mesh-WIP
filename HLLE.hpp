@@ -6,7 +6,7 @@ class MUSCL_HLLE : public MUSCL_base
 {
 
 private:
-    std::ofstream outfile, outfile_curl;
+    std::ofstream outfile, outfile_curl, outfile_b;
 
 public:
     MUSCL_HLLE(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
@@ -19,6 +19,10 @@ public:
         outfile_curl.open("results/curl.dat", std::ios::out | std::ios::trunc);
         outfile_curl.close();
         outfile_curl.open("results/curl.dat", std::ios::out | std::ios::app);
+
+        outfile_b.open("results/bernoulli.dat", std::ios::out | std::ios::trunc);
+        outfile_b.close();
+        outfile_b.open("results/bernoulli.dat", std::ios::out | std::ios::app);
     }
 
     void print_rho()
@@ -51,13 +55,34 @@ public:
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
 
-            vel = cross_product(face_centers[n_face], l_vec);
-            vel /= (-U[n_face][0] * (face_centers[n_face].norm() * face_centers[n_face].norm()));
+            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm() , l_vec);
+            vel /= -U[n_face][0];
 
             rxV = cross_product(face_centers[n_face], vel);
             outfile_curl << rxV.norm() << " ";
         }
         outfile_curl << "\n";
+    };
+
+
+    void write_t_bernoulli()
+    {
+        vector3d<double> vel, l_vec, rxV;
+        outfile_b << this->time() << "  ";
+        for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
+        {
+
+            l_vec[0] = U[n_face][1];
+            l_vec[1] = U[n_face][2];
+            l_vec[2] = U[n_face][3];
+
+            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
+            vel /= (-U[n_face][0]);
+
+           
+            outfile_b << U[n_face][0]*vel.norm()*vel.norm()/2+a*a*U[n_face][0] << " ";
+        }
+        outfile_b << "\n";
     };
 
 public:
@@ -78,6 +103,8 @@ public:
         }
 
         edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center /= edge_center.norm(); //unit sphere
+
 
         PI = a * a * u_in[0];
 
@@ -89,7 +116,7 @@ public:
         l_vec[2] = u_in[3];
 
         vel=cross_product(edge_center, l_vec);
-        vel /= (-u_in[0])*edge_center.norm();
+        vel /= (-u_in[0]);
         //vel/=edge_center.norm()*edge_center.norm();
 
 
@@ -99,7 +126,7 @@ public:
         
         //nxR = cross_product(edge_normals[n_face][n_edge], edge_center);
 
-        nxR = cross_product(edge_normals[n_face][n_edge], (edge_center/edge_center.norm()));
+        nxR = cross_product(edge_normals[n_face][n_edge], edge_center);
 
 
         /*if(n_face==0){
@@ -166,7 +193,7 @@ public:
         // returns vector {S_L, S_R}
         std::vector<double> res;
         double a_L, a_R, S_L, S_R, p_L, p_R;
-        vector3d<double> vel_r, vel1_r, vel2_r, vec_r, vel_l, vel1_l, vel2_l, vec_l, edge_center_l, edge_center_r;
+        vector3d<double> vel_r, vec_r, vel_l,  vec_l, edge_center_l, edge_center_r;
 
         int n_edge_1 = n_edge + 1;
         if ((n_edge_1) == faces[n_face].size())
@@ -175,7 +202,9 @@ public:
         }
 
         edge_center_r = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center_r/=edge_center_r.norm();
         edge_center_l = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center_l/=edge_center_l.norm();
 
         vec_l[0] = u_L[1];
         vec_l[1] = u_L[2];
@@ -226,16 +255,16 @@ public:
         }
 
         edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center/=edge_center.norm();
 
-        R_vec = face_centers[n_face];
-        R = R_vec.norm();
+
 
         l_vec[0] = U[n_face][1];
         l_vec[1] = U[n_face][2];
         l_vec[2] = U[n_face][3];
 
         vel=cross_product(edge_center, l_vec);
-        vel /= (-U[n_face][0])*edge_center.norm();
+        vel /= -U[n_face][0];
 
         c = a;
 

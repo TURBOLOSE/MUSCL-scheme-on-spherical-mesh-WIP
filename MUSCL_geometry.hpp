@@ -258,7 +258,7 @@ public:
                 // edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
                 // edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
                 // edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
-                edge_normals[n_face][i] = cross_product(BM + face_centers[n_face], r); // v4
+                edge_normals[n_face][i] = cross_product((BM + face_centers[n_face]), r); // v4
 
                 edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 

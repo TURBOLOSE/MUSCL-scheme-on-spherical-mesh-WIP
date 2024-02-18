@@ -12,19 +12,23 @@ def make_input_4(): #no energy as separate variable
 
     l=[]
 
-    omega=np.array([0,0,2])
+  
+
     theta_face_centers=-np.arccos(face_centers[:,2])+np.pi/2
 
 
     #rho=np.ones(N)
+    omega=np.array([0,0,2])
     rho=np.exp(-1/3*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2]))**3)
 
 
     for face_num, R in enumerate(face_centers):
-        #if( R[2] >=0):
-        #    omega=np.array([0,0,20])
+        #if( R[2] >0):
+        #    omega=np.array([0,0,2])
+        #elif ( R[2] <0):
+        #    omega=np.array([0,0,-2])
         #else:
-        #    omega=np.array([0,0,-20])
+        #    omega=np.array([0,0,0])
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
     l=np.array(l)
 
@@ -50,16 +54,19 @@ def make_input_5():  #adds energy
 
     l=[]
 
-    omega=np.array([0,0,2])
+    omega=np.array([0,0,0])
+    rho=np.ones(N)
 
-    rho=np.exp(-(np.linalg.norm(omega)**2)*np.sin(np.arccos(face_centers[:,2]))**3)
+    #rho=np.exp(-(np.linalg.norm(omega)**2)*np.sin(np.arccos(face_centers[:,2]))**3)
 
 
     for face_num, R in enumerate(face_centers):
-        #if( R[2] >=0):
-            #omega=np.array([0,0,1])
-        #else:
-            #omega=np.array([0,0,-1])
+        if( R[2] >0):
+            omega=np.array([0,0,2])
+        elif ( R[2] <0):
+            omega=np.array([0,0,-2])
+        else:
+            omega=np.array([0,0,0])
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
     l=np.array(l)
     

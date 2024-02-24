@@ -13,7 +13,11 @@ def make_gif(path):
     images = []
     for filename in files:
         images.append(imageio.imread(path+"/"+filename))
-    imageio.mimsave('plots/res.gif', images, duration=5)
+    imageio.mimsave('plots/res.gif', images, duration=1500)
+
+
+
+
 
 
 skipstep=100
@@ -26,7 +30,7 @@ vertices=np.array(data.loc[:,:])
 
 
 
-data_rho=pd.read_table('results/bernoulli.dat', header=None, delimiter=r"\s+")
+data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
 
 
 
@@ -115,7 +119,7 @@ for i in range(maxstep):
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
         fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Density')
-        fig.savefig('plots/fig'+"{0:0>3}".format(i)+'.png', bbox_inches='tight')
+        fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
 
 
 
@@ -152,17 +156,10 @@ for i in range(5):
     fig.update_traces(marker=dict(color='red'))
     fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"}).select_traces()))
     fig.update_layout(title_text="t="+str((maxstep-i*100)*0.002),showlegend=False)
+    fig.update_layout(font=dict(size=30))
     fig.update_yaxes(range = [0.5,4.3])
     fig.show()
 
-
-rho=np.array(data_rho.loc[0,1:len(faces)])
-fig=px.scatter(x=theta_fc, y=rho_analytic,  labels={"x": "theta", "y":"rho"})
-fig.update_traces(marker=dict(color='red'))
-fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"}).select_traces()))
-fig.update_layout(title_text="t="+str((0)*0.002),showlegend=False)
-fig.update_yaxes(range = [0.5,4.3])
-fig.show()
 
 
 fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
@@ -191,12 +188,46 @@ fig.show()
 
 
 
-data=pd.read_table('errors_p.txt', header=None, delimiter=r"\s+")
+dat=pd.read_table('err_no_p.txt', header=None, delimiter=r"\s+")
+dat_p=pd.read_table('err_p.txt', header=None, delimiter=r"\s+")
 
-T_rot=2*np.pi/8
+T_rot=2*np.pi/2
 
-fig=px.scatter(x=data[0]/T_rot, y=data[1],  labels={"x": "N_of_rotations", "y":"relative rho error"}, log_y=True)
+df=pd.DataFrame(data={'N of rotations':dat[0]/T_rot, 'isothermal':np.abs(dat[1]), 'adiabatic': np.abs(dat_p[1])})
+
+fig=px.scatter(df,x='N of rotations', y=df.columns[1:3],log_y=True,  labels={"x":"N of rotations", "y":"density error"})
 fig.update_layout(font=dict(size=30))
 fig.show()
+
+
+dat_p=pd.read_table('err_p.txt', header=None, delimiter=r"\s+")
+dat_ico=pd.read_table('err_ico.txt', header=None, delimiter=r"\s+")
+dat_quad=pd.read_table('err_quad.txt', header=None, delimiter=r"\s+")
+
+
+
+T_rot=2*np.pi/2
+df=pd.DataFrame(data={'N of rotations':dat_p[0]/T_rot, 'Hex (2565 faces)':np.abs(dat_p[1]), 
+                      'Ico (5120 faces)': np.abs(dat_ico[1]),'Quad (6144 faces)': np.abs(dat_quad[1])})
+
+fig=px.line(df,x='N of rotations', y=df.columns[1:4],log_y=True,  labels={"x":"N of rotations", "y":"density error"})
+fig.update_layout(font=dict(size=30))
+fig.show()
+
+
+
+
+
+
+
+path='plots/gif_diff_p'
+_, _, files = next(os.walk(path))
+images = []
+for filename in files:
+    images.append(imageio.imread(path+"/"+filename))
+
+
+imageio.mimsave('plots/5.gif', images, duration=1000)
+
 
 

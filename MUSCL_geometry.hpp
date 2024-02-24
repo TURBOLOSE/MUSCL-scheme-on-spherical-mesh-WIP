@@ -60,6 +60,9 @@ public:
         BM_dist.resize(mesh.n_faces());
         edge_normals.resize(mesh.n_faces());
 
+
+        std::cout<<"processing mesh..."<<std::endl;
+
         size_t i = 0; // getting vertices from SurfaceMesh
         auto points = mesh.get_vertex_property<Point>("v:point");
         for (auto vertice : mesh.vertices())
@@ -217,6 +220,8 @@ public:
         find_surface_areas();
 
         process_mesh();
+
+        std::cout<<"processing mesh done"<<std::endl;
     };
 
     void process_mesh()
@@ -226,7 +231,9 @@ public:
         double max_cos_left = -1, max_cos_right = -1;
         int left_face1, left_face2, right_face1, right_face2, Hp_face, Hm_face;
 
-        for (int n_face; n_face < faces.size(); n_face++)
+
+
+        for (int n_face=0; n_face < faces.size(); n_face++)
         {
             // int n_face = 1;
             std::vector<int> face = faces[n_face];

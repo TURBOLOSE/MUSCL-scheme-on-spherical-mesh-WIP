@@ -12,6 +12,8 @@ protected:
     double dt, gam, M, N, h0, t, max_vel, rho_full;
     int dim;
     size_t steps;
+    bool stop_check = false ;
+
 
 public:
     MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
@@ -146,11 +148,11 @@ public:
         if (steps == 0)
             rho_full = temp;
 
-        std::cout << "t= " << t << " rho_total_err=" << 1. - temp / rho_full << " l_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
+        std::cout << "t= " << t+dt << " rho_total_err=" << 1. - temp / rho_full << " l_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
                   << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << std::endl;
 
-        // std::cout<<std::endl;
-        //  std::cout <<t<<" "<<1.-temp/faces.size() << std::endl;
+        //std::cout<<std::endl;
+        //std::cout <<t<<" "<<1. - temp / rho_full << std::endl;
 
         t += dt;
         steps++;
@@ -162,18 +164,11 @@ public:
         return t;
     }
 
+    bool get_stop_check(){ //True = stop computations due to error
+        return stop_check;
+    }
+
 protected:
-    /*double limiter(double r, double etha_plus, double etha_minus)
-    { // classical Superbee limiter for irregular grids
-        // CFL independent
-
-        if (std::isnan(r))
-        {
-            r = 0;
-        }
-
-        return std::max(0., std::max(std::min(1., etha_minus * r), std::min(r, etha_plus)));
-    };*/
 
     void res2d(double dt_here) // space step
     // takes data from U matrix
@@ -187,9 +182,6 @@ protected:
             for (size_t j = 0; j < faces[i].size(); j++)
             {
 
-                //int neighboor_num = neighbors_edge[i][j];
-                //int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
-                //int j01 = j0 + 1;
                 int j1 = j + 1;
 
                 if (j == (faces[i].size() - 1))
@@ -204,16 +196,25 @@ protected:
 
                     if (std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
                     {
+                        stop_check=true;
                         std::cout << "time: " << t << " face: " << i << " edge: " << j << " NaN in flux detected!" << std::endl;
                     }
                 }
 
-                // std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
+                //std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
 
-                // int component =2;
-                // std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;
-                // std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] << std::endl;
-                // std::cout << std::endl;
+
+                
+                /*int neighboor_num = neighbors_edge[i][j];
+                int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
+
+                int component =3;
+                //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;
+                //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] << std::endl;
+                //std::cout << std::endl;
+
+                std::cout << i << " " << j <<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] +
+                flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;*/
             }
         }
     };
@@ -259,7 +260,7 @@ private:
             l_vec[0] = U[i][1];
             l_vec[1] = U[i][2];
             l_vec[2] = U[i][3];
-            vel = cross_product(face_centers[i], l_vec);
+            vel = cross_product(face_centers[i]/face_centers[i].norm(), l_vec);
             if (vel.norm() > max)
                 max = vel.norm();
         }

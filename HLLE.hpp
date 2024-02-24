@@ -80,7 +80,7 @@ public:
             vel /= (-U[n_face][0]);
 
            
-            outfile_b << U[n_face][0]*vel.norm()*vel.norm()/2+a*a*U[n_face][0] << " ";
+            outfile_b << vel.norm()*vel.norm()/2+a*a << " ";
         }
         outfile_b << "\n";
     };

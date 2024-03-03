@@ -273,7 +273,9 @@ private:
 
         //std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
         //phi_ijji.resize(dim);
-
+        
+          omp_set_dynamic(0);     // Explicitly disable dynamic teams
+        omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
         for (int i = 0; i < this->n_faces(); ++i)
         {
@@ -326,6 +328,8 @@ private:
 
         //std::vector<double> pp, pm, lim;
 
+          omp_set_dynamic(0);     // Explicitly disable dynamic teams
+        omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
         for (size_t i = 0; i < this->n_faces(); ++i)
         {

@@ -8,9 +8,8 @@ OBJ_FILES = $(SOURCE_FILES:.cpp=.o)
 CC = g++
 CFLAGS = -std=c++23 -O3 -g -fopenmp
 
-$(NAME):$(NAME)
 
-test: $(OBJ_FILES) $(NAME).o
+$(NAME): $(OBJ_FILES) $(NAME).o
 	$(CC) $(CFLAGS) -o $(NAME) $(OBJ_FILES)
 
 $(NAME).o: $(MAIN_DEPEND)

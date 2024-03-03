@@ -8,12 +8,12 @@ using namespace pmp;
 int main()
 {
 
-    SurfaceMesh mesh = quad_sphere(0);
-    //SurfaceMesh mesh = icosphere(4);
+    //SurfaceMesh mesh = quad_sphere(0);
+    SurfaceMesh mesh = icosphere(4);
     // SurfaceMesh mesh = icosphere_hex(4);
 
     double dt = 0.002;
-    size_t maxstep = 10;
+    size_t maxstep = 1000;
     int dim = 5;
     double gam = 1.4;
     std::ifstream inData("input/input.dat");
@@ -58,9 +58,9 @@ int main()
 
     //MUSCL_HLLE test2(mesh, U_in, dim, gam);
 
-    // MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
+    MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
 
-    MUSCL_HLLC test2(mesh, U_in, dim, gam);
+    //MUSCL_HLLC test2(mesh, U_in, dim, gam);
 
     // MUSCL_base_geometry test(mesh);
 

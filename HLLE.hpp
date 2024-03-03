@@ -182,6 +182,7 @@ public:
         else
         {
             std::cout<<"flux_star: check char vel"<<std::endl;
+            stop_check=true;
         }
 
 

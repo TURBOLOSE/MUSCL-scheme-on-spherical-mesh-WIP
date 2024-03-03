@@ -20,7 +20,7 @@ def make_gif(path):
 
 
 
-skipstep=100
+skipstep=500
 
 
 
@@ -145,19 +145,20 @@ axis_dist=[]
 
 omega=np.array([0,0,2])
 face_centers=np.array(face_centers)
-rho_analytic=np.exp(-1/3*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2]))**3)
+#rho_analytic=np.exp(-1/3*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2]))**3)
 
+theta_fc=-np.arccos(face_centers[:,2])+np.pi/2
+rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2])+np.pi/2)**2)
 
+for i in range(4):
 
-for i in range(5):
-
-    rho=np.array(data_rho.loc[maxstep-i*100,1:len(faces)])
+    rho=np.array(data_rho.loc[maxstep-i*2500,1:len(faces)])
     fig=px.scatter(x=theta_fc, y=rho_analytic,  labels={"x": "theta", "y":"rho"})
     fig.update_traces(marker=dict(color='red'))
     fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"}).select_traces()))
-    fig.update_layout(title_text="t="+str((maxstep-i*100)*0.002),showlegend=False)
+    fig.update_layout(title_text="full roatations: "+str( round((maxstep-i*2500)*0.002/(2*np.pi/np.linalg.norm(omega)),2) ),showlegend=False)
     fig.update_layout(font=dict(size=30))
-    fig.update_yaxes(range = [0.5,4.3])
+    #fig.update_yaxes(range = [0.5,4.3])
     fig.show()
 
 
@@ -220,14 +221,14 @@ fig.show()
 
 
 
-path='plots/gif_diff_p'
+path='plots/gif_ico_4_an'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/5.gif', images, duration=1000)
+imageio.mimsave('plots/2_1.gif', images, duration=1000)
 
 
 

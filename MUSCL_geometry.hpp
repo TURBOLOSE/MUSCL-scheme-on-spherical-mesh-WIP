@@ -1036,6 +1036,11 @@ public:
         outfile.close();
     };
 
+    vector3d<double> face_center(int n_face){
+
+        return face_centers[n_face]/face_centers[n_face].norm();
+    }
+
     void write_faces()
     {
         std::ofstream outfile;

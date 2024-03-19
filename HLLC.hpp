@@ -2,15 +2,15 @@
 #include "MUSCL_base.hpp"
 #include "MUSCL_geometry.hpp"
 
-class MUSCL_HLLE_p : public MUSCL_base
+class MUSCL_HLLC : public MUSCL_base
 {
 
 private:
     std::ofstream outfile, outfile_curl, outfile_p;
 
 public:
-    MUSCL_HLLE_p(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
-        : MUSCL_base(mesh, U_in, dim, gam) //U_in should be n_faces * dim(=5)
+    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+        : MUSCL_base(mesh, U_in, dim, gam)
     {
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -43,7 +43,6 @@ public:
         }
         outfile << "\n";
     };
-
     void write_t_p()
     {
         vector3d<double> vel, l_vec;
@@ -74,11 +73,10 @@ public:
             l_vec[0] = U[n_face][1];
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
-            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
-            vel /= (-U[n_face][0]);
+            vel = cross_product(face_centers[n_face], l_vec);
+            vel /= (-U[n_face][0] * (face_centers[n_face].norm() * face_centers[n_face].norm()));
 
-
-            rxV = cross_product(face_centers[n_face]/face_centers[n_face].norm(), vel);
+            rxV = cross_product(face_centers[n_face], vel);
             outfile_curl << rxV.norm() << " ";
         }
         outfile_curl << "\n";
@@ -86,7 +84,7 @@ public:
 
 protected:
     // U = {rho, l1, l2, l3, E}
-    std::vector<double> flux(std::vector<double> u_in, int n_face, int n_edge)
+     std::vector<double> flux(std::vector<double> u_in, int n_face, int n_edge)
     {
 
         std::vector<double> res;
@@ -126,36 +124,113 @@ protected:
         return res;
     }
 
-    std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge)
-    {
+    std::vector<double> flux_star(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
+    { // returns vector F* or G*
+        // HLLC flux
 
-        std::vector<double> FL, FR, F, c_vel;
-        double S_R, S_L;
+        std::vector<double> F_L, F_R, F_L_star, F_R_star, c_vel, D, F;
+        double S_star, p_L, p_R, rho_R, rho_L, v_L, v_R;
+        double S_R, S_L, R;
+        F_L_star.resize(dim);
+        F_R_star.resize(dim);
+        D.resize(dim);
 
-        F.resize(dim);
+        vector3d<double> vel_L, vel_R, l_vec, nxR,edge_center;
 
-        c_vel = char_vel(ul, ur, n_face, n_edge);
+        int n_edge_1 = n_edge + 1;
+        if ((n_edge_1) == faces[n_face].size())
+        {
+            n_edge_1 = 0;
+        }
+
+        edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center /= edge_center.norm();
+
+        l_vec[0] = u_L[1];
+        l_vec[1] = u_L[2];
+        l_vec[2] = u_L[3];
+
+
+        vel_L=cross_product(edge_center, l_vec);
+        vel_L /= (-u_L[0])*edge_center.norm();
+
+
+        l_vec[0] = u_R[1];
+        l_vec[1] = u_R[2];
+        l_vec[2] = u_R[3];
+
+        vel_R=cross_product(edge_center, l_vec);
+        vel_R /= (-u_R[0])*edge_center.norm();
+
+
+        c_vel = char_vel(u_L, u_R, n_face, n_edge);
         S_L = c_vel[0];
         S_R = c_vel[1];
 
-        FL = flux(ul, n_face, n_edge);
-        FR = flux(ur, n_face, n_edge);
+        
+        nxR = cross_product(edge_normals[n_face][n_edge], (edge_center / edge_center.norm()));
+
+
+        D[0] = 0;
+        /*D[1] = edge_normals[n_face][n_edge][0];
+        D[2] = edge_normals[n_face][n_edge][1];
+        D[3] = edge_normals[n_face][n_edge][2];*/
+
+        D[1] = -nxR[0];
+        D[2] = -nxR[1];
+        D[3] = -nxR[2];
+        
+
+
+        F_L = flux(u_L, n_face, n_edge);
+        F_R = flux(u_R, n_face, n_edge);
+
+        
+        rho_R = u_R[0];
+        rho_L = u_L[0];
+        p_L = (u_L[4] - ((vel_L.norm() * vel_L.norm()) * u_L[0]) / 2.) * (gam - 1);
+        p_R = (u_R[4] - ((vel_R.norm() * vel_R.norm()) * u_R[0]) / 2.) * (gam - 1);
+
+        S_star = (p_R - p_L + rho_L * dot_product(edge_normals[n_face][n_edge], vel_L) * 
+        (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) - 
+        rho_R * dot_product(edge_normals[n_face][n_edge], vel_R) * 
+        (S_R - dot_product(edge_normals[n_face][n_edge], vel_R))) / 
+        (rho_L * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) - rho_R * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)));
+        D[4] = S_star;
+
+
+        //std::cout<<S_L<<" "<<S_star<<" "<<S_R<<std::endl;
+
+        double P_LR=(p_L+p_R+u_L[0]*(S_L - dot_product(edge_normals[n_face][n_edge], vel_L))*(S_star- dot_product(edge_normals[n_face][n_edge], vel_L))
+        +u_R[0]*(S_R - dot_product(edge_normals[n_face][n_edge], vel_R))*(S_star- dot_product(edge_normals[n_face][n_edge], vel_R)))/2;
+
+        for (size_t i = 0; i < dim; i++)
+        {
+            /*F_L_star[i] = (S_star * (S_L * u_L[i] - F_L[i]) + S_L * 
+            (p_L + rho_L * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_L))) * D[i]) / (S_L - S_star);
+            F_R_star[i] = (S_star * (S_R * u_R[i] - F_R[i]) + S_R * 
+            (p_R + rho_R * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_R))) * D[i]) / (S_R - S_star);*/
+        
+            F_L_star[i]=(S_star*(S_L * u_L[i] - F_L[i])+S_L*P_LR*D[i])/(S_L-S_star);
+            F_R_star[i]=(S_star*(S_R * u_R[i] - F_R[i])+S_R*P_LR*D[i])/(S_R-S_star);
+
+        }
 
         if (S_L >= 0)
         {
-            F = FL;
+            F = F_L;
         }
-        else if (S_L < 0 && S_R > 0)
+        else if (S_L < 0 && S_star >= 0)
         {
-
-            for (size_t i = 0; i < dim; i++)
-            {
-                F[i] = (S_R * FL[i] - S_L * FR[i] + S_R * S_L * (ur[i] - ul[i])) / (S_R - S_L);
-            }
+            F = F_L_star;
         }
-        else if (S_R <= 0)
+        else if (S_star < 0 && S_R >= 0)
         {
-            F = FR;
+            F = F_R_star;
+        }
+        else if (S_R < 0)
+        {
+            F = F_R;
         }
         else
         {
@@ -163,14 +238,18 @@ protected:
             stop_check = true;
         }
 
+
+
         return F;
-    }
+    };
+
+    
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
     {
         // returns vector {S_L, S_R}
         std::vector<double> res;
-        double a_l, a_r, S_L, S_R, p_L, p_R;
+        double a_L, a_R, S_L, S_R, p_L, p_R, q_R, q_L;
         vector3d<double> vel_r, vec_r, vel_l, vec_l,edge_center_l,edge_center_r;
 
 
@@ -201,88 +280,55 @@ protected:
         vel_r /= (-u_R[0])*edge_center_r.norm();
 
 
-        p_L = (u_L[4] - u_L[0] * vel_l.norm() * vel_l.norm() / 2.) * (gam - 1);
-        p_R = (u_R[4] - u_R[0] * vel_r.norm() * vel_r.norm() / 2.) * (gam - 1);
+        p_L = (u_L[4] - u_L[0] * vel_l.norm() * vel_l.norm() / 2) * (gam - 1);
+        p_R = (u_R[4] - u_R[0] * vel_r.norm() * vel_r.norm() / 2) * (gam - 1);
 
-        a_l = std::sqrt(gam * p_L / u_L[0]);
-        a_r = std::sqrt(gam * p_R / u_R[0]);
+        a_L = std::sqrt(gam * p_L / u_L[0]);
+        a_R = std::sqrt(gam * p_R / u_R[0]);
 
-        int shift = 0;
+        double z = (gam-1)/(2*gam);
+       // double p_star=std::pow((a_L+a_R-(gam-1)/2. * (dot_product(edge_normals[n_face][n_edge], vel_r)-dot_product(edge_normals[n_face][n_edge], vel_l)))
+       //  /( a_L/std::pow(p_L,z) + a_R/std::pow(p_R,z) ),1./z);
 
-        S_L = std::min(dot_product(vel_l, edge_normals[n_face][n_edge]), dot_product(vel_r, edge_normals[n_face][n_edge])) - std::max(a_l, a_r);
-        S_R = std::max(dot_product(vel_l, edge_normals[n_face][n_edge]), dot_product(vel_r, edge_normals[n_face][n_edge])) + std::max(a_l, a_r);
+        double p_pvrs=1/2.*(p_L+p_R)-1/8.*( dot_product(edge_normals[n_face][n_edge], vel_r)
+        -dot_product(edge_normals[n_face][n_edge], vel_l))*(u_L[0]+u_R[0])*(a_L+a_R);
+        double p_star=std::max(0., p_pvrs);
 
-        res.resize(2);
-        res[0] = S_L;
-        res[1] = S_R;
+
+        if(p_star<=p_R){
+            q_R=1;
+        }else{
+            q_R=std::sqrt(1+(gam+1)/(2*gam)*(p_star/p_R-1));
+        }
+
+        if(p_star<=p_L){
+            q_L=1;
+        }else{
+            q_L=std::sqrt(1+(gam+1)/(2*gam)*(p_star/p_L-1));
+        }
+
+
+        S_L=dot_product(vel_l, edge_normals[n_face][n_edge])-a_L*q_L;
+        S_R=dot_product(vel_r, edge_normals[n_face][n_edge])+a_R*q_R;
+
         
-        /*if(abs(p_R-1)>0.1||abs(p_L-1)>0.1){
-            std::cout<<"err p_r: "<<p_R<<" p_l: "<<p_L<<std::endl;
-        }*/
-        
+        //S_L = std::min(dot_product(vel_l, edge_normals[n_face][n_edge]), dot_product(vel_r, edge_normals[n_face][n_edge])) - std::max(a_L, a_R);
+        //S_R = std::max(dot_product(vel_l, edge_normals[n_face][n_edge]), dot_product(vel_r, edge_normals[n_face][n_edge])) + std::max(a_L, a_R);
 
-         if(std::isnan(S_L)||std::isnan(S_R)){
+        if(std::isnan(S_L)||std::isnan(S_R)){
             std::cout<<"p_r: "<<p_R<<" p_l: "<<p_L<<std::endl;
             std::cout<<"rho_l: "<<u_L[0]<<" rho_r: "<<u_R[0]<<std::endl;
             stop_check=true;
         }
 
-
-        return res;
-    }
-
-    /*std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
-    {
-        // returns vector {S_L, S_R}
-        std::vector<double> res;
-        double a_l, a_r, S_L, S_R, p_L, p_R, v_star, a_star;
-        vector3d<double> vel_r, vec_r, vel_l, vec_l, edge_center_l, edge_center_r;
-
-        int n_edge_1 = n_edge + 1;
-        if ((n_edge_1) == faces[n_face].size())
-        {
-            n_edge_1 = 0;
-        }
-
-        edge_center_r = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-        edge_center_l = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-
-        edge_center_r /= edge_center_r.norm();
-        edge_center_l /= edge_center_l.norm();
-
-        vec_l[0] = u_L[1];
-        vec_l[1] = u_L[2];
-        vec_l[2] = u_L[3];
-
-        vec_r[0] = u_R[1];
-        vec_r[1] = u_R[2];
-        vec_r[2] = u_R[3];
-
-        vel_l = cross_product(edge_center_l, vec_l);
-        vel_l /= (-u_L[0]) * edge_center_l.norm();
-
-        vel_r = cross_product(edge_center_r, vec_r);
-        vel_r /= (-u_R[0]) * edge_center_r.norm();
-
-        p_L = (u_L[4] - u_L[0] * vel_l.norm() * vel_l.norm() / 2) * (gam - 1);
-        p_R = (u_R[4] - u_R[0] * vel_r.norm() * vel_r.norm() / 2) * (gam - 1);
-
-        a_l = std::sqrt(gam * p_L / u_L[0]);
-        a_r = std::sqrt(gam * p_R / u_R[0]);
-
-        v_star = (dot_product(vel_l, edge_normals[n_face][n_edge]) - dot_product(vel_r, edge_normals[n_face][n_edge])) / 2. + (a_l - a_r) / (gam - 1);
-        a_star = (a_l + a_r) / 2. + (gam - 1) / 4. * (dot_product(vel_l, edge_normals[n_face][n_edge]) - dot_product(vel_r, edge_normals[n_face][n_edge]));
-
-        S_L = std::min(dot_product(vel_l, edge_normals[n_face][n_edge])  - a_l, v_star - a_star);
-        S_R = std::max(dot_product(vel_r, edge_normals[n_face][n_edge]) + a_r, v_star + a_star);
-
         res.resize(2);
         res[0] = S_L;
         res[1] = S_R;
 
         return res;
-    }*/
+    }
 
+    
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
     { // classical Superbee limiter for irregular grids
         // CFL independent
@@ -298,20 +344,23 @@ protected:
             n_edge_1 = 0;
         }
         edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-        edge_center /= edge_center.norm();
+        edge_center/=edge_center.norm();
 
         l_vec[0] = U[n_face][1];
         l_vec[1] = U[n_face][2];
         l_vec[2] = U[n_face][3];
 
-        vel = cross_product(edge_center, l_vec);
-        vel /= (-U[n_face][0]) * edge_center.norm();
+        vel=cross_product(edge_center, l_vec);
+        vel /= (-U[n_face][0])*edge_center.norm();
+
 
         double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
         c = std::sqrt(gam * p / U[n_face][0]);
 
+
+
         nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
-                  (distance(vertices[faces[n_face][n_edge]], vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
+                  (distance(vertices[faces[n_face][n_edge]],vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
 
         etha_plus = H_plus[n_face][n_edge] / BM_dist[n_face][n_edge];
         etha_plus = H_minus[n_face][n_edge] / BM_dist[n_face][n_edge];

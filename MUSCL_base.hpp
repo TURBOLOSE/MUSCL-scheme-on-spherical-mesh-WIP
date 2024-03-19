@@ -16,8 +16,9 @@ protected:
 
 
 public:
-    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
-    {
+    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : 
+    MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
+    {//U_in should be n_faces * dim(=4)
 
         double h0_temp;
 
@@ -160,7 +161,6 @@ public:
 
     double time()
     {
-
         return t;
     }
 
@@ -274,7 +274,7 @@ private:
         //std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
         //phi_ijji.resize(dim);
         
-          omp_set_dynamic(0);     // Explicitly disable dynamic teams
+        omp_set_dynamic(0);     // Explicitly disable dynamic teams
         omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
         for (int i = 0; i < this->n_faces(); ++i)
@@ -283,44 +283,10 @@ private:
             {
 
                 std::vector<double> phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
-
-                // std::cout << i << " " << j << std::endl;
-                // std::cout << U_plus[i][j][0] << " " << U_plus[i][j][1] << " " << U_plus[i][j][2] << " " << U_plus[i][j][3] << std::endl;
-
-                // std::cout << U_minus[i][j][0] << " " << U_minus[i][j][1] << " " << U_minus[i][j][2] << " " << U_minus[i][j][3] << std::endl;
-                // std::cout<<"HLLE_ijji: " << phi_ijji[0] << " " << phi_ijji[1] << " " << phi_ijji[2] << " " << phi_ijji[3] << std::endl;
-                // std::cout<<std::endl;
-                // phi_ii = flux_star(U[i], U[i], i, j);
-                // phi_iji = flux_star(U_plus[i][j], U[i], i, j);
-
                 flux_var_minus[i][j] = phi_ijji;
-
-                //if (i == 0)
-                //{
-                //    std::cout<<phi_ijji[0]<<" ";
-                //}
-
-                /*if ((i == 4 && j == 1) || (i == 2 && j == 1))
-                {
-
-                    std::cout <<" i= "<< i << " j= " << j << std::endl;
-                    std::cout<<"U_L:" << U_plus[i][j][0] << " " << U_plus[i][j][1] << " " << U_plus[i][j][2] << " " << U_plus[i][j][3] << std::endl;
-                    std::cout<<"U_R:"  << U_minus[i][j][0] << " " << U_minus[i][j][1] << " " << U_minus[i][j][2] << " " << U_minus[i][j][3] << std::endl;
-
-                    std::cout<<"HLLE_ijji: " << phi_ijji[0] << " " << phi_ijji[1] << " " << phi_ijji[2] << " " << phi_ijji[3] << std::endl;
-
-                    phi_ijji=flux_star(U_plus[i][j], U_minus[i][j], i, j);
-                    std::cout <<"HLLE_ijji_manual: "<< phi_ijji[0] << " " << phi_ijji[1]
-                    << " " << phi_ijji[2] << " " << phi_ijji[3] << std::endl;
-
-                    std::cout <<flux_var_plus[i][j][0]+flux_var_minus[i][j][0]<<std::endl;
-                    //std::cout << phi_ii[0] << " " << phi_iji[0] << " " << phi_ijji[0] << std::endl;
-                    std::cout << std::endl;
-                }*/
             }
         }
 
-         //std::cout << std::endl;
     }
 
     void find_U_edges() // finding U_ij and U_ji
@@ -328,7 +294,7 @@ private:
 
         //std::vector<double> pp, pm, lim;
 
-          omp_set_dynamic(0);     // Explicitly disable dynamic teams
+        omp_set_dynamic(0);     // Explicitly disable dynamic teams
         omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
         for (size_t i = 0; i < this->n_faces(); ++i)
@@ -394,17 +360,17 @@ private:
             res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge];
         }
         return res;
-    }
+    };
 
     std::vector<double> p_minus(int n_face, int face_edge)
     {
-        std::vector<double> res, Um;
-        res.resize(dim);
+        std::vector<double> res1, Um;
+        res1.resize(dim);
         Um = U_H_minus(n_face, face_edge);
         for (size_t U_element = 0; U_element < dim; U_element++)
         {
-            res[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
+            res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
         }
-        return res;
+        return res1;
     }
 };

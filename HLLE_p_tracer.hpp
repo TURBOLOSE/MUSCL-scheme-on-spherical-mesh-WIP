@@ -2,19 +2,27 @@
 #include "MUSCL_base.hpp"
 #include "MUSCL_geometry.hpp"
 
-class MUSCL_HLLE_p : public MUSCL_base
+class MUSCL_HLLE_p_tracer : public MUSCL_base
 {
 
 private:
-    std::ofstream outfile, outfile_curl, outfile_p;
+    std::ofstream outfile, outfile_curl, outfile_p, outfile_tracer;
 
 public:
-    MUSCL_HLLE_p(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
-        : MUSCL_base(mesh, U_in, dim, gam) //U_in should be n_faces * dim(=5)
+    MUSCL_HLLE_p_tracer(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+        : MUSCL_base(mesh, U_in, dim, gam) //U_in should be n_faces * dim(=6)
     {
+
+        if(dim != 6)
+        std::cout<<"dim should be = 6 and U_in should be n_faces * dim(=6)"<<std::endl;
+
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
         outfile.open("results/rho.dat", std::ios::out | std::ios::app);
+
+        outfile_tracer.open("results/tracer.dat", std::ios::out | std::ios::trunc);
+        outfile_tracer.close();
+        outfile_tracer.open("results/tracer.dat", std::ios::out | std::ios::app);
 
         outfile_curl.open("results/curl.dat", std::ios::out | std::ios::trunc);
         outfile_curl.close();
@@ -42,6 +50,17 @@ public:
             outfile << U_i[0] << " ";
         }
         outfile << "\n";
+    };
+
+    void write_t_tracer()
+    {
+        outfile_tracer << this->time() << "  ";
+        for (auto U_i : U)
+        {
+
+            outfile_tracer << U_i[5] << " ";
+        }
+        outfile_tracer << "\n";
     };
 
     void write_t_p()
@@ -77,11 +96,13 @@ public:
             vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
+            // std::cout<<vel.norm()<<" ";
 
             rxV = cross_product(face_centers[n_face]/face_centers[n_face].norm(), vel);
             outfile_curl << rxV.norm() << " ";
         }
         outfile_curl << "\n";
+        // std::cout<<"\n";
     };
 
 protected:
@@ -122,6 +143,7 @@ protected:
         res[2] = (u_in[2] * ndv - nxR[1] * PI);
         res[3] = (u_in[3] * ndv - nxR[2] * PI);
         res[4] = (u_in[4] + PI) * dot_product(vel, edge_normals[n_face][n_edge]);
+        res[5] = u_in[5] * dot_product(vel, edge_normals[n_face][n_edge]);
 
         return res;
     }
@@ -221,67 +243,14 @@ protected:
         }*/
         
 
-         if(std::isnan(S_L)||std::isnan(S_R)){
+        if(std::isnan(S_L)||std::isnan(S_R)){
             std::cout<<"p_r: "<<p_R<<" p_l: "<<p_L<<std::endl;
-            std::cout<<"rho_l: "<<u_L[0]<<" rho_r: "<<u_R[0]<<std::endl;
-            stop_check=true;
-        }
+            std::cout<<"rho_r: "<<u_L[0]<<" rho_r:: "<<u_L[1]<<std::endl;
 
+        }
 
         return res;
     }
-
-    /*std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
-    {
-        // returns vector {S_L, S_R}
-        std::vector<double> res;
-        double a_l, a_r, S_L, S_R, p_L, p_R, v_star, a_star;
-        vector3d<double> vel_r, vec_r, vel_l, vec_l, edge_center_l, edge_center_r;
-
-        int n_edge_1 = n_edge + 1;
-        if ((n_edge_1) == faces[n_face].size())
-        {
-            n_edge_1 = 0;
-        }
-
-        edge_center_r = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-        edge_center_l = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-
-        edge_center_r /= edge_center_r.norm();
-        edge_center_l /= edge_center_l.norm();
-
-        vec_l[0] = u_L[1];
-        vec_l[1] = u_L[2];
-        vec_l[2] = u_L[3];
-
-        vec_r[0] = u_R[1];
-        vec_r[1] = u_R[2];
-        vec_r[2] = u_R[3];
-
-        vel_l = cross_product(edge_center_l, vec_l);
-        vel_l /= (-u_L[0]) * edge_center_l.norm();
-
-        vel_r = cross_product(edge_center_r, vec_r);
-        vel_r /= (-u_R[0]) * edge_center_r.norm();
-
-        p_L = (u_L[4] - u_L[0] * vel_l.norm() * vel_l.norm() / 2) * (gam - 1);
-        p_R = (u_R[4] - u_R[0] * vel_r.norm() * vel_r.norm() / 2) * (gam - 1);
-
-        a_l = std::sqrt(gam * p_L / u_L[0]);
-        a_r = std::sqrt(gam * p_R / u_R[0]);
-
-        v_star = (dot_product(vel_l, edge_normals[n_face][n_edge]) - dot_product(vel_r, edge_normals[n_face][n_edge])) / 2. + (a_l - a_r) / (gam - 1);
-        a_star = (a_l + a_r) / 2. + (gam - 1) / 4. * (dot_product(vel_l, edge_normals[n_face][n_edge]) - dot_product(vel_r, edge_normals[n_face][n_edge]));
-
-        S_L = std::min(dot_product(vel_l, edge_normals[n_face][n_edge])  - a_l, v_star - a_star);
-        S_R = std::max(dot_product(vel_r, edge_normals[n_face][n_edge]) + a_r, v_star + a_star);
-
-        res.resize(2);
-        res[0] = S_L;
-        res[1] = S_R;
-
-        return res;
-    }*/
 
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
     { // classical Superbee limiter for irregular grids
@@ -326,6 +295,12 @@ protected:
             {
                 res[i] = 0;
             }
+        }
+
+
+        for (size_t i = 0; i < dim; i++)
+        {
+            res[i]=std::max(0., std::min(res[i],1+(nu_plus+1)/3*(u_r[i]-1)) );
         }
 
         return res;

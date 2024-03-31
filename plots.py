@@ -117,22 +117,57 @@ norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
 #              cax=ax[1], orientation='horizontal', label='Density')
 
 
+
+
+
 theta_fc=-np.arccos(face_centers.loc[:,2])+np.pi/2
 
 mpl.rcParams.update({'font.size': 22})
 
+fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
+
 for i in range(maxstep): #dens
     if((i % skipstep)==0 ):
         rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
-        fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
         fig.suptitle('t='+str(data_rho.loc[i,0]))
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
-        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Pressure')
+        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Density')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
+        plt.figure().clear()
+        plt.close()
 
 
-#fig.savefig('plots/test_curl.png', dpi=1000)
+
+
+
+data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
+
+colorm = plt.get_cmap('viridis')
+
+
+
+
+
+plt.figure().clear()
+plt.close()
+
+
+i=9
+min_rho=np.min( data_rho.loc[i,1:len(x_plot)])
+max_rho=np.max( data_rho.loc[i,1:len(x_plot)])
+
+[min_rho,max_rho]
+norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
+
+rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
+fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
+fig.suptitle('t='+str(data_rho.loc[i,0]))
+for face_num,face in enumerate(faces):
+    ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
+fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Vorticity')
+fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
+#fig.savefig('plots/test_vort_3.png', dpi=1000)
 
 
 
@@ -203,6 +238,18 @@ for i in range(4):#pressure
 
 
 
+p_an=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
+
+
+rho=np.array(data_p.loc[maxstep,1:len(faces)])
+fig=px.scatter(x=theta_fc, y=p_an,  labels={"x": "theta", "y":"P"})
+fig.update_traces(marker=dict(color='red'))
+fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"P"}).select_traces()))
+fig.update_layout(title_text=" ",showlegend=False)
+fig.update_layout(font=dict(size=30))
+fig.show()
+
+
 fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
 fig.show()
 
@@ -261,14 +308,14 @@ fig.show()
 
 
 
-path='plots/gif_diff'
+path='plots/source_test_3'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/diff_isoth.gif', images, duration=500)
+imageio.mimsave('plots/source_test_3.gif', images, duration=500)
 
 
 

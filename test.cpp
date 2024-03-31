@@ -1,7 +1,6 @@
 #include <iostream>
 #include "HLLE.hpp"
 #include "HLLE_p.hpp"
-#include "HLLE_p_tracer.hpp"
 #include "HLLC.hpp"
 
 using namespace pmp;
@@ -10,12 +9,12 @@ int main()
 {
 
     //SurfaceMesh mesh = quad_sphere(4);
-    SurfaceMesh mesh = icosphere(4);
-    //SurfaceMesh mesh = icosphere_hex(4);
+    //SurfaceMesh mesh = icosphere(4);
+    SurfaceMesh mesh = icosphere_hex(4);
 
     double dt = 0.002;
-    size_t maxstep = 6281;
-    size_t skipstep = 628;
+    size_t maxstep = 1;
+    size_t skipstep = 1;
 
 
     int dim = 5;
@@ -64,6 +63,8 @@ int main()
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
     //MUSCL_HLLE_p_tracer test2(mesh, U_in, dim, gam);
     MUSCL_HLLC test2(mesh, U_in, dim, gam);
+    //MUSCL_HLLC_tracer test2(mesh, U_in, dim, gam);
+
 
     // MUSCL_base_geometry test(mesh);
 

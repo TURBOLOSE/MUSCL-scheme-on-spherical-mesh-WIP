@@ -75,6 +75,8 @@ def make_input_4_cos_bell(): #no energy as separate variable
 
 def make_input_5():
     gam=1.4
+
+    #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
     N=len(face_centers[0])
 
@@ -82,7 +84,7 @@ def make_input_5():
     face_centers=np.array(face_centers)
 
     rho=np.ones(N)
-    omega=np.array([0,0,2])
+    omega=np.array([0,0,0])
 
 
     #p=np.ones(N)
@@ -208,27 +210,40 @@ def make_input_6_cos_bell():
     N=len(face_centers[0])
 
     face_centers=np.array(face_centers)
-    l=[]
     
-    theta=-np.arccos(face_centers[:,2])+np.pi/2 #lat
-    phi=np.arctan2(face_centers[:,1],face_centers[:,0]) #long
+    
+    
 
-
-    omega=np.array([0,0,1])
+    omega=np.array([0,0,0.5])
 
 
     rho=np.ones(N)
     tracer=np.zeros(N)
 
 
+    l=[]
+    theta_0=-np.arccos(face_centers[:,2]) 
+
+    rho_0=1
+    p_0=1
+    a_0=np.sqrt(gam*p_0/rho_0)
+
+    M_0=np.linalg.norm(omega)/a_0
+
+    #M_0=(gam-1)/p_0 *np.linalg.norm(omega)**2
+
+    rho=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta_0)**2)**(1/(gam-1))
+    p=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta_0)**2)**(gam/(gam-1))
+
+
     v=[]
     a=0.05
     R0=a/3
+    phi=np.arctan2(face_centers[:,1],face_centers[:,0]) #long
+    theta=-np.arccos(face_centers[:,2])+np.pi/2 #lat
     r=a*np.arccos(np.sin(0)*np.sin(theta)+np.cos(theta)*np.cos(0)*np.cos(phi-np.pi*3/2))
 
     for face_num, R in enumerate(face_centers):
-        
-        
         if r[face_num]<R0:
             tracer[face_num]=500*(1+1*np.cos(np.pi*r[face_num]/R0))
 
@@ -241,13 +256,13 @@ def make_input_6_cos_bell():
     v=np.array(v)
 
     
-    p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
+
     E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E, tracer]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
 
 
-make_input_5_cos_bell()
+make_input_5()
 #make_input_4()
 #make_input_6_cos_bell()
 #make_input_5_const_entr()

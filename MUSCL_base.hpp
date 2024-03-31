@@ -6,7 +6,7 @@
 class MUSCL_base : public MUSCL_base_geometry
 {
 protected:
-    std::vector<std::vector<double>> U, U_temp;
+    std::vector<std::vector<double>> U, U_temp, source_plus;
     std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
     // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
     double dt, gam, M, N, h0, t, max_vel, rho_full;
@@ -33,6 +33,7 @@ public:
         U_plus.resize(this->n_faces());
         U_minus.resize(this->n_faces());
         U_temp.resize(this->n_faces());
+        source_plus.resize(this->n_faces());
 
         for (size_t i = 0; i < this->n_faces(); i++)
         {
@@ -42,6 +43,7 @@ public:
             U_plus[i].resize(faces[i].size());
             U_minus[i].resize(faces[i].size());
             U_temp[i].resize(dim);
+            source_plus[i].resize(dim);
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
@@ -176,8 +178,10 @@ protected:
 
         for (size_t i = 0; i < this->n_faces(); i++)
         {
-            for (size_t k = 0; k < dim; k++)
-                U[i][k] = 0;
+            for (size_t k = 0; k < dim; k++) //source terms
+            U[i][k] = dt_here*source_plus[i][k];
+            //U[i][k] = dt_here*source_plus[i][k] / surface_area[i];
+
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
@@ -192,15 +196,18 @@ protected:
                 {
 
                     U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *
-                               (flux_var_plus[i][j][k] + flux_var_minus[i][j][k]);
+                               (flux_var_minus[i][j][k]);
 
-                    if (std::isnan((flux_var_plus[i][j][k] + flux_var_minus[i][j][k])))
+                    if (std::isnan((flux_var_minus[i][j][k])))
                     {
                         stop_check=true;
                         std::cout << "time: " << t << " face: " << i << " edge: " << j << " NaN in flux detected!" << std::endl;
                     }
                 }
 
+                
+                
+                   
                 //std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
 
 
@@ -221,6 +228,7 @@ protected:
 
     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
     virtual std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge) = 0;
+    virtual std::vector<double> source(std::vector<double> u, int n_face) = 0;
 
 private:
     void find_M()
@@ -273,7 +281,7 @@ private:
 
         //std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
         //phi_ijji.resize(dim);
-        
+        //std::vector<double> phi_ijji, phi_source;
         omp_set_dynamic(0);     // Explicitly disable dynamic teams
         omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
@@ -281,10 +289,9 @@ private:
         {
             for (int j = 0; j < faces[i].size(); ++j)
             {
-
-                std::vector<double> phi_ijji = flux_star(U_plus[i][j], U_minus[i][j], i, j);
-                flux_var_minus[i][j] = phi_ijji;
+                flux_var_minus[i][j]=flux_star(U_plus[i][j], U_minus[i][j], i, j);;
             }
+                source_plus[i]=source(U[i],i);
         }
 
     }

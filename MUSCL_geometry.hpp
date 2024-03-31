@@ -445,6 +445,8 @@ public:
 
                 double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
 
+
+
                 if (Hp_dist > 2 * (Hp - face_centers[n_face]).norm())
                 {
                     std::cout << "check distances" << std::endl;
@@ -475,6 +477,8 @@ public:
                     std::cout << betas_plus[n_face][i][0] + betas_plus[n_face][i][1] << std::endl;
                     std::cout << n_face << " " << i << std::endl;
                 }
+
+
 
                 /*int j1 = j0 + 1;
                 int i1 = i + 1;
@@ -521,15 +525,16 @@ public:
         ((vertices[faces[8][0]] / 2 + vertices[faces[8][1]] / 2) + edge_normals[8][0] * 0.5).print();
         */
 
-        /* vertices[faces[0][0]].print();
-         vertices[faces[0][1]].print();
-         vertices[faces[0][2]].print();
-         vertices[faces[0][3]].print();
+         /*vertices[faces[1][0]].print();
+         vertices[faces[1][1]].print();
+         vertices[faces[1][2]].print();
+         vertices[faces[1][3]].print();
+         vertices[faces[1][4]].print();*/
 
-         ((vertices[faces[0][0]] / 2 + vertices[faces[0][1]] / 2) + edge_normals[0][0] * 0.5).print();
-         ((vertices[faces[0][1]] / 2 + vertices[faces[0][2]] / 2) + edge_normals[0][1] * 0.5).print();
-         ((vertices[faces[0][2]] / 2 + vertices[faces[0][3]] / 2) + edge_normals[0][2] * 0.5).print();
-         ((vertices[faces[0][3]] / 2 + vertices[faces[0][0]] / 2) + edge_normals[0][3] * 0.5).print();*/
+
+        
+
+        
     };
 
     /*double broken_distance(vector3d<double> a, vector3d<double> b, int start_face, int end_face){
@@ -967,8 +972,8 @@ public:
                 {
                     j1 = 0;
                 }
-                a=distance(face_centers[i], vertices[faces[i][j]]);  //distance = arc length on a unit sphere
-                b=distance(face_centers[i], vertices[faces[i][j1]]);
+                a=distance(face_centers[i]/face_centers[i].norm(), vertices[faces[i][j]]);  //distance = arc length on a unit sphere
+                b=distance(face_centers[i]/face_centers[i].norm(), vertices[faces[i][j1]]);
                 c=distance(vertices[faces[i][j]], vertices[faces[i][j1]]);
 
                 A=std::acos( (std::cos(a)-std::cos(b)*std::cos(c))/(std::sin(b)*std::sin(c))  );
@@ -979,9 +984,12 @@ public:
                 surface_area[i]+=A+B+C-M_PI;
 
                 S_total+=A+B+C-M_PI;
+
+                
                 //surface_area[i] += (cross_product(face_centers[i] - vertices[faces[i][j]], face_centers[i] - vertices[faces[i][j1]])).norm() / 2.;
 
             }
+
         }
 
     }

@@ -7,21 +7,8 @@ import imageio
 import os
 
 
-
-def make_gif(path):
-    _, _, files = next(os.walk(path))
-    images = []
-    for filename in files:
-        images.append(imageio.imread(path+"/"+filename))
-    imageio.mimsave('plots/res.gif', images, duration=1500)
-
-
-
-
-
-
 skipstep=1
-data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
+data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
 
 
@@ -32,10 +19,7 @@ vertices=np.array(data.loc[:,:])
 
 
 
-
 data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
-
-
 face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
 
 maxstep=len(data_rho.loc[:,0])
@@ -101,22 +85,7 @@ colorm = plt.get_cmap('viridis')
 min_rho=np.min( data_rho.loc[:maxstep,1:len(x_plot)])
 max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
 
-[min_rho,max_rho]
 norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
-
-
-
-
-# rho=(np.array(data_rho.loc[i*skipstep,1:len(faces)])-min_rho)/(max_rho-min_rho)
-# fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
-
-
-# for face_num,face in enumerate(faces):
-#     ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
-# fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),
-#              cax=ax[1], orientation='horizontal', label='Density')
-
-
 
 
 
@@ -124,50 +93,18 @@ theta_fc=-np.arccos(face_centers.loc[:,2])+np.pi/2
 
 mpl.rcParams.update({'font.size': 22})
 
-fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
 
 for i in range(maxstep): #dens
     if((i % skipstep)==0 ):
+        fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
         rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
         fig.suptitle('t='+str(data_rho.loc[i,0]))
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
-        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Density')
+        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Omega_z')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
-        plt.figure().clear()
+        plt.clf()
         plt.close()
-
-
-
-
-
-data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
-
-colorm = plt.get_cmap('viridis')
-
-
-
-
-
-plt.figure().clear()
-plt.close()
-
-
-i=9
-min_rho=np.min( data_rho.loc[i,1:len(x_plot)])
-max_rho=np.max( data_rho.loc[i,1:len(x_plot)])
-
-[min_rho,max_rho]
-norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
-
-rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
-fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
-fig.suptitle('t='+str(data_rho.loc[i,0]))
-for face_num,face in enumerate(faces):
-    ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
-fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Vorticity')
-fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
-#fig.savefig('plots/test_vort_3.png', dpi=1000)
 
 
 
@@ -189,8 +126,8 @@ axis_dist=[]
 
 omega=np.array([0,0,2])
 face_centers=np.array(face_centers)
-
-theta_fc=-np.arccos(face_centers[:,2])+np.pi/2
+r=np.sqrt(face_centers[:,1]**2+face_centers[:,2]**2+face_centers[:,0]**2)
+theta_fc=-np.arccos(face_centers[:,2]/r)+np.pi/2
 #rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2])+np.pi/2)**2)
 rho_0=1
 gam=1.4
@@ -199,17 +136,21 @@ a_0=np.sqrt(gam*p_0/rho_0)
 
 M_0=np.linalg.norm(omega)/a_0
 
-theta=-np.arccos(face_centers[:,2]) 
+theta=-np.arccos(face_centers[:,2]/r) 
 
 #rho_analytic=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
-rho_analytic=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
-i=3
+#rho_analytic=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
+
+rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(theta_fc)**2)
+i=0
 rho=np.array(data_rho.loc[maxstep-i*3-1,1:len(faces)])
-fig=px.scatter(x=theta_fc, y=rho_analytic,  labels={"x": "theta", "y":"rho"})
+fig=px.scatter(x=theta_fc, y=rho_analytic,  labels={"x": r"$\theta$", "y":r"$\Sigma$"})
 fig.update_traces(marker=dict(color='red'))
-fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"}).select_traces()))
-fig.update_layout(title_text="full roatations: "+str( round((maxstep-i*3-1)*1000*0.002/(2*np.pi/np.linalg.norm(omega)),2) ),showlegend=False)
-fig.update_layout(font=dict(size=30))
+fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": r"$\theta$", "y":r"$\Sigma$"}).select_traces()))
+fig.update_layout(title_text="full roatations: "+str( round(data_rho.loc[maxstep-i*3-1,0]/np.pi,2) ),showlegend=False)
+fig.update_layout(font=dict(size=20))
+fig.write_image("plots/ansol.png")
+
 fig.show()
 
 
@@ -238,10 +179,10 @@ for i in range(4):#pressure
 
 
 
-p_an=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
+#p_an=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
+p_an=np.ones(len(faces))
 
-
-rho=np.array(data_p.loc[maxstep,1:len(faces)])
+rho=np.array(data_p.loc[maxstep-1,1:len(faces)])
 fig=px.scatter(x=theta_fc, y=p_an,  labels={"x": "theta", "y":"P"})
 fig.update_traces(marker=dict(color='red'))
 fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"P"}).select_traces()))
@@ -308,14 +249,14 @@ fig.show()
 
 
 
-path='plots/source_test_3'
+path='plots/source_test_tilted'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/source_test_3.gif', images, duration=500)
+imageio.mimsave('plots/source_test_tilted.gif', images, duration=500)
 
 
 

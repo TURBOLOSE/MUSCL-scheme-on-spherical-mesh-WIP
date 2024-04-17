@@ -189,41 +189,13 @@ public:
         return F;
     };
 
-      std::vector<double> source(std::vector<double> u, int n_face, int n_edge){
+      std::vector<double> source(std::vector<double> u, int n_face){
         std::vector<double>res;
         res.resize(dim);
         vector3d<double> edge_center, l_vec, vel;
 
         for (size_t i = 0; i < dim; i++)
         res[i]=0;
-
-
-        /*int n_edge_1 = n_edge + 1;
-        if ((n_edge_1) == faces[n_face].size())
-        {
-            n_edge_1 = 0;
-        }
-
-        
-        edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-        edge_center /= edge_center.norm();
-
-        l_vec[0] = u[1];
-        l_vec[1] = u[2];
-        l_vec[2] = u[3];
-
-        vel = cross_product(edge_center, l_vec);
-        vel /= (-u[0]) * edge_center.norm();
-
-        
-        if(std::abs(face_centers[n_face][2])<0.1){
-        res[0]=0.003;
-        res[4]=vel.norm()*vel.norm()/2. * res[0];
-        }*/
-        
-
-        
-
     return res;
 
     };

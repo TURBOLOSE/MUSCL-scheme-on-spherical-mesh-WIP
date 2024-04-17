@@ -3,6 +3,7 @@
 #include "HLLE_p.hpp"
 #include "HLLC.hpp"
 
+
 using namespace pmp;
 
 int main()
@@ -13,8 +14,8 @@ int main()
     SurfaceMesh mesh = icosphere_hex(4);
 
     double dt = 0.002;
-    size_t maxstep = 1;
-    size_t skipstep = 1;
+    size_t maxstep = 1000+1;
+    size_t skipstep = 100;
 
 
     int dim = 5;
@@ -74,6 +75,7 @@ int main()
     test2.write_t_rho();
     test2.write_t_p();
     test2.write_t_curl();
+    test2.write_t_omega_z();
     //test2.write_t_tracer();
 
     for (size_t i = 0; i < maxstep; i++)
@@ -85,6 +87,7 @@ int main()
             test2.write_t_rho();
             test2.write_t_p();
             test2.write_t_curl();
+            test2.write_t_omega_z();
             //test2.write_t_tracer();
         }
 

@@ -75,8 +75,7 @@ def make_input_4_cos_bell(): #no energy as separate variable
 
 
 def make_input_5():
-    gam=1.4
-
+    gam=4./3
     #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
     N=len(face_centers[0])
@@ -84,10 +83,8 @@ def make_input_5():
 
     face_centers=np.array(face_centers)
 
-    rho=2*np.ones(N)
+    rho=1*np.ones(N)
     omega=np.array([0,0,2])
-
-
     p=np.ones(N)
     #p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
     l=[]
@@ -110,6 +107,7 @@ def make_input_5():
     v=np.array(v)
 
     E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
+    #E=gam/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
     if(E.any()<0):
         print('Energy<0!!')
 
@@ -117,8 +115,8 @@ def make_input_5():
 
 
 def make_input_5_new_p():
-    gam=1.4
-    omega_ns=2
+    gam=4./3
+    
     #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
     N=len(face_centers[0])
@@ -126,15 +124,17 @@ def make_input_5_new_p():
 
     face_centers=np.array(face_centers)
 
-    rho=2*np.ones(N)
+    rho=np.ones(N)
+    omega_ns=2
     omega=np.array([0,0,2])
-
+    
 
     p=np.ones(N)
     #p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
     l=[]
     v=[]
 
+    theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
 
     for face_num, R in enumerate(face_centers):
         #if( R[2] >0):
@@ -145,17 +145,20 @@ def make_input_5_new_p():
         #    omega=np.array([0,0,0])
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
+
+
+        #print(np.linalg.norm(v0)**2 -np.linalg.norm(v[face_num])**2)
         #print(np.cross(R,-np.cross(R, l[face_num]))/(np.linalg.norm(R)**2))
 
-        
+    
     l=np.array(l)
     v=np.array(v)
 
-    E=gam/(gam-1)*p+rho*(np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2-np.ones(N)*omega_ns**2/2)
+    E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
     if(E.any()<0):
         print('Energy<0!!')
 
-    pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
+    pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False, float_format="%.15f")
 
 
 def make_input_5_cos_bell():  #adds energy
@@ -205,18 +208,18 @@ def make_input_5_cos_bell():  #adds energy
 def make_input_5_const_entr():  
 
 
-    gam=1.4
+    gam=4/3.
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
     N=len(face_centers[0])
 
     face_centers=np.array(face_centers)
 
     l=[]
-    theta=-np.arccos(face_centers[:,2]) 
+    theta=-np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
 
-    omega=np.array([0,0,2])
+    omega=np.array([0,0,4])
     rho_0=1
-    p_0=1
+    p_0=4
     a_0=np.sqrt(gam*p_0/rho_0)
 
     M_0=np.linalg.norm(omega)/a_0

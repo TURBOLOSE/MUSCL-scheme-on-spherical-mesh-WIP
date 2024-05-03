@@ -80,7 +80,7 @@ public:
         vector3d temp;
         temp = *this * *this;
         result = std::reduce(temp.begin(), temp.end());
-        return sqrt(result);
+        return std::sqrt(result);
     
     };
 

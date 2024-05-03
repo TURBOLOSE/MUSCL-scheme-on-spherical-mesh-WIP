@@ -2,7 +2,7 @@
 #include "MUSCL_base.hpp"
 #include "MUSCL_geometry.hpp"
 
-class MUSCL_HLLC : public MUSCL_base
+class MUSCL_HLLCplus : public MUSCL_base
 {
 
 protected:
@@ -10,7 +10,7 @@ protected:
     double omega_ns;
 
 public:
-    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+    MUSCL_HLLCplus(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
         : MUSCL_base(mesh, U_in, dim, gam)
     {
 
@@ -20,7 +20,7 @@ public:
             stop_check = true;
         }
 
-        omega_ns = 10;
+        omega_ns = 2;
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -222,12 +222,14 @@ protected:
     { // returns vector F* or G*
         // HLLC flux
 
-        std::vector<double> F_L, F_R, F_L_star, F_R_star, c_vel, D, F;
+        std::vector<double> F_L, F_R, F_L_star, F_R_star, c_vel, D, F, flux_fix_R, flux_fix_L;
         double S_star, p_L, p_R, rho_R, rho_L, v_L, v_R;
         double S_R, S_L, R;
         F_L_star.resize(dim);
         F_R_star.resize(dim);
         D.resize(dim);
+        flux_fix_R.resize(dim);
+        flux_fix_L.resize(dim);
 
         vector3d<double> vel_L, vel_R, l_vec, nxR, edge_center;
 
@@ -261,10 +263,6 @@ protected:
         nxR = cross_product(edge_normals[n_face][n_edge], (edge_center / edge_center.norm()));
 
         D[0] = 0;
-        /*D[1] = edge_normals[n_face][n_edge][0];
-        D[2] = edge_normals[n_face][n_edge][1];
-        D[3] = edge_normals[n_face][n_edge][2];*/
-
         D[1] = -nxR[0];
         D[2] = -nxR[1];
         D[3] = -nxR[2];
@@ -274,8 +272,6 @@ protected:
 
         rho_R = u_R[0];
         rho_L = u_L[0];
-        // p_L = (u_L[4] - ((vel_L.norm() * vel_L.norm()) * u_L[0]) / 2.) * (gam - 1);
-        // p_R = (u_R[4] - ((vel_R.norm() * vel_R.norm()) * u_R[0]) / 2.) * (gam - 1);
         p_L = pressure(u_L, vel_L, edge_center);
         p_R = pressure(u_R, vel_R, edge_center);
 
@@ -287,10 +283,67 @@ protected:
 
         double P_LR = (p_L + p_R + u_L[0] * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_L)) + u_R[0] * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_R))) / 2;
 
+        double V_L=dot_product(edge_normals[n_face][n_edge], vel_L);
+        double V_R=dot_product(edge_normals[n_face][n_edge], vel_R);
+        double phi_L=u_L[0]*(S_L-V_L); double phi_R=u_R[0]*(S_R-V_R); 
+
+        double a_L = std::sqrt(gam * p_L / u_L[0]);
+        double a_R = std::sqrt(gam * p_R / u_R[0]);
+
+        double M=std::min(1., std::max(vel_L.norm()/a_L,vel_R.norm()/a_R));
+
+        int lambd_L=0, lambd_R=0;
+
+        if((V_L-a_L)>0 && (V_R-a_R)<0 )
+        lambd_L=1;
+
+        if((V_L+a_L)>0 && (V_R+a_R)<0 )
+        lambd_L=1;
+
+        if((V_R-a_R)>0 && (V_L-a_L)<0 )
+        lambd_R=1;
+
+        if((V_R+a_R)>0 && (V_L+a_L)<0 )
+        lambd_R=1;
+
+
+        double f_star=0;
+        if(lambd_L==0 && lambd_R==0)
+        f_star=M*std::sqrt(4+(1-M*M)*(1-M*M))/((1+M*M));
+        
+        int neighboor_num = neighbors_edge[n_face][n_edge];
+        double h=std::min(p_L/p_R,p_R/p_L); 
+        //here sould be a loop over all neighboors of both L and R
+        //however, the pressure inside the cell != pressure on the edge
+        double g=1-pow(h,M);
+
+        vector3d<double> vel_flux_fix_L, angm_flux_fix_L,vel_flux_fix_R, angm_flux_fix_R;
+
+        vel_flux_fix_L[0]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][0]+S_L/(S_L-S_star)*g*(vel_R[0]-vel_L[0]-(V_R-V_L)*edge_normals[n_face][n_edge][0]);
+        vel_flux_fix_L[1]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][1]+S_L/(S_L-S_star)*g*(vel_R[1]-vel_L[1]-(V_R-V_L)*edge_normals[n_face][n_edge][1]);
+        vel_flux_fix_L[2]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][2]+S_L/(S_L-S_star)*g*(vel_R[2]-vel_L[2]-(V_R-V_L)*edge_normals[n_face][n_edge][2]);
+
+        angm_flux_fix_L=cross_product(edge_center,vel_flux_fix_L);
+
+        vel_flux_fix_R[0]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][0]+S_R/(S_R-S_star)*g*(vel_R[0]-vel_L[0]-(V_R-V_L)*edge_normals[n_face][n_edge][0]);
+        vel_flux_fix_R[1]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][1]+S_R/(S_R-S_star)*g*(vel_R[1]-vel_L[1]-(V_R-V_L)*edge_normals[n_face][n_edge][1]);
+        vel_flux_fix_R[2]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][2]+S_R/(S_R-S_star)*g*(vel_R[2]-vel_L[2]-(V_R-V_L)*edge_normals[n_face][n_edge][2]);
+
+        angm_flux_fix_R=cross_product(edge_center,vel_flux_fix_R);
+
+        
+        flux_fix_L[0]=0; flux_fix_R[0]=0;
+        flux_fix_L[1]=angm_flux_fix_L[0]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[1]=angm_flux_fix_R[0]*phi_L*phi_R/(phi_R-phi_L);
+        flux_fix_L[2]=angm_flux_fix_L[1]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[2]=angm_flux_fix_R[1]*phi_L*phi_R/(phi_R-phi_L);
+        flux_fix_L[3]=angm_flux_fix_L[2]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[3]=angm_flux_fix_R[2]*phi_L*phi_R/(phi_R-phi_L);
+        flux_fix_L[4]=(f_star-1)*(V_R-V_L)*S_star*phi_R/(phi_R-phi_L); flux_fix_R[4]=(f_star-1)*(V_R-V_L)*S_star*phi_R/(phi_R-phi_L);
+
+
+
         for (size_t i = 0; i < dim; i++)
         {
-            F_L_star[i] = (S_star * (S_L * u_L[i] - F_L[i]) + S_L * P_LR * D[i]) / (S_L - S_star);
-            F_R_star[i] = (S_star * (S_R * u_R[i] - F_R[i]) + S_R * P_LR * D[i]) / (S_R - S_star);
+            F_L_star[i] = (S_star * (S_L * u_L[i] - F_L[i]) + S_L * P_LR * D[i]) / (S_L - S_star)+flux_fix_L[i];
+            F_R_star[i] = (S_star * (S_R * u_R[i] - F_R[i]) + S_R * P_LR * D[i]) / (S_R - S_star)+flux_fix_R[i];
         }
 
         if (S_L >= 0)
@@ -335,74 +388,16 @@ protected:
         vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
         vel /= (-u[0]);
 
-        /*if(std::abs(face_centers[n_face][2]*std::cos(M_PI/8) +face_centers[n_face][1]*std::sin(M_PI/8))  <0.1){
-        res[0]=1;
-        //res[4]=vel.norm()*vel.norm()/2. * res[0]+1;
-        res[4]=vel.norm()*vel.norm()/2. * res[0];
-        }*/
-
-        /*//visc test
-        RxV=cross_product(face_centers[n_face]/face_centers[n_face].norm(),vel);
-        res[1]=-RxV[0];
-        res[2]=-RxV[1];
-        res[3]=-RxV[2];*/
-
-        /* if(std::abs(face_centers[n_face][2])  <0.1){ //energy dissipation test
-            double e_here;
-            vector3d<double> vel_1;
-            vel_1*=-0.5;
-            res[0]=1;
-            RxV=cross_product(face_centers[n_face]/face_centers[n_face].norm(),vel_1);
-            res[1]=RxV[0]*u[0];
-            res[2]=RxV[1]*u[0];
-            res[3]=RxV[2]*u[0];
-            e_here=vel_1.norm()*vel_1.norm()/2.+1/(gam-1);
-            res[4]=e_here+(vel-vel_1).norm()*(vel-vel_1).norm()/2;
-
-        }*/
+ 
 
         // compressed star test
         double theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
 
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
-
-        //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
-        //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
+        res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+        res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
         //res[4]=-omega_ns*omega_ns*std::sin(theta)*std::cos(theta)*(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
-
-
-        /*for (size_t n_edge = 0; n_edge  < faces[n_face].size(); n_edge ++)
-        {   
-
-            double theta = std::acos(vertices[faces[n_face][n_edge]][2] / vertices[faces[n_face][n_edge]].norm());
-            double phi = std::atan2(vertices[faces[n_face][n_edge]][1] / vertices[faces[n_face][n_edge]].norm(), vertices[faces[n_face][n_edge]][0] / vertices[faces[n_face][n_edge]].norm());
-            res[1] += -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)) /faces[n_face].size(); // x
-            res[2] += -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi) /faces[n_face].size();    // y
-        }*/
-        
-
-
-        /*double p = pressure(u,vel,face_centers[n_face]);
-        static double max_val=0;
-        double val=abs(-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta)*0.002/std::sqrt(gam*p/u[0]));
-        if(val > max_val)
-        max_val = val;
-        std::cout<<max_val<<"\n";*/
-
-        // res[4]=-omega_ns*omega_ns*u[0]*std::sin(theta)*std::cos(theta)*
-        //(std::cos(theta)*(std::cos(phi)*vel[0]+std::sin(phi)*vel[1])-std::sin(theta)*vel[2]); //v1
-
-        // res[4]=-omega_ns*omega_ns*std::sin(theta)*std::cos(theta)*
-        //(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
-
-        // vector3d<double> g,fc;
-        // fc=face_centers[n_face]/face_centers[n_face].norm();
-        /*g[0]=fc[0]*fc[2]/std::sqrt(fc[0]*fc[0]+fc[1]*fc[1])*(-omega_ns*omega_ns*u[0] * std::cos(theta) *std::sin(theta));
-        g[1]=fc[1]*fc[2]/std::sqrt(fc[0]*fc[0]+fc[1]*fc[1])*(-omega_ns*omega_ns*u[0] * std::cos(theta) *std::sin(theta));
-        g[2]=-std::sqrt(fc[0]*fc[0]+fc[1]*fc[1])*(-omega_ns*omega_ns*u[0] * std::cos(theta) *std::sin(theta));
-         res[4]=u[0]*dot_product(g,vel);
-         */
 
         return res;
     };
@@ -412,9 +407,9 @@ protected:
 
         double theta = std::acos(r[2] / r.norm());
 
-        return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
+        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
         //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; //v2 = different P
-        //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
     }
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)

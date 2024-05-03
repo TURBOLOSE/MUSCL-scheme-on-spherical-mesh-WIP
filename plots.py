@@ -8,25 +8,41 @@ import os
 
 
 skipstep=1
-data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
+data_rho=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
 data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
-
-
-
-
-data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
-vertices=np.array(data.loc[:,:])
-
+data_omega=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
+maxstep=len(data_rho.loc[:,0])
 
 
 data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
 face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
 
-maxstep=len(data_rho.loc[:,0])
-
-
-
+data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
+vertices=np.array(data.loc[:,:])
 faces=np.array(data_faces.loc[:,:])
+
+
+#==============================================================================================
+
+# theta=-np.arccos(np.array(face_centers)[:,2]/np.linalg.norm(np.array(face_centers), axis=1)) 
+gam=4./3
+# omega=np.array([0,0,2])
+# rho_0=1
+# p_0=1
+# a_0=np.sqrt(gam*p_0/rho_0)
+# M_0=np.linalg.norm(omega)/a_0
+# rho_aa=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
+
+#for i in range(maxstep):
+     #data_rho.loc[i,1:len(faces)]-=rho_aa
+ #    data_rho.loc[i,1:len(faces)]=data_p.loc[i,1:len(faces)]/data_rho.loc[i,1:len(faces)]**gam
+
+#==============================================================================================
+
+
+
+
+
 
 faces_new=[]
 
@@ -101,11 +117,16 @@ for i in range(maxstep): #dens
         fig.suptitle('t='+str(data_rho.loc[i,0]))
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
-        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Omega_z')
+        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Pressure')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
         plt.clf()
         plt.close()
 
+
+a=[1,2,3]
+b=[3,4,5]
+np.sqrt(np.linalg.norm(a)**2+np.linalg.norm(b)**2)
+np.linalg.norm(a+b)
 
 
 
@@ -195,6 +216,18 @@ fig=px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"rho"})
 fig.show()
 
 
+theta_fc=np.arccos(face_centers[:,2]/r)
+fig=px.scatter(x=-theta_fc+np.pi/2, y=np.sin(theta_fc)**2,  labels={"x": "$\theta$", "y":"$\Delta \phi$"})
+fig.show()
+
+
+
+gam=1.4
+En=gam/(gam-1)*data_p.loc[maxstep-1,1:len(faces)]+1/2*data_rho.loc[maxstep-1,1:len(faces)]*data_omega.loc[maxstep-1,1:len(faces)]
+
+fig=px.scatter(x=theta_fc, y=En,  labels={"x": "theta", "y":"Energy"})
+fig.show()
+
 
 
 # mesh_step=[1,2,3,4,5,1,2,3,4,2,3,4,5]
@@ -249,14 +282,14 @@ fig.show()
 
 
 
-path='plots/source_test_tilted'
+path='plots/different speeds test'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/source_test_tilted.gif', images, duration=500)
+imageio.mimsave('plots/vel_res.gif', images, duration=500)
 
 
 

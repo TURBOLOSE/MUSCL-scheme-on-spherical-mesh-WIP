@@ -102,6 +102,7 @@ public:
             dt=h0 / (2 * M * N);
         }*/
 
+        //h0 = typical length of an edge
         if (dt > h0 * 0.1 / max_vel)
         {
             dt = h0 * 0.1 / max_vel;
@@ -176,12 +177,17 @@ protected:
     // takes data from U matrix
     {
 
+        double round_diff=distance(vertices[faces[0][1]],vertices[faces[0][2]])/(vertices[faces[0][1]]-vertices[faces[0][2]]).norm();
+
         for (size_t i = 0; i < this->n_faces(); i++)
         {
             for (size_t k = 0; k < dim; k++) //source terms
             U[i][k] = dt_here*source_plus[i][k];
-            //U[i][k] = dt_here*source_plus[i][k] / surface_area[i];
 
+            //int comp=3;
+            //double temp_h=dt_here*source_plus[i][comp];
+            
+            
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
@@ -195,16 +201,16 @@ protected:
                 for (size_t k = 0; k < dim; k++)
                 {
 
-                    U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *
-                               (flux_var_minus[i][j][k]);
-
+                    //U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *(flux_var_minus[i][j][k]);
+                    //U[i][k] -= dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
+                    U[i][k] -= round_diff*dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
                     if (std::isnan((flux_var_minus[i][j][k])))
                     {
                         stop_check=true;
                         std::cout << "time: " << t << " face: " << i << " edge: " << j << " NaN in flux detected!" << std::endl;
                     }
                 }
-                   
+
                 //std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
 
 
@@ -220,6 +226,11 @@ protected:
                 std::cout << i << " " << j <<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] +
                 flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;*/
             }
+
+            /*double theta=std::acos(face_centers[i][2]/face_centers[i].norm());
+            if(std::abs(theta-M_PI/4)<1e-3){
+            std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<" "<<U[i][4] <<"\n";
+            }*/
         }
     };
 
@@ -266,6 +277,7 @@ private:
             l_vec[1] = U[i][2];
             l_vec[2] = U[i][3];
             vel = cross_product(face_centers[i]/face_centers[i].norm(), l_vec);
+            vel/=U[i][0];
             if (vel.norm() > max)
                 max = vel.norm();
         }
@@ -276,21 +288,18 @@ private:
     void find_flux_var()
     {
 
-        //std::vector<double> phi_ii, phi_iji, phi_ijji, r1, r2;
-        //phi_ijji.resize(dim);
-        //std::vector<double> phi_ijji, phi_source;
         omp_set_dynamic(0);     // Explicitly disable dynamic teams
         omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
-        for (int i = 0; i < this->n_faces(); ++i)
+        for (int i = 0; i < this->n_faces(); i++)
         {
-            for (int j = 0; j < faces[i].size(); ++j)
+            for (int j = 0; j < faces[i].size(); j++)
             {
-                flux_var_minus[i][j]=flux_star(U_plus[i][j], U_minus[i][j], i, j);;
+                flux_var_minus[i][j]=flux_star(U_plus[i][j], U_minus[i][j], i, j);
             }
                 source_plus[i]=source(U[i],i);
+                
         }
-
     }
 
     void find_U_edges() // finding U_ij and U_ji

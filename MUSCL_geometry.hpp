@@ -10,6 +10,7 @@
 #include <fstream>
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 
 #define PMP_SCALAR_TYPE_64
 
@@ -251,22 +252,29 @@ public:
                 max_cos_left = -1;
                 max_cos_right = -1;
 
+                vector3d<double> r1;
                 if (i == face.size() - 1)
                 {
                     BM = (vertices[face[i]] + vertices[face[0]]) / 2 - face_centers[n_face];
                     r = (vertices[face[i]] - vertices[face[0]]);
+                    r1 = (vertices[face[i]] + vertices[face[0]]);
+                    //edge_normals[n_face][i] = cross_product( vertices[face[0]],vertices[face[i]]); // v6
                 }
                 else
                 {
                     BM = (vertices[face[i]] + vertices[face[i + 1]]) / 2 - face_centers[n_face];
                     r = (vertices[face[i]] - vertices[face[i + 1]]);
+                    r1 = (vertices[face[i]] + vertices[face[i+1]]);
+                    //edge_normals[n_face][i] = cross_product(vertices[face[i+1]],vertices[face[i]]); // v6
                 }
 
                 // edge_normals[n_face][i] = cross_product(normals[n_face], r); //v1
                 // edge_normals[n_face][i] = cross_product(normals[neighbors_edge[n_face][i]],r); //v2
                 // edge_normals[n_face][i] = cross_product(normals[n_face], r)+cross_product(r, normals[neighbors_edge[n_face][i]]); // v3
-                edge_normals[n_face][i] = cross_product((BM + face_centers[n_face]), r); // v4
+                //edge_normals[n_face][i] = cross_product((BM + face_centers[n_face]), r); // v4
 
+                edge_normals[n_face][i] = cross_product(r1, r); // v5
+                
                 edge_normals[n_face][i] /= edge_normals[n_face][i].norm();
 
                 // check if normals are actually going outwards
@@ -276,7 +284,9 @@ public:
                     edge_normals[n_face][i] *= -1;
                 }
 
-                BM_dist[n_face].push_back((BM).norm());
+                //BM_dist[n_face].push_back((BM).norm());
+                BM_dist[n_face].push_back(distance(face_centers[n_face],r1));
+
 
                 for (auto neighboor : neighbors[n_face]) // find 1st most left and most right element
                 {
@@ -1038,8 +1048,8 @@ public:
 
         for (auto face_center : face_centers)
         {
-            outfile << face_center[0] << " " << face_center[1] << " " << face_center[2];
-            outfile << std::endl;
+            outfile <<std::setprecision(15) << face_center[0] << " " << face_center[1] << " " << face_center[2];
+            outfile << "\n";
         }
         outfile.close();
     };
@@ -1059,7 +1069,7 @@ public:
             for (auto face_el : face)
                 outfile << face_el << " ";
 
-            outfile << std::endl;
+            outfile << "\n";
         }
         outfile.close();
     };
@@ -1072,9 +1082,9 @@ public:
         for (auto vertice : vertices)
         {
             for (auto vertice_el : vertice)
-                outfile << vertice_el << " ";
+                outfile <<std::setprecision(15)<< vertice_el << " ";
 
-            outfile << std::endl;
+            outfile << "\n";
         }
         outfile.close();
     };

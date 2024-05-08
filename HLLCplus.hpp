@@ -20,7 +20,7 @@ public:
             stop_check = true;
         }
 
-        omega_ns = 2;
+        omega_ns = 5;
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -336,7 +336,7 @@ protected:
         flux_fix_L[1]=angm_flux_fix_L[0]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[1]=angm_flux_fix_R[0]*phi_L*phi_R/(phi_R-phi_L);
         flux_fix_L[2]=angm_flux_fix_L[1]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[2]=angm_flux_fix_R[1]*phi_L*phi_R/(phi_R-phi_L);
         flux_fix_L[3]=angm_flux_fix_L[2]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[3]=angm_flux_fix_R[2]*phi_L*phi_R/(phi_R-phi_L);
-        flux_fix_L[4]=(f_star-1)*(V_R-V_L)*S_star*phi_R/(phi_R-phi_L); flux_fix_R[4]=(f_star-1)*(V_R-V_L)*S_star*phi_R/(phi_R-phi_L);
+        flux_fix_L[4]=(f_star-1)*(V_R-V_L)*S_star*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[4]=(f_star-1)*(V_R-V_L)*S_star*phi_L*phi_R/(phi_R-phi_L);
 
 
 
@@ -394,8 +394,8 @@ protected:
         double theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
 
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
-        res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
-        res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
+        //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+        //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
         //res[4]=-omega_ns*omega_ns*std::sin(theta)*std::cos(theta)*(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
 
@@ -407,9 +407,9 @@ protected:
 
         double theta = std::acos(r[2] / r.norm());
 
-        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
+        return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
         //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; //v2 = different P
-        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
     }
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)

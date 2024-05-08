@@ -10,12 +10,14 @@ int main()
 {
     //SurfaceMesh mesh = uv_sphere(40,40);
     //SurfaceMesh mesh = quad_sphere(0);
-    //SurfaceMesh mesh = icosphere(5);
+    //SurfaceMesh mesh = icosphere(3);
     SurfaceMesh mesh = icosphere_hex(4);
 
+    //MUSCL_base_geometry test(mesh);
+
     double dt = 0.002;
-    size_t maxstep = 1570+1;
-    size_t skipstep = 157;
+    size_t maxstep = 10000+1;
+    size_t skipstep = 1000;
 
 
     int dim = 5;
@@ -61,13 +63,16 @@ int main()
 
     }
 
+
+
+
     //MUSCL_HLLE test2(mesh, U_in, dim, gam);
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
     //MUSCL_HLLE_p_tracer test2(mesh, U_in, dim, gam);
 
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLC test2(mesh, U_in, dim, gam);
-    MUSCL_HLLCplus test2(mesh, U_in, dim, gam);
+    MUSCL_HLLC test2(mesh, U_in, dim, gam);
+    //MUSCL_HLLCplus test2(mesh, U_in, dim, gam);
     //MUSCL_HLLC_tracer test2(mesh, U_in, dim, gam);
 
 
@@ -100,6 +105,7 @@ int main()
             break;
 
     }
+    
 
     return 0;
 }

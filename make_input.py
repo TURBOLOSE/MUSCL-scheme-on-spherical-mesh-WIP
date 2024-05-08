@@ -85,10 +85,12 @@ def make_input_5():
 
     rho=1*np.ones(N)
     omega=np.array([0,0,2])
-    p=np.ones(N)
-    #p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
+    #p=np.ones(N)
+    p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
     l=[]
     v=[]
+
+    theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
 
 
     for face_num, R in enumerate(face_centers):
@@ -98,6 +100,9 @@ def make_input_5():
         #    omega=np.array([0,0,-0.5])
         #else:
         #    omega=np.array([0,0,0])
+        #if(np.abs(theta[face_num]-np.pi/2)<0.1):
+        #   p[face_num]=5
+
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
         #print(np.cross(R,-np.cross(R, l[face_num]))/(np.linalg.norm(R)**2))
@@ -125,8 +130,8 @@ def make_input_5_new_p():
     face_centers=np.array(face_centers)
 
     rho=np.ones(N)
-    omega_ns=2
-    omega=np.array([0,0,2])
+    omega_ns=5
+    omega=np.array([0,0,5])
     
 
     p=np.ones(N)
@@ -217,9 +222,9 @@ def make_input_5_const_entr():
     l=[]
     theta=-np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
 
-    omega=np.array([0,0,4])
+    omega=np.array([0,0,5])
     rho_0=1
-    p_0=4
+    p_0=1
     a_0=np.sqrt(gam*p_0/rho_0)
 
     M_0=np.linalg.norm(omega)/a_0
@@ -307,11 +312,16 @@ def make_input_6_cos_bell():
 
 
 
-make_input_5_new_p()
-#make_input_5()
+#make_input_5_new_p()
+make_input_5()
+#make_input_5_const_entr()
+
+
+
+
 #make_input_4()
 #make_input_6_cos_bell()
-#make_input_5_const_entr()
+
 
 
 

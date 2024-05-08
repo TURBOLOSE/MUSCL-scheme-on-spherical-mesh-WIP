@@ -20,7 +20,7 @@ public:
             stop_check = true;
         }
 
-        omega_ns = 10;
+        omega_ns = 5;
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();

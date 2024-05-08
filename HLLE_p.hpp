@@ -17,7 +17,7 @@ public:
             std::cout<<"check dim \n";
             stop_check=true;
         }
-        omega_ns=2;
+        omega_ns=5;
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -246,8 +246,8 @@ protected:
         face_centers[n_face][0]/face_centers[n_face].norm());
 
 
-        //res[1]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) *(-std::sin(phi));
-        //res[2]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);
+        res[1]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) *(-std::sin(phi));
+        res[2]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);
 
 
 
@@ -260,8 +260,8 @@ protected:
 
 
         double theta=std::acos(r[2]/r.norm());
-        return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
-        //return  (u[4] - u[0] * (vel.norm() * vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta)) / 2) * (gam - 1)/gam; //v3 = compressed star + sin 
+        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
+        return  (u[4] - u[0] * (vel.norm() * vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta)) / 2) * (gam - 1)/gam; //v3 = compressed star + sin 
 
     }
 

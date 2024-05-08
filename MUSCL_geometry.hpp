@@ -284,14 +284,14 @@ public:
                     edge_normals[n_face][i] *= -1;
                 }
 
-                //BM_dist[n_face].push_back((BM).norm());
                 BM_dist[n_face].push_back(distance(face_centers[n_face],r1));
 
 
                 for (auto neighboor : neighbors[n_face]) // find 1st most left and most right element
                 {
                     // left face
-                    B_nB = face_centers[n_face] - face_centers[neighboor];                   // not projected yet
+                    //B_nB = face_centers[n_face] - face_centers[neighboor]; // not projected yet
+                    B_nB =  face_centers[n_face]-face_centers[neighboor];                   
                     B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
                     double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
@@ -302,7 +302,8 @@ public:
                     }
 
                     // right face
-                    B_nB = face_centers[neighboor] - face_centers[n_face];                   // not projected yet
+                    //B_nB = face_centers[neighboor] - face_centers[n_face];                   // not projected yet
+                    B_nB = face_centers[neighboor]- face_centers[n_face];  
                     B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
                     cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
@@ -319,8 +320,8 @@ public:
                 left_face2 = left_face1; // in case "if" doesent go off
                 right_face2 = right_face1;
 
-                B_left = face_centers[left_face1] - face_centers[n_face];   // vector in direction of B_left_1
-                B_right = face_centers[n_face] - face_centers[right_face1]; // vector in direction of B_right_1
+                B_left = face_centers[n_face]-face_centers[left_face1] ;   // vector in direction of B_left_1
+                B_right = face_centers[right_face1]-face_centers[n_face]; // vector in direction of B_right_1
 
                 B_left_face = B_left - normals[n_face] * dot_product(B_left, normals[n_face]);    // projection
                 B_right_face = B_right - normals[n_face] * dot_product(B_right, normals[n_face]); // projection
@@ -328,32 +329,35 @@ public:
                 for (auto neighboor : neighbors[n_face]) // find second most left and right elements
                 {
                     // left face
-                    B_nB = face_centers[n_face] - face_centers[neighboor];
+                    //B_nB = face_centers[n_face] - face_centers[neighboor];
+                    B_nB = face_centers[n_face]-face_centers[neighboor];  
                     B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
                     double cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
 
-                    double line_cross_check = (cross_product(B_nB_face, BM_normal)).norm() / (B_nB_face.norm() * BM_normal.norm()) *
-                                              (cross_product(B_left_face, BM_normal).norm()) / (B_left_face.norm() * BM_normal.norm()) *
-                                              dot_product(normals[n_face], cross_product(B_nB_face, BM_normal)) * dot_product(normals[n_face], cross_product(B_left_face, BM_normal));
+                    //double line_cross_check = dot_product(normals[n_face], cross_product(B_nB_face, BM)) * 
+                    //                        dot_product(normals[n_face], cross_product(B_left_face, BM));
+
+                    double line_cross_check = dot_product(cross_product(face_centers[n_face],r1/2), B_nB) * 
+                                            dot_product(cross_product(face_centers[n_face],r1/2), B_left);
 
                     if ((cos_etha > max_cos_left) && (neighboor != left_face1) && (line_cross_check <= 0))
                     {
                         max_cos_left = cos_etha;
                         left_face2 = neighboor;
                     }
+
                     // right face
                     B_nB = face_centers[neighboor] - face_centers[n_face];
                     B_nB_face = B_nB - normals[n_face] * dot_product(B_nB, normals[n_face]); // projection
 
+                    
                     cos_etha = dot_product(BM, B_nB_face) / (BM.norm() * B_nB_face.norm());
 
                     // std::cout<<cos_etha<<std::endl;
+                        line_cross_check = dot_product(normals[n_face], cross_product(B_nB_face, BM)) * 
+                                dot_product(normals[n_face], cross_product(B_right_face, BM));
 
-                    line_cross_check = (cross_product(B_nB_face, BM_normal)).norm() / (B_nB_face.norm() * BM_normal.norm()) *
-                                       (cross_product(B_right_face, BM_normal).norm()) / (B_right_face.norm() * BM_normal.norm()) *
-                                       dot_product(normals[n_face], cross_product(B_nB_face, BM_normal)) *
-                                       dot_product(normals[n_face], cross_product(B_right_face, BM_normal));
 
                     if ((cos_etha > max_cos_right) && (neighboor != right_face1) && (line_cross_check <= 0))
                     {
@@ -362,6 +366,7 @@ public:
                     }
                 }
 
+
                 vector3d<double> B1B2_proj1 = (face_centers[left_face2] - face_centers[left_face1]) -
                                               normals[left_face1] * dot_product((face_centers[left_face2] - face_centers[left_face1]), normals[left_face1]);
 
@@ -369,10 +374,15 @@ public:
                                               normals[left_face2] * dot_product((face_centers[left_face1] - face_centers[left_face2]), normals[left_face2]);
 
                 vector3d<double> p1 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj1,
-                                                                  face_centers[n_face], BM, normals[n_face]);
+                                                                  face_centers[n_face], BM, face_centers[n_face]);
 
                 vector3d<double> p2 = find_line_surf_intersection(face_centers[left_face1], B1B2_proj2,
-                                                                  face_centers[n_face], BM, normals[n_face]);
+                                                                  face_centers[n_face], BM, face_centers[n_face]);
+
+
+                vector3d<double> p3 = find_line_surf_intersection(face_centers[left_face1], face_centers[left_face2] - face_centers[left_face1],
+                                                                  face_centers[n_face], BM, face_centers[n_face]);
+                    
 
                 if (is_on_surface(p1))
                 {
@@ -386,6 +396,7 @@ public:
                 {
                     std::cout << "process_mesh: could not find H_minus" << std::endl;
                 }
+                Hm=p3/p3.norm();
 
                 B1B2_proj1 = (face_centers[right_face2] - face_centers[right_face1]) -
                              normals[right_face1] * dot_product((face_centers[right_face2] - face_centers[right_face1]), normals[right_face1]);
@@ -394,10 +405,13 @@ public:
                              normals[right_face2] * dot_product((face_centers[right_face1] - face_centers[right_face2]), normals[right_face2]);
 
                 p1 = find_line_surf_intersection(face_centers[right_face1], B1B2_proj1,
-                                                 face_centers[n_face], BM, normals[n_face]);
+                                                 face_centers[n_face], BM, face_centers[n_face]);
 
                 p2 = find_line_surf_intersection(face_centers[right_face1], B1B2_proj2,
-                                                 face_centers[n_face], BM, normals[n_face]);
+                                                 face_centers[n_face], BM, face_centers[n_face]);
+
+                p3 = find_line_surf_intersection(face_centers[right_face1], face_centers[right_face2] - face_centers[right_face1],
+                                                 face_centers[n_face], BM, face_centers[n_face]);
 
                 if (is_on_surface(p1))
                 {
@@ -411,6 +425,8 @@ public:
                 {
                     std::cout << "process_mesh: could not find H_plus" << std::endl;
                 }
+
+                Hp=p3/p3.norm();
 
                 // check to which face Hm belongs
                 // is faster and safer tham point_in_face
@@ -450,8 +466,51 @@ public:
                 double hm2 = broken_distance(face_centers[left_face2], Hm, left_face2, Hm_face);
                 double hm1 = broken_distance(face_centers[left_face1], Hm, left_face1, Hm_face);
 
-                betas_minus[n_face][i].push_back(hm2 / (hm1 + hm2));
-                betas_minus[n_face][i].push_back(hm1 / (hm1 + hm2));
+
+                if(std::abs((hm2+hm1)/(distance(face_centers[left_face1],face_centers[left_face2]))-1)>1e-8){
+                    //double fd=distance(face_centers[left_face1],face_centers[left_face2]);
+                    std::cout<<"2 left faces are not on the same line:"
+                    <<n_face<<" "<<i<<" "<<hm1/B1B2_d<<" "<<hm2/B1B2_d<<" "
+                    <<std::abs(((hm2+hm1)/B1B2_d)-1) <<"\n";
+
+                }
+                /*if(n_face==65 && i==0){
+
+                    B_nB = face_centers[n_face] - face_centers[left_face2];
+                    B_nB_face = B_nB - normals[n_face] * dot_product(face_centers[n_face] - face_centers[left_face2], normals[n_face]); // projection
+
+
+                    std::cout<<left_face1<<" "<<left_face2<<" "<<
+                    dot_product(cross_product(face_centers[n_face],r1/2),  face_centers[left_face2]-face_centers[n_face]) * 
+                    dot_product(cross_product(face_centers[n_face],r1/2), face_centers[left_face1]-face_centers[n_face])<<"\n";
+
+                    vertices[faces[n_face][0]].print();
+                    vertices[faces[n_face][1]].print();
+                    vertices[faces[n_face][2]].print();
+
+                    vertices[faces[left_face1][0]].print();
+                    vertices[faces[left_face1][1]].print();
+                    vertices[faces[left_face1][2]].print();
+
+                    vertices[faces[left_face2][0]].print();
+                    vertices[faces[left_face2][1]].print();
+                    vertices[faces[left_face2][2]].print();
+
+
+
+                    face_centers[left_face1].print();
+                    face_centers[left_face2].print();
+                    Hm.print();
+
+
+                    double fd=distance(face_centers[left_face1],face_centers[left_face2]);
+                    std::cout<<n_face<<" "<<i<<" "<<hm1/fd<<" "<<hm2/fd<<" "
+                    <<std::abs(((hm2+hm1)/fd)-1) <<"\n";
+
+                }*/
+
+                betas_minus[n_face][i].push_back(hm2 / B1B2_d);
+                betas_minus[n_face][i].push_back(hm1 / B1B2_d);
 
                 double Hp_dist = broken_distance(face_centers[n_face], Hp, n_face, Hp_face);
 
@@ -471,8 +530,15 @@ public:
                 double hp2 = broken_distance(face_centers[right_face2], Hp, right_face2, Hp_face);
                 double hp1 = broken_distance(face_centers[right_face1], Hp, right_face1, Hp_face);
 
-                betas_plus[n_face][i].push_back(hp2 / (hp1 + hp2));
-                betas_plus[n_face][i].push_back(hp1 / (hp1 + hp2));
+                betas_plus[n_face][i].push_back(hp2 / B1B2p_d);
+                betas_plus[n_face][i].push_back(hp1 / B1B2p_d);
+
+
+                if(std::abs((hp2+hp1)/(distance(face_centers[right_face1],face_centers[right_face2]))-1)>1e-8){
+                    std::cout<<"2 right faces are not on the same line:"<<n_face<<" "<<i<<" "<<hp1/B1B2p_d<<" "<<hp2/B1B2p_d<<" "
+                    <<std::abs(((hp2+hp1)/B1B2p_d)-1) <<"\n";
+
+                }
 
                 if (std::abs(betas_plus[n_face][i][0] + betas_plus[n_face][i][1]) - 1 > 1e-8)
                 {
@@ -824,7 +890,7 @@ public:
 
         vector3d<double> res;
         double A, B, C, D, t;
-        double eps = 1e-7;
+        double eps = 1e-10;
         if (cross_product(vs1, vs2).norm() < eps)
         {
             std::cout << "find_line_surf_intersection:parallel vectors from 1 point cannot define surface" << std::endl;

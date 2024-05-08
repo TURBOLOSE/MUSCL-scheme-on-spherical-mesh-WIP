@@ -116,7 +116,7 @@ for i in range(maxstep): #dens
         rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
         fig.suptitle('t='+str(data_rho.loc[i,0]))
         for face_num,face in enumerate(faces):
-            ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]))
+            ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
         fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Pressure')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
         plt.clf()
@@ -190,11 +190,11 @@ for i in range(4):#density
 p_an=1+(np.linalg.norm(omega)**2*1./2*np.sin(-np.arccos(face_centers[:,2]))**2)
 
 for i in range(4):#pressure
-    rho=np.array(data_p.loc[maxstep-i-1,1:len(faces)])
+    rho=np.array(data_p.loc[maxstep-2*i-1,1:len(faces)])
     fig=px.scatter(x=theta_fc, y=p_an,  labels={"x": "theta", "y":"P"})
     fig.update_traces(marker=dict(color='red'))
     fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": "theta", "y":"P"}).select_traces()))
-    fig.update_layout(title_text="full roatations: "+str( round((maxstep-i-1)*2500*0.002/(2*np.pi/np.linalg.norm(omega)),2) ),showlegend=False)
+    fig.update_layout(title_text="full roatations: "+str( round(data_p.loc[maxstep-2*i-1,0]/np.pi,2) ),showlegend=False)
     fig.update_layout(font=dict(size=30))
     fig.show()
 
@@ -282,14 +282,14 @@ fig.show()
 
 
 
-path='plots/different speeds test'
+path='plots/shock_test/test2'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/vel_res.gif', images, duration=500)
+imageio.mimsave('plots/shock_test.gif', images, duration=500)
 
 
 

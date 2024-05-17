@@ -93,14 +93,14 @@ public:
 
         dt = dt0;
         U_temp = U;
+
+        
         find_U_edges();
         find_flux_var();
-        // find_M();
         find_v_max();
 
-        /*if(dt > h0 / (2 * M * N)){
-            dt=h0 / (2 * M * N);
-        }*/
+
+        
 
         //h0 = typical length of an edge
         if (dt > h0 * 0.1 / max_vel)
@@ -108,11 +108,9 @@ public:
             dt = h0 * 0.1 / max_vel;
         }
 
-        // std::cout<<h0 / (2 * M * N)<<std::endl;
 
         res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
 
-        // std::cout<<std::endl;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -121,9 +119,7 @@ public:
                 U[i][k] += U_temp[i][k]; // results in U=U+dt/2*phi(U)
             }
 
-            // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
         }
-        // std::cout<<std::endl;
 
         find_U_edges();
         find_flux_var();
@@ -158,6 +154,7 @@ public:
         //std::cout<<std::endl;
         //std::cout <<t<<" "<<1. - temp / rho_full << std::endl;
 
+            
         t += dt;
         steps++;
     }
@@ -320,14 +317,23 @@ private:
 
                 std::vector<double> pp = p_plus(i, j);
                 std::vector<double> pm = p_minus(i, j);
+                std::vector<double> r;
+                r.resize(dim);
 
                 for (size_t k = 0; k < dim; k++)
-                    pm[k] /= pp[k];
+                    r[k]=pm[k]/pp[k];
 
-                std::vector<double> lim = limiter(pm, i, j);
+                std::vector<double> lim = limiter(r, i, j);
                 for (size_t k = 0; k < dim; k++)
                 {
+                    double kappa=(2*lim[k]-(r[k]+1))/(r[k]+1);
+                    if(std::isnan(kappa))
+                        kappa=0;
+
+
+
                     U_plus[i][j][k] = U[i][k] + pp[k] * lim[k] * BM_dist[i][j];
+                    //U_plus[i][j][k] = U[i][k] + pp[k] * (kappa+1)/2. * BM_dist[i][j]+pm[k] * (1-kappa)/2. * BM_dist[i][j];
                     U_minus[neighboor_num][j0][k] = U_plus[i][j][k];
                 }
             }

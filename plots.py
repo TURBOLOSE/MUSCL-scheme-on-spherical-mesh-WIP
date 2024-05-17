@@ -8,7 +8,7 @@ import os
 
 
 skipstep=1
-data_rho=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
+data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
 data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
 data_omega=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 maxstep=len(data_rho.loc[:,0])
@@ -22,20 +22,23 @@ vertices=np.array(data.loc[:,:])
 faces=np.array(data_faces.loc[:,:])
 
 
+
 #==============================================================================================
 
-# theta=-np.arccos(np.array(face_centers)[:,2]/np.linalg.norm(np.array(face_centers), axis=1)) 
-gam=4./3
-# omega=np.array([0,0,2])
-# rho_0=1
-# p_0=1
-# a_0=np.sqrt(gam*p_0/rho_0)
-# M_0=np.linalg.norm(omega)/a_0
-# rho_aa=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
+theta=-np.arccos(np.array(face_centers)[:,2]/np.linalg.norm(np.array(face_centers), axis=1)) 
+gam=2-3./4
+omega=np.array([0,0,5])
+rho_0=1
+p_0=1
+a_0=np.sqrt(gam*p_0/rho_0)
+M_0=np.linalg.norm(omega)/a_0
+rho_aa=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
 
-#for i in range(maxstep):
-     #data_rho.loc[i,1:len(faces)]-=rho_aa
- #    data_rho.loc[i,1:len(faces)]=data_p.loc[i,1:len(faces)]/data_rho.loc[i,1:len(faces)]**gam
+
+
+for i in range(maxstep):
+    data_rho.loc[i,1:len(faces)]=(data_rho.loc[i,1:len(faces)]-rho_aa)/rho_aa
+    #data_rho.loc[i,1:len(faces)]=data_p.loc[i,1:len(faces)]/data_rho.loc[i,1:len(faces)]**gam
 
 #==============================================================================================
 
@@ -112,21 +115,21 @@ mpl.rcParams.update({'font.size': 22})
 
 for i in range(maxstep): #dens
     if((i % skipstep)==0 ):
-        fig, ax = plt.subplots(figsize=(16, 9), layout='constrained', nrows=2,height_ratios=[15,1])
+        fig, ax = plt.subplots(figsize=(16, 10), layout='constrained', nrows=2,height_ratios=[15,1])
+        #fig.tight_layout()
+        plt.subplots_adjust(hspace=10)
         rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
         fig.suptitle('t='+str(data_rho.loc[i,0]))
+        ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
+        ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
-        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Pressure')
+        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Relative density residuals')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
         plt.clf()
         plt.close()
 
 
-a=[1,2,3]
-b=[3,4,5]
-np.sqrt(np.linalg.norm(a)**2+np.linalg.norm(b)**2)
-np.linalg.norm(a+b)
 
 
 
@@ -282,14 +285,14 @@ fig.show()
 
 
 
-path='plots/shock_test/test2'
+path='plots/shock_test/test3/ico'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/shock_test.gif', images, duration=500)
+imageio.mimsave('plots/shock_spread.gif', images, duration=500)
 
 
 

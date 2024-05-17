@@ -8,20 +8,21 @@ using namespace pmp;
 
 int main()
 {
-    //SurfaceMesh mesh = uv_sphere(40,40);
-    //SurfaceMesh mesh = quad_sphere(0);
-    //SurfaceMesh mesh = icosphere(3);
+    //SurfaceMesh mesh = uv_sphere(50,50);
+    //SurfaceMesh mesh = quad_sphere(5);
+    //SurfaceMesh mesh = icosphere(4);
     SurfaceMesh mesh = icosphere_hex(4);
 
     //MUSCL_base_geometry test(mesh);
 
-    double dt = 0.002;
-    size_t maxstep = 10000+1;
-    size_t skipstep = 1000;
+    double dt = 0.002/10;
+    size_t maxstep = 5000+1;
+    size_t skipstep = 500;
 
 
     int dim = 5;
-    double gam = 4./3;
+    double gam0 = 4./3;
+    double gam=2-1/gam0;
     std::ifstream inData("input/input.dat");
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
@@ -68,12 +69,8 @@ int main()
 
     //MUSCL_HLLE test2(mesh, U_in, dim, gam);
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLE_p_tracer test2(mesh, U_in, dim, gam);
-
-    //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
     MUSCL_HLLC test2(mesh, U_in, dim, gam);
     //MUSCL_HLLCplus test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLC_tracer test2(mesh, U_in, dim, gam);
 
 
     // MUSCL_base_geometry test(mesh);

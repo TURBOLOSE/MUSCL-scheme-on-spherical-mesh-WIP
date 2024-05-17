@@ -246,8 +246,8 @@ protected:
         face_centers[n_face][0]/face_centers[n_face].norm());
 
 
-        res[1]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) *(-std::sin(phi));
-        res[2]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);
+        //res[1]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) *(-std::sin(phi));
+        //res[2]=-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);
 
 
 
@@ -261,7 +261,8 @@ protected:
 
         double theta=std::acos(r[2]/r.norm());
         //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
-        return  (u[4] - u[0] * (vel.norm() * vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta)) / 2) * (gam - 1)/gam; //v3 = compressed star + sin 
+        return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam;//v2
+        //return  (u[4] - u[0] * (vel.norm() * vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta)) / 2) * (gam - 1)/gam; //v3 = compressed star + sin 
 
     }
 
@@ -335,13 +336,49 @@ protected:
 
 
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
-    { // classical Superbee limiter for irregular grids
-        // CFL independent
-        double etha_minus, etha_plus;
+    {
+        std::vector<double> res;
+        res.resize(dim);
+
+        double a=4, b=2,c=0.1,d=10,e=3,f=6; //switch function parameters
+        auto h=[a,b,c,d,e,f](double r){
+            double res=0;
+            if(r<1 && r> 0)
+            res=(1-std::tanh(a*std::pow(r,b)*std::pow(1-r,c)));
+            if(r>= 1)
+            res=std::pow(std::tanh(d*std::pow(r-1,e)),f);
+
+        return res;
+        };
+
+       
+
+        std::vector<double> to=limiter_third_order(u_r, n_face, n_edge);
+        std::vector<double> sb=limiter_superbee(u_r, n_face, n_edge);
+
+        for (size_t i = 0; i < dim; i++)
+        {
+            res[i] = (1-h(u_r[i]))*to[i]+h(u_r[i])*sb[i];
+            //res[i] = 0;
+            if (std::isnan(u_r[i]))
+            {
+                res[i] = 1;
+            }
+        }
+
+        //return limiter_third_order(u_r, n_face, n_edge);
+        //return limiter_superbee(u_r, n_face, n_edge);
+        return res;
+
+    }
+
+    std::vector<double> limiter_third_order(std::vector<double> u_r, int n_face, int n_edge)
+    {
+        std::vector<double> supb = limiter_superbee(u_r, n_face, n_edge);
         vector3d<double> R_vec, l_vec, vel, edge_center;
         double R, c, nu_plus;
         std::vector<double> res;
-        res.resize(4);
+        res.resize(dim);
 
         int n_edge_1 = n_edge + 1;
         if ((n_edge_1) == faces[n_face].size())
@@ -358,8 +395,52 @@ protected:
         vel = cross_product(edge_center, l_vec);
         vel /= (-U[n_face][0]) * edge_center.norm();
 
-        //double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
-        double p = pressure(U[n_face],vel, edge_center);
+        // double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
+        double p = pressure(U[n_face], vel, edge_center);
+        c = std::sqrt(gam * p / U[n_face][0]);
+
+        nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
+                  (distance(vertices[faces[n_face][n_edge]], vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
+
+        for (size_t i = 0; i < dim; i++)
+        {
+
+            res[i] = std::max(0., std::min(supb[i], 1 + (1 + nu_plus) / 3 * (u_r[i] - 1)));
+
+            if (std::isnan(u_r[i]))
+            {
+                res[i] = 0;
+            }
+        }
+
+        return res;
+    }
+
+    std::vector<double> limiter_superbee(std::vector<double> u_r, int n_face, int n_edge)
+    { // classical Superbee limiter for irregular grids
+        double etha_minus, etha_plus;
+        vector3d<double> R_vec, l_vec, vel, edge_center;
+        double R, c, nu_plus;
+        std::vector<double> res;
+        res.resize(dim);
+
+        int n_edge_1 = n_edge + 1;
+        if ((n_edge_1) == faces[n_face].size())
+        {
+            n_edge_1 = 0;
+        }
+        edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center /= edge_center.norm();
+
+        l_vec[0] = U[n_face][1];
+        l_vec[1] = U[n_face][2];
+        l_vec[2] = U[n_face][3];
+
+        vel = cross_product(edge_center, l_vec);
+        vel /= (-U[n_face][0]) * edge_center.norm();
+
+        // double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
+        double p = pressure(U[n_face], vel, edge_center);
         c = std::sqrt(gam * p / U[n_face][0]);
 
         nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
@@ -370,10 +451,10 @@ protected:
 
         for (size_t i = 0; i < dim; i++)
         {
+
             res[i] = std::max(0.,
                               std::max(std::min(1., etha_minus * u_r[i] * 2 / (2 * faces[n_face].size() * nu_plus)),
                                        std::min(u_r[i], etha_plus)));
-
             if (std::isnan(u_r[i]))
             {
                 res[i] = 0;

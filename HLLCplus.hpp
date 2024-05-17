@@ -20,7 +20,7 @@ public:
             stop_check = true;
         }
 
-        omega_ns = 5;
+        omega_ns = 2;
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -65,42 +65,12 @@ public:
         for (size_t n_face = 0; n_face < faces.size(); n_face++)
         {
 
-            /*l_vec[0] = U[n_face][1];
+            l_vec[0] = U[n_face][1];
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
 
             vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
-            vel /= (-U[n_face][0]);*/
-
-            double test = 0;
-            vector3d<double> test1;
-            test1[0] = 0;
-            test1[1] = 0;
-            test1[2] = 0;
-
-            for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
-            {
-                int n_edge_1 = n_edge + 1;
-                if ((n_edge_1) == faces[n_face].size())
-                {
-                    n_edge_1 = 0;
-                }
-
-                edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-                edge_center /= edge_center.norm();
-
-                l_vec[0] = U[n_face][1];
-                l_vec[1] = U[n_face][2];
-                l_vec[2] = U[n_face][3];
-
-                vel = cross_product(edge_center, l_vec);
-                vel /= (-U[n_face][0]) * edge_center.norm();
-
-                //test += dot_product(vel, edge_normals[n_face][n_edge]);
-                //test1+=cross_product(edge_center, edge_normals[n_face][n_edge])*
-                //(vertices[faces[n_face][n_edge]]-vertices[faces[n_face][n_edge_1]]).norm();
-            }
-           //std::cout << test1.norm() << "\n";
+            vel /= (-U[n_face][0]);
 
             pres = pressure(U[n_face], vel, face_centers[n_face]);
             outfile_p << pres << " ";
@@ -283,67 +253,69 @@ protected:
 
         double P_LR = (p_L + p_R + u_L[0] * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_L)) + u_R[0] * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_R))) / 2;
 
-        double V_L=dot_product(edge_normals[n_face][n_edge], vel_L);
-        double V_R=dot_product(edge_normals[n_face][n_edge], vel_R);
-        double phi_L=u_L[0]*(S_L-V_L); double phi_R=u_R[0]*(S_R-V_R); 
+        double V_L = dot_product(edge_normals[n_face][n_edge], vel_L);
+        double V_R = dot_product(edge_normals[n_face][n_edge], vel_R);
+        double phi_L = u_L[0] * (S_L - V_L);
+        double phi_R = u_R[0] * (S_R - V_R);
 
         double a_L = std::sqrt(gam * p_L / u_L[0]);
         double a_R = std::sqrt(gam * p_R / u_R[0]);
 
-        double M=std::min(1., std::max(vel_L.norm()/a_L,vel_R.norm()/a_R));
+        double M = std::min(1., std::max(vel_L.norm() / a_L, vel_R.norm() / a_R));
 
-        int lambd_L=0, lambd_R=0;
+        int lambd_L = 0, lambd_R = 0;
 
-        if((V_L-a_L)>0 && (V_R-a_R)<0 )
-        lambd_L=1;
+        if ((V_L - a_L) > 0 && (V_R - a_R) < 0)
+            lambd_L = 1;
 
-        if((V_L+a_L)>0 && (V_R+a_R)<0 )
-        lambd_L=1;
+        if ((V_L + a_L) > 0 && (V_R + a_R) < 0)
+            lambd_L = 1;
 
-        if((V_R-a_R)>0 && (V_L-a_L)<0 )
-        lambd_R=1;
+        if ((V_R - a_R) > 0 && (V_L - a_L) < 0)
+            lambd_R = 1;
 
-        if((V_R+a_R)>0 && (V_L+a_L)<0 )
-        lambd_R=1;
+        if ((V_R + a_R) > 0 && (V_L + a_L) < 0)
+            lambd_R = 1;
 
+        double f_star = 0;
+        if (lambd_L == 0 && lambd_R == 0)
+            f_star = M * std::sqrt(4 + (1 - M * M) * (1 - M * M)) / ((1 + M * M));
 
-        double f_star=0;
-        if(lambd_L==0 && lambd_R==0)
-        f_star=M*std::sqrt(4+(1-M*M)*(1-M*M))/((1+M*M));
-        
         int neighboor_num = neighbors_edge[n_face][n_edge];
-        double h=std::min(p_L/p_R,p_R/p_L); 
-        //here sould be a loop over all neighboors of both L and R
-        //however, the pressure inside the cell != pressure on the edge
-        double g=1-pow(h,M);
+        double h = std::min(p_L / p_R, p_R / p_L);
+        // here sould be a loop over all neighboors of both L and R
+        // however, the pressure inside the cell != pressure on the edge
+        double g = 1 - pow(h, M);
 
-        vector3d<double> vel_flux_fix_L, angm_flux_fix_L,vel_flux_fix_R, angm_flux_fix_R;
+        vector3d<double> vel_flux_fix_L, angm_flux_fix_L, vel_flux_fix_R, angm_flux_fix_R;
 
-        vel_flux_fix_L[0]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][0]+S_L/(S_L-S_star)*g*(vel_R[0]-vel_L[0]-(V_R-V_L)*edge_normals[n_face][n_edge][0]);
-        vel_flux_fix_L[1]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][1]+S_L/(S_L-S_star)*g*(vel_R[1]-vel_L[1]-(V_R-V_L)*edge_normals[n_face][n_edge][1]);
-        vel_flux_fix_L[2]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][2]+S_L/(S_L-S_star)*g*(vel_R[2]-vel_L[2]-(V_R-V_L)*edge_normals[n_face][n_edge][2]);
+        vel_flux_fix_L[0] = (f_star - 1) * (V_R - V_L) * edge_normals[n_face][n_edge][0] + S_L / (S_L - S_star) * g * (vel_R[0] - vel_L[0] - (V_R - V_L) * edge_normals[n_face][n_edge][0]);
+        vel_flux_fix_L[1] = (f_star - 1) * (V_R - V_L) * edge_normals[n_face][n_edge][1] + S_L / (S_L - S_star) * g * (vel_R[1] - vel_L[1] - (V_R - V_L) * edge_normals[n_face][n_edge][1]);
+        vel_flux_fix_L[2] = (f_star - 1) * (V_R - V_L) * edge_normals[n_face][n_edge][2] + S_L / (S_L - S_star) * g * (vel_R[2] - vel_L[2] - (V_R - V_L) * edge_normals[n_face][n_edge][2]);
 
-        angm_flux_fix_L=cross_product(edge_center,vel_flux_fix_L);
+        angm_flux_fix_L = cross_product(edge_center, vel_flux_fix_L);
 
-        vel_flux_fix_R[0]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][0]+S_R/(S_R-S_star)*g*(vel_R[0]-vel_L[0]-(V_R-V_L)*edge_normals[n_face][n_edge][0]);
-        vel_flux_fix_R[1]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][1]+S_R/(S_R-S_star)*g*(vel_R[1]-vel_L[1]-(V_R-V_L)*edge_normals[n_face][n_edge][1]);
-        vel_flux_fix_R[2]=(f_star-1)*(V_R-V_L)*edge_normals[n_face][n_edge][2]+S_R/(S_R-S_star)*g*(vel_R[2]-vel_L[2]-(V_R-V_L)*edge_normals[n_face][n_edge][2]);
+        vel_flux_fix_R[0] = (f_star - 1) * (V_R - V_L) * edge_normals[n_face][n_edge][0] + S_R / (S_R - S_star) * g * (vel_R[0] - vel_L[0] - (V_R - V_L) * edge_normals[n_face][n_edge][0]);
+        vel_flux_fix_R[1] = (f_star - 1) * (V_R - V_L) * edge_normals[n_face][n_edge][1] + S_R / (S_R - S_star) * g * (vel_R[1] - vel_L[1] - (V_R - V_L) * edge_normals[n_face][n_edge][1]);
+        vel_flux_fix_R[2] = (f_star - 1) * (V_R - V_L) * edge_normals[n_face][n_edge][2] + S_R / (S_R - S_star) * g * (vel_R[2] - vel_L[2] - (V_R - V_L) * edge_normals[n_face][n_edge][2]);
 
-        angm_flux_fix_R=cross_product(edge_center,vel_flux_fix_R);
+        angm_flux_fix_R = cross_product(edge_center, vel_flux_fix_R);
 
-        
-        flux_fix_L[0]=0; flux_fix_R[0]=0;
-        flux_fix_L[1]=angm_flux_fix_L[0]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[1]=angm_flux_fix_R[0]*phi_L*phi_R/(phi_R-phi_L);
-        flux_fix_L[2]=angm_flux_fix_L[1]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[2]=angm_flux_fix_R[1]*phi_L*phi_R/(phi_R-phi_L);
-        flux_fix_L[3]=angm_flux_fix_L[2]*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[3]=angm_flux_fix_R[2]*phi_L*phi_R/(phi_R-phi_L);
-        flux_fix_L[4]=(f_star-1)*(V_R-V_L)*S_star*phi_L*phi_R/(phi_R-phi_L); flux_fix_R[4]=(f_star-1)*(V_R-V_L)*S_star*phi_L*phi_R/(phi_R-phi_L);
-
-
+        flux_fix_L[0] = 0;
+        flux_fix_R[0] = 0;
+        flux_fix_L[1] = angm_flux_fix_L[0] * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_R[1] = angm_flux_fix_R[0] * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_L[2] = angm_flux_fix_L[1] * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_R[2] = angm_flux_fix_R[1] * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_L[3] = angm_flux_fix_L[2] * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_R[3] = angm_flux_fix_R[2] * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_L[4] = (f_star - 1) * (V_R - V_L) * S_star * phi_L * phi_R / (phi_R - phi_L);
+        flux_fix_R[4] = (f_star - 1) * (V_R - V_L) * S_star * phi_L * phi_R / (phi_R - phi_L);
 
         for (size_t i = 0; i < dim; i++)
         {
-            F_L_star[i] = (S_star * (S_L * u_L[i] - F_L[i]) + S_L * P_LR * D[i]) / (S_L - S_star)+flux_fix_L[i];
-            F_R_star[i] = (S_star * (S_R * u_R[i] - F_R[i]) + S_R * P_LR * D[i]) / (S_R - S_star)+flux_fix_R[i];
+            F_L_star[i] = (S_star * (S_L * u_L[i] - F_L[i]) + S_L * P_LR * D[i]) / (S_L - S_star) + flux_fix_L[i];
+            F_R_star[i] = (S_star * (S_R * u_R[i] - F_R[i]) + S_R * P_LR * D[i]) / (S_R - S_star) + flux_fix_R[i];
         }
 
         if (S_L >= 0)
@@ -388,16 +360,13 @@ protected:
         vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
         vel /= (-u[0]);
 
- 
-
         // compressed star test
         double theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
 
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
-        //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
-        //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
-
-        //res[4]=-omega_ns*omega_ns*std::sin(theta)*std::cos(theta)*(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
+        // res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+        // res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
+        // res[4] = -omega_ns * omega_ns * u[0] * std::sin(theta) * std::cos(theta) * (-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
 
         return res;
     };
@@ -407,9 +376,9 @@ protected:
 
         double theta = std::acos(r[2] / r.norm());
 
-        return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
-        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; //v2 = different P
-        //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        // return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
+        return (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; // v2 = different P
+        // return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
     }
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
@@ -500,16 +469,95 @@ protected:
         return res;
     }
 
-    
-
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
+    {
+        std::vector<double> res;
+        res.resize(dim);
+
+        double a=4, b=2,c=0.1,d=10,e=3,f=6; //switch function parameters
+        auto h=[a,b,c,d,e,f](double r){
+            double res=0;
+            if(r<1 && r> 0)
+            res=(1-std::tanh(a*std::pow(r,b)*std::pow(1-r,c)));
+            if(r>= 1)
+            res=std::pow(std::tanh(d*std::pow(r-1,e)),f);
+
+        return res;
+        };
+
+       
+
+        std::vector<double> to=limiter_third_order(u_r, n_face, n_edge);
+        std::vector<double> sb=limiter_superbee(u_r, n_face, n_edge);
+
+        for (size_t i = 0; i < dim; i++)
+        {
+            res[i] = (1-h(u_r[i]))*to[i]+h(u_r[i])*sb[i];
+            //res[i] = 0;
+            if (std::isnan(u_r[i]))
+            {
+                res[i] = 1;
+            }
+        }
+
+        //return limiter_third_order(u_r, n_face, n_edge);
+        //return limiter_superbee(u_r, n_face, n_edge);
+        return res;
+
+    }
+
+    std::vector<double> limiter_third_order(std::vector<double> u_r, int n_face, int n_edge)
+    {
+        std::vector<double> supb = limiter_superbee(u_r, n_face, n_edge);
+        vector3d<double> R_vec, l_vec, vel, edge_center;
+        double R, c, nu_plus;
+        std::vector<double> res;
+        res.resize(dim);
+
+        int n_edge_1 = n_edge + 1;
+        if ((n_edge_1) == faces[n_face].size())
+        {
+            n_edge_1 = 0;
+        }
+        edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+        edge_center /= edge_center.norm();
+
+        l_vec[0] = U[n_face][1];
+        l_vec[1] = U[n_face][2];
+        l_vec[2] = U[n_face][3];
+
+        vel = cross_product(edge_center, l_vec);
+        vel /= (-U[n_face][0]) * edge_center.norm();
+
+        // double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
+        double p = pressure(U[n_face], vel, edge_center);
+        c = std::sqrt(gam * p / U[n_face][0]);
+
+        nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
+                  (distance(vertices[faces[n_face][n_edge]], vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
+
+        for (size_t i = 0; i < dim; i++)
+        {
+
+            res[i] = std::max(0., std::min(supb[i], 1 + (1 + nu_plus) / 3 * (u_r[i] - 1)));
+
+            if (std::isnan(u_r[i]))
+            {
+                res[i] = 0;
+            }
+        }
+
+        return res;
+    }
+
+    std::vector<double> limiter_superbee(std::vector<double> u_r, int n_face, int n_edge)
     { // classical Superbee limiter for irregular grids
         // CFL independent
         double etha_minus, etha_plus;
         vector3d<double> R_vec, l_vec, vel, edge_center;
         double R, c, nu_plus;
         std::vector<double> res;
-        res.resize(4);
+        res.resize(dim);
 
         int n_edge_1 = n_edge + 1;
         if ((n_edge_1) == faces[n_face].size())
@@ -538,10 +586,10 @@ protected:
 
         for (size_t i = 0; i < dim; i++)
         {
+
             res[i] = std::max(0.,
                               std::max(std::min(1., etha_minus * u_r[i] * 2 / (2 * faces[n_face].size() * nu_plus)),
                                        std::min(u_r[i], etha_plus)));
-
             if (std::isnan(u_r[i]))
             {
                 res[i] = 0;

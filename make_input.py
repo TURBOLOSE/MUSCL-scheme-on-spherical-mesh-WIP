@@ -14,7 +14,7 @@ def make_input_4(): #no energy as separate variable
 
 
 
-    theta_face_centers=-np.arccos(face_centers[:,2])+np.pi/2
+    theta_face_centers=-np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1))+np.pi/2
 
 
     #rho=np.ones(N)
@@ -75,7 +75,8 @@ def make_input_4_cos_bell(): #no energy as separate variable
 
 
 def make_input_5():
-    gam=4./3
+    gam0=4./3
+    gam=2-1/gam0
     #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
     N=len(face_centers[0])
@@ -83,14 +84,22 @@ def make_input_5():
 
     face_centers=np.array(face_centers)
 
-    rho=1*np.ones(N)
-    omega=np.array([0,0,2])
-    #p=np.ones(N)
-    p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
+    rho=np.ones(N)
+    omega=np.array([0,0,0])
+    p=np.ones(N)
+    #p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
     l=[]
     v=[]
 
-    theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
+    
+    theta=-np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1))+np.pi/2 #lat
+    phi=np.arctan2(face_centers[:,1]/np.linalg.norm(face_centers, axis=1),face_centers[:,0]/np.linalg.norm(face_centers, axis=1)) #long
+    a=1
+    R0=a/3
+    #r=a*np.arccos(np.sin(0)*np.sin(theta)+np.cos(theta)*np.cos(0)*np.cos(phi-np.pi*3/2))
+    theta_c=0.3
+    phi_c=0.5
+    r=a*np.arccos(np.sin(theta_c)*np.sin(theta)+np.cos(theta)*np.cos(theta_c)*np.cos(phi-phi_c))
 
 
     for face_num, R in enumerate(face_centers):
@@ -102,7 +111,8 @@ def make_input_5():
         #    omega=np.array([0,0,0])
         #if(np.abs(theta[face_num]-np.pi/2)<0.1):
         #   p[face_num]=5
-
+        if r[face_num]<R0:
+            p[face_num]=50
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
         #print(np.cross(R,-np.cross(R, l[face_num]))/(np.linalg.norm(R)**2))
@@ -111,8 +121,8 @@ def make_input_5():
     l=np.array(l)
     v=np.array(v)
 
-    E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
-    #E=gam/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
+    #E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
+    E=gam/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
     if(E.any()<0):
         print('Energy<0!!')
 
@@ -131,7 +141,7 @@ def make_input_5_new_p():
 
     rho=np.ones(N)
     omega_ns=5
-    omega=np.array([0,0,5])
+    omega=np.array([0,0,2])
     
 
     p=np.ones(N)
@@ -159,7 +169,8 @@ def make_input_5_new_p():
     l=np.array(l)
     v=np.array(v)
 
-    E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
+    #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)\
+    E=gam/(gam-1)*p
     if(E.any()<0):
         print('Energy<0!!')
 
@@ -213,14 +224,15 @@ def make_input_5_cos_bell():  #adds energy
 def make_input_5_const_entr():  
 
 
-    gam=4/3.
+    gam0=4/3
+    gam=2-1/gam0
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
     N=len(face_centers[0])
 
     face_centers=np.array(face_centers)
 
     l=[]
-    theta=-np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
+    theta=-np.arccos((face_centers[:,2])/np.linalg.norm(face_centers, axis=1)) 
 
     omega=np.array([0,0,5])
     rho_0=1
@@ -248,7 +260,7 @@ def make_input_5_const_entr():
     v=np.array(v)
 
     
-    E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
+    E=gam/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
 
@@ -313,8 +325,8 @@ def make_input_6_cos_bell():
 
 
 #make_input_5_new_p()
-make_input_5()
-#make_input_5_const_entr()
+#make_input_5()
+make_input_5_const_entr()
 
 
 

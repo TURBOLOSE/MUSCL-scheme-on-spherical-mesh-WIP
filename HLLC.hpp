@@ -20,7 +20,9 @@ public:
             stop_check = true;
         }
 
-        omega_ns = 5;
+        omega_ns = 0.01;
+        
+        set_analytical_solution();
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -342,9 +344,9 @@ protected:
 
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
 
-        //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
-        //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
-        //res[4]=-omega_ns*omega_ns* u[0] *std::sin(theta)*std::cos(theta)*(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
+        res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+        res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
+        //res[4] = -omega_ns*omega_ns* u[0] *std::sin(theta)*std::cos(theta)*(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
 
 
         /*for (size_t n_edge = 0; n_edge  < faces[n_face].size(); n_edge ++)
@@ -388,8 +390,8 @@ protected:
         double theta = std::acos(r[2] / r.norm());
 
         //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
-        return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; //v2 = different P
-        //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; //v2 = different P
+        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
     }
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
@@ -484,39 +486,45 @@ protected:
 
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
     {
+
+
+
+        //std::cout<<u_r[0]<<" "<<u_r[1]<<" "<<u_r[2]<<" "<<u_r[3]<<" "<<u_r[4]<<"\n";
+
         std::vector<double> res;
         res.resize(dim);
 
-        double a=4, b=2,c=0.1,d=10,e=3,f=6; //switch function parameters
-        auto h=[a,b,c,d,e,f](double r){
-            double res=0;
-            if(r<1 && r> 0)
-            res=(1-std::tanh(a*std::pow(r,b)*std::pow(1-r,c)));
-            if(r>= 1)
-            res=std::pow(std::tanh(d*std::pow(r-1,e)),f);
+        double a = 4, b = 2, c = 0.1, d = 10, e = 3, f = 6; // switch function parameters
+        auto h = [a, b, c, d, e, f](double r)
+        {
+            double res = 0;
+            if (r < 1 && r > 0)
+                res = (1 - std::tanh(a * std::pow(r, b) * std::pow(1 - r, c)));
+            if (r >= 1)
+                res = std::pow(std::tanh(d * std::pow(r - 1, e)), f);
 
-        return res;
+            return res;
         };
 
-       
-
-        std::vector<double> to=limiter_third_order(u_r, n_face, n_edge);
-        std::vector<double> sb=limiter_superbee(u_r, n_face, n_edge);
+        std::vector<double> to = limiter_third_order(u_r, n_face, n_edge);
+        std::vector<double> sb = limiter_superbee(u_r, n_face, n_edge);
 
         for (size_t i = 0; i < dim; i++)
         {
-            res[i] = (1-h(u_r[i]))*to[i]+h(u_r[i])*sb[i];
-            //res[i] = 0;
+            res[i] = ((1 - h(u_r[i])) * to[i] + h(u_r[i]) * sb[i]);
+            // res[i] = 0;
             if (std::isnan(u_r[i]))
             {
-                res[i] = 1;
+                res[i] = 0;
             }
+            //res[i]=1;
         }
 
-        //return limiter_third_order(u_r, n_face, n_edge);
-        //return limiter_superbee(u_r, n_face, n_edge);
-        return res;
 
+        //std::cout<<to[4]<<" "<<sb[4]<<" "<<res[4]<<"\n";
+         //return limiter_third_order(u_r, n_face, n_edge);
+        // return limiter_superbee(u_r, n_face, n_edge);
+        return res;
     }
 
     std::vector<double> limiter_third_order(std::vector<double> u_r, int n_face, int n_edge)
@@ -540,19 +548,26 @@ protected:
         l_vec[2] = U[n_face][3];
 
         vel = cross_product(edge_center, l_vec);
-        vel /= (-U[n_face][0]) * edge_center.norm();
 
-        // double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
-        double p = pressure(U[n_face], vel, edge_center);
-        c = std::sqrt(gam * p / U[n_face][0]);
+        //tag1
+        //vel /= (-U[n_face][0]) * edge_center.norm();
+
+        vel /= (-U[n_face][0]-rho_an[n_face]) * edge_center.norm();
+        //double p = pressure(U[n_face], vel, edge_center);
+        double p=U[n_face][4]+p_an[n_face];
+
+        c = std::sqrt(gam * p / (U[n_face][0]+rho_an[n_face]));
+        //c = std::sqrt(gam * p / U[n_face][0]);
 
         nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
                   (distance(vertices[faces[n_face][n_edge]], vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
+
 
         for (size_t i = 0; i < dim; i++)
         {
 
             res[i] = std::max(0., std::min(supb[i], 1 + (1 + nu_plus) / 3 * (u_r[i] - 1)));
+            
 
             if (std::isnan(u_r[i]))
             {
@@ -565,6 +580,7 @@ protected:
 
     std::vector<double> limiter_superbee(std::vector<double> u_r, int n_face, int n_edge)
     { // classical Superbee limiter for irregular grids
+        // CFL independent
         double etha_minus, etha_plus;
         vector3d<double> R_vec, l_vec, vel, edge_center;
         double R, c, nu_plus;
@@ -584,17 +600,25 @@ protected:
         l_vec[2] = U[n_face][3];
 
         vel = cross_product(edge_center, l_vec);
-        vel /= (-U[n_face][0]) * edge_center.norm();
+        //tag1
+        //vel /= (-U[n_face][0]) * edge_center.norm();
 
-        // double p = (U[n_face][4] - U[n_face][0] * vel.norm() * vel.norm() / 2) * (gam - 1);
-        double p = pressure(U[n_face], vel, edge_center);
-        c = std::sqrt(gam * p / U[n_face][0]);
+        vel /= (-U[n_face][0]-rho_an[n_face]) * edge_center.norm();
+        //double p = pressure(U[n_face], vel, edge_center);
+
+        double p=U[n_face][4]+p_an[n_face];
+
+        //c = std::sqrt(gam * p / U[n_face][0]);
+
+        c = std::sqrt(gam * p / (U[n_face][0]+rho_an[n_face]));
+
 
         nu_plus = (c + dot_product(vel, edge_normals[n_face][n_edge])) * dt *
                   (distance(vertices[faces[n_face][n_edge]], vertices[faces[n_face][n_edge_1]]) / surface_area[n_face]);
 
         etha_plus = H_plus[n_face][n_edge] / BM_dist[n_face][n_edge];
-        etha_plus = H_minus[n_face][n_edge] / BM_dist[n_face][n_edge];
+        etha_minus = H_minus[n_face][n_edge] / BM_dist[n_face][n_edge];
+
 
         for (size_t i = 0; i < dim; i++)
         {
@@ -608,6 +632,34 @@ protected:
             }
         }
 
+        //if((n_face==2254 && n_edge== 5) || (n_face==30 && n_edge== 2))
+        //std::cout<<n_face<<" "<<n_edge<<" "<<(U[n_face][0]+rho_an[n_face])<<" "<<p<<" "<<nu_plus<<" "<<u_r[4]<<"\n";
+
+
+        //if(res[4]>1e-6)
+        //std::cout<<n_face<<" "<<n_edge<<" "<<u_r[4]<<"\n";
+
         return res;
     };
+
+     void set_analytical_solution()// analytical solution to be preserved                               
+    {                             // if no AS is required, thish should set rho_an and p_an to 0
+        vector3d<double> vec_l, vel,r;
+        for (size_t i = 0; i < faces.size(); i++)
+        {
+            vec_l[0] = U[i][1];
+            vec_l[1] = U[i][2];
+            vec_l[2] = U[i][3];
+
+
+            vel = cross_product(face_centers[i]/face_centers[i].norm(), vec_l);
+            vel /= -U[i][0];
+
+            //p_an[i] = pressure(U[i], vel, face_centers[i]);
+            //rho_an[i] = U[i][0];   //will try to conserve current profile
+
+            rho_an[i] = 0;   //no profile to be conserved
+            p_an[i] = 0;
+        }
+    }
 };

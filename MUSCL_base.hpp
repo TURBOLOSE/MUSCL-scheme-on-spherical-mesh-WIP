@@ -1,24 +1,23 @@
 #pragma once
 
 #include "MUSCL_geometry.hpp"
-#include<omp.h>
+#include <omp.h>
 
 class MUSCL_base : public MUSCL_base_geometry
 {
 protected:
     std::vector<std::vector<double>> U, U_temp, source_plus;
+    std::vector<double> rho_an, p_an;
     std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
     // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
     double dt, gam, M, N, h0, t, max_vel, rho_full;
     int dim;
     size_t steps;
-    bool stop_check = false ;
-
+    bool stop_check = false;
 
 public:
-    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : 
-    MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
-    {//U_in should be n_faces * dim(=4)
+    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
+    { // U_in should be n_faces * dim(=4)
 
         double h0_temp;
 
@@ -34,6 +33,11 @@ public:
         U_minus.resize(this->n_faces());
         U_temp.resize(this->n_faces());
         source_plus.resize(this->n_faces());
+        rho_an.resize(this->n_faces());
+        p_an.resize(this->n_faces());
+
+        std::fill(rho_an.begin(), rho_an.end(), 0);
+        std::fill(p_an.begin(), p_an.end(), 0);
 
         for (size_t i = 0; i < this->n_faces(); i++)
         {
@@ -68,12 +72,12 @@ public:
 
                 if (face_element < faces[n_face].size() - 1)
                 {
-                    h0_temp = distance(vertices[faces[n_face][face_element]],vertices[faces[n_face][face_element + 1]]) /
+                    h0_temp = distance(vertices[faces[n_face][face_element]], vertices[faces[n_face][face_element + 1]]) /
                               surface_area[n_face];
                 }
                 else
                 {
-                    h0_temp = distance(vertices[faces[n_face][face_element]],vertices[faces[n_face][0]]) /
+                    h0_temp = distance(vertices[faces[n_face][face_element]], vertices[faces[n_face][0]]) /
                               surface_area[n_face];
                 }
 
@@ -94,23 +98,52 @@ public:
         dt = dt0;
         U_temp = U;
 
-        
+        find_v_max();
         find_U_edges();
         find_flux_var();
-        find_v_max();
 
 
-        
-
-        //h0 = typical length of an edge
+        // h0 = typical length of an edge
         if (dt > h0 * 0.1 / max_vel)
         {
             dt = h0 * 0.1 / max_vel;
+            std::cout<<dt<<"\n";
         }
 
 
-        res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
+        res2d(dt); // res2d makes U = dt*phi(U)
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
 
+            for (size_t k = 0; k < dim; k++)
+            {
+                U_temp[i][k] += U[i][k]; //both are equal to U+dt(U)
+                U[i][k]+= U_temp[i][k]; 
+            }
+        }
+        //temp comment
+        find_U_edges();
+        find_flux_var();
+        res2d(dt);
+
+
+        for (size_t i = 0; i < this->n_faces(); i++)
+        {
+
+            for (size_t k = 0; k < dim; k++)
+            { 
+                U[i][k]=U[i][k]/2.+U_temp[i][k]; 
+            }
+        }
+
+
+
+
+
+
+        
+        //old RK2
+        /*res2d(dt / 2.); // res2d makes U = dt/2*phi(U)
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -118,12 +151,14 @@ public:
             {
                 U[i][k] += U_temp[i][k]; // results in U=U+dt/2*phi(U)
             }
-
         }
 
         find_U_edges();
         find_flux_var();
-        res2d(dt); // U=dt*phi(U+dt/2*phi(U))
+        res2d(dt); // U=dt*phi(U+dt/2*phi(U))*/
+        
+
+
 
         double temp = 0;
         double l1, l2, l3 = 0;
@@ -133,10 +168,10 @@ public:
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
-            for (size_t k = 0; k < dim; k++)
-            {
-                U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
-            }
+            //for (size_t k = 0; k < dim; k++)
+            //{
+            //    U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
+            //}
             temp += U[i][0];
             l1 += U[i][1];
             l2 += U[i][2];
@@ -148,13 +183,12 @@ public:
         if (steps == 0)
             rho_full = temp;
 
-        std::cout << "t= " << t+dt << " rho_total_err=" << 1. - temp / rho_full << " l_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
+        std::cout << "t= " << t + dt << " rho_total_err=" << 1. - temp / rho_full << " l_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
                   << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << std::endl;
 
-        //std::cout<<std::endl;
-        //std::cout <<t<<" "<<1. - temp / rho_full << std::endl;
+        // std::cout<<std::endl;
+        // std::cout <<t<<" "<<1. - temp / rho_full << std::endl;
 
-            
         t += dt;
         steps++;
     }
@@ -164,27 +198,26 @@ public:
         return t;
     }
 
-    bool get_stop_check(){ //True = stop computations due to error
+    bool get_stop_check()
+    { // True = stop computations due to error
         return stop_check;
     }
 
 protected:
-
     void res2d(double dt_here) // space step
     // takes data from U matrix
     {
 
-        double round_diff=distance(vertices[faces[0][1]],vertices[faces[0][2]])/(vertices[faces[0][1]]-vertices[faces[0][2]]).norm();
+        double round_diff = distance(vertices[faces[0][1]], vertices[faces[0][2]]) / (vertices[faces[0][1]] - vertices[faces[0][2]]).norm();
 
+        double d_pres;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
-            for (size_t k = 0; k < dim; k++) //source terms
-            U[i][k] = dt_here*source_plus[i][k];
+            for (size_t k = 0; k < dim; k++) // source terms
+                U[i][k] = dt_here * source_plus[i][k];
 
-            //int comp=3;
-            //double temp_h=dt_here*source_plus[i][comp];
-            
-            
+            // int comp=3;
+            // double temp_h=dt_here*source_plus[i][comp];
 
             for (size_t j = 0; j < faces[i].size(); j++)
             {
@@ -193,25 +226,25 @@ protected:
 
                 if (j == (faces[i].size() - 1))
                     j1 = 0;
+
                 
-                //#pragma omp parallel for
+                // #pragma omp parallel for
                 for (size_t k = 0; k < dim; k++)
                 {
 
-                    //U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *(flux_var_minus[i][j][k]);
-                    //U[i][k] -= dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
-                    U[i][k] -= round_diff*dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
+                    // U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *(flux_var_minus[i][j][k]);
+                    // U[i][k] -= dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
+                    U[i][k] -= round_diff * dt_here * (vertices[faces[i][j]] - vertices[faces[i][j1]]).norm() / surface_area[i] * (flux_var_minus[i][j][k]);
+                    
                     if (std::isnan((flux_var_minus[i][j][k])))
                     {
-                        stop_check=true;
+                        stop_check = true;
                         std::cout << "time: " << t << " face: " << i << " edge: " << j << " NaN in flux detected!" << std::endl;
                     }
                 }
 
-                //std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
+                // std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
 
-
-                
                 /*int neighboor_num = neighbors_edge[i][j];
                 int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
 
@@ -224,6 +257,7 @@ protected:
                 flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;*/
             }
 
+
             /*double theta=std::acos(face_centers[i][2]/face_centers[i].norm());
             if(std::abs(theta-M_PI/4)<1e-3){
             std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<" "<<U[i][4] <<"\n";
@@ -234,6 +268,7 @@ protected:
     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
     virtual std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge) = 0;
     virtual std::vector<double> source(std::vector<double> u, int n_face) = 0;
+    // virtual void set_analytical_solution();
 
 private:
     void find_M()
@@ -273,8 +308,8 @@ private:
             l_vec[0] = U[i][1];
             l_vec[1] = U[i][2];
             l_vec[2] = U[i][3];
-            vel = cross_product(face_centers[i]/face_centers[i].norm(), l_vec);
-            vel/=U[i][0];
+            vel = cross_product(face_centers[i] / face_centers[i].norm(), l_vec);
+            vel /= U[i][0];
             if (vel.norm() > max)
                 max = vel.norm();
         }
@@ -292,17 +327,25 @@ private:
         {
             for (int j = 0; j < faces[i].size(); j++)
             {
-                flux_var_minus[i][j]=flux_star(U_plus[i][j], U_minus[i][j], i, j);
+                flux_var_minus[i][j] = flux_star(U_plus[i][j], U_minus[i][j], i, j);
             }
-                source_plus[i]=source(U[i],i);
-                
+            source_plus[i] = source(U[i], i);
         }
     }
 
     void find_U_edges() // finding U_ij and U_ji
     {
 
-        //std::vector<double> pp, pm, lim;
+        // std::vector<double> pp, pm, lim;
+
+        for (size_t i = 0; i < this->n_faces(); i++)    //tag1
+        {
+            U[i][4]=pressure_fc(U[i], i);
+            U[i][0]-=rho_an[i];
+            U[i][4]-=p_an[i];        
+        }
+        //std::cout<<rho_an[0]<<" "<<p_an[0]<<"\n";
+        
 
         omp_set_dynamic(0);     // Explicitly disable dynamic teams
         omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
@@ -320,20 +363,45 @@ private:
                 std::vector<double> r;
                 r.resize(dim);
 
+                
+
+
                 for (size_t k = 0; k < dim; k++)
-                    r[k]=pm[k]/pp[k];
+                {
+                    r[k] = pm[k] / pp[k];
+                    
+                    //if(abs(pm[k])<1e-10 || abs(pp[k])<1e-10 )// crutch fix for limiter
+                    //    r[k]=0;
+                }
+                    
 
                 std::vector<double> lim = limiter(r, i, j);
                 for (size_t k = 0; k < dim; k++)
                 {
-                    double kappa=(2*lim[k]-(r[k]+1))/(r[k]+1);
-                    if(std::isnan(kappa))
-                        kappa=0;
+                    /*double kappa = (2 * lim[k] - (r[k] + 1)) / (r[k] + 1);
+                    if (std::isnan(kappa))
+                        kappa = 0;*/
 
+                    if (k == 0)
+                    {
+                        U_plus[i][j][k] = U[i][k] + rho_an[i] + pp[k] * lim[k] * BM_dist[i][j];
+                    }
+                    else if (k == 4)
+                    {
+                        U_plus[i][j][k] = U[i][k] + p_an[i] + pp[k] * lim[k] * BM_dist[i][j];
 
+                        //std::cout<<pm[4]<<" "<<pp[4]<<"  "<<lim[4]<<"\n";
 
-                    U_plus[i][j][k] = U[i][k] + pp[k] * lim[k] * BM_dist[i][j];
-                    //U_plus[i][j][k] = U[i][k] + pp[k] * (kappa+1)/2. * BM_dist[i][j]+pm[k] * (1-kappa)/2. * BM_dist[i][j];
+                        U_plus[i][j][k] = E_fc(U_plus[i][j], i, j); // p -> E (tag1)
+                        //std::cout<<U_plus[i][j][k]<<"\n";
+
+                    }
+                    else
+                    {
+                        U_plus[i][j][k] = U[i][k] + pp[k] * lim[k] * BM_dist[i][j];
+                    }
+
+                    // U_plus[i][j][k] = U[i][k] + pp[k] * (kappa+1)/2. * BM_dist[i][j]+pm[k] * (1-kappa)/2. * BM_dist[i][j];
                     U_minus[neighboor_num][j0][k] = U_plus[i][j][k];
                 }
             }
@@ -351,6 +419,8 @@ private:
             res[U_element] = betas_plus[n_face][face_edge][0] * U[flux_faces_plus[n_face][face_edge][0]][U_element] +
                              betas_plus[n_face][face_edge][1] * U[flux_faces_plus[n_face][face_edge][1]][U_element];
         }
+
+       
 
         return res;
     };
@@ -376,7 +446,20 @@ private:
         Up = U_H_plus(n_face, face_edge);
         for (size_t U_element = 0; U_element < dim; U_element++)
         {
-            res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge];
+            if (U_element == 0)
+            {
+                //res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge] - rho_an[n_face];
+                res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge];
+            }
+            else if (U_element == 4)
+            {
+                //res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge] - p_an[n_face];
+                res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge];
+            }
+            else
+            {
+                res[U_element] = (Up[U_element] - U[n_face][U_element]) / H_plus[n_face][face_edge];
+            }
         }
         return res;
     };
@@ -388,8 +471,70 @@ private:
         Um = U_H_minus(n_face, face_edge);
         for (size_t U_element = 0; U_element < dim; U_element++)
         {
-            res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
+            if (U_element == 0)
+            {
+                //res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge] - rho_an[n_face];
+                res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
+            }
+            else if (U_element == 4)
+            {
+                //res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge] - p_an[n_face];
+                res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
+            }
+            else
+            {
+                res1[U_element] = (-Um[U_element] + U[n_face][U_element]) / H_minus[n_face][face_edge];
+            }
         }
         return res1;
+    }
+
+    double pressure_fc(std::vector<double> u, int n_face) // u[4] == energy
+    {                                                     // to do: make state_vector a class and turn this into a method
+        double omega_ns = 0.01;
+
+        vector3d<double> l_vec, vel, r;
+
+        l_vec[0] = u[1];
+        l_vec[1] = u[2];
+        l_vec[2] = u[3];
+
+        /*int n_edge_1 = n_edge + 1;
+        if (n_edge == faces[n_face].size() - 1)
+            n_edge_1 = 0;
+
+        r = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;*/
+        r=face_centers[n_face];
+        r /= r.norm();
+
+        double theta = std::acos(r[2]);
+        vel = cross_product(r, l_vec);
+        vel /= -u[0];
+
+        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+    }
+
+    double E_fc(std::vector<double> u, int n_face, int n_edge) // u[4] == pressure
+    {
+        double omega_ns = 0.01;
+        vector3d<double> l_vec, vel, r;
+
+        l_vec[0] = u[1];
+        l_vec[1] = u[2];
+        l_vec[2] = u[3];
+
+        int n_edge_1 = n_edge + 1;
+        if (n_edge == faces[n_face].size() - 1)
+            n_edge_1 = 0;
+
+        r = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]);
+        r /= r.norm();
+
+        double theta = std::acos(r[2]);
+
+        vel = cross_product(r, l_vec);
+        vel /= (-u[0]);
+
+        return gam / (gam - 1) * u[4] + u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2;
     }
 };

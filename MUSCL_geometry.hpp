@@ -417,6 +417,10 @@ public:
                               << n_face << " " << i << " " << hm1 / B1B2_d << " " << hm2 / B1B2_d << " "
                               << std::abs(((hm2 + hm1) / B1B2_d) - 1) << "\n";
                 }
+
+
+
+
                 /*if(n_face==65 && i==0){
 
                     B_nB = face_centers[n_face] - face_centers[left_face2];
@@ -520,6 +524,8 @@ public:
                     std::cout << n_face << " " << i << std::endl;
                 }
 
+
+
                 /*int j1 = j0 + 1;
                 int i1 = i + 1;
                 if ((j0 + 1) == faces[n_face].size())
@@ -534,6 +540,8 @@ public:
                 std::cout << std::endl;*/
             }
         }
+
+
 
         /*for (size_t n_face = 0; n_face < faces.size(); n_face++)
         {
@@ -1013,7 +1021,7 @@ public:
 
                 S_total += A + B + C - M_PI;
 
-                // surface_area[i] += (cross_product(face_centers[i] - vertices[faces[i][j]], face_centers[i] - vertices[faces[i][j1]])).norm() / 2.;
+                //surface_area[i] += (cross_product(face_centers[i] - vertices[faces[i][j]], face_centers[i] - vertices[faces[i][j1]])).norm() / 2.;
             }
         }
     }

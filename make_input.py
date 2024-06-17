@@ -128,9 +128,70 @@ def make_input_5():
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
 
+def make_input_5_sp_layer():
+    gam0=4./3
+    gam=2-1/gam0
+
+    #V_conv=0.01
+    V_conv=1
+
+    face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
+    N=len(face_centers[0])
+
+    rho=np.ones(N) #10^7 g/cm^2
+    c_s=2*10**(-3)/V_conv #c
+    p=c_s**2*np.ones(N)/gam
+    print(p[0])
+    omega_ns=0.01/V_conv#c
+    omega=np.array([0,0,0.01])/V_conv #c
+    
+
+    
+    #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
+    
+
+
+    face_centers=np.array(face_centers)
+
+    
+    
+
+    
+    #p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
+    l=[]
+    v=[]
+
+    theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
+
+    for face_num, R in enumerate(face_centers):
+        #if( R[2] >0):
+        #    omega=np.array([0,0,0.5])
+        #elif ( R[2] <0):
+        #    omega=np.array([0,0,-0.5])
+        #else:
+        #    omega=np.array([0,0,0])
+        l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
+        v.append(np.cross(omega,R)/np.linalg.norm(R))
+
+
+        #print(np.linalg.norm(v0)**2 -np.linalg.norm(v[face_num])**2)
+        #print(np.cross(R,-np.cross(R, l[face_num]))/(np.linalg.norm(R)**2))
+
+    
+    l=np.array(l)
+    v=np.array(v)
+    E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
+    #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2)
+    if(E.any()<0):
+        print('Energy<0!!')
+
+    pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False, float_format="%.15f")
+
+
 
 def make_input_5_new_p():
-    gam=4./3
+    gam0=4./3
+    gam=2-1/gam0
     
     #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
@@ -141,7 +202,7 @@ def make_input_5_new_p():
 
     rho=np.ones(N)
     omega_ns=5
-    omega=np.array([0,0,2])
+    omega=np.array([0,0,5])
     
 
     p=np.ones(N)
@@ -169,10 +230,11 @@ def make_input_5_new_p():
     l=np.array(l)
     v=np.array(v)
 
-    #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)\
-    E=gam/(gam-1)*p
+    #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
+    E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2)
     if(E.any()<0):
         print('Energy<0!!')
+
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False, float_format="%.15f")
 
@@ -234,7 +296,7 @@ def make_input_5_const_entr():
     l=[]
     theta=-np.arccos((face_centers[:,2])/np.linalg.norm(face_centers, axis=1)) 
 
-    omega=np.array([0,0,5])
+    omega=np.array([0,0,2])
     rho_0=1
     p_0=1
     a_0=np.sqrt(gam*p_0/rho_0)
@@ -326,8 +388,8 @@ def make_input_6_cos_bell():
 
 #make_input_5_new_p()
 #make_input_5()
-make_input_5_const_entr()
-
+#make_input_5_const_entr()
+make_input_5_sp_layer()
 
 
 

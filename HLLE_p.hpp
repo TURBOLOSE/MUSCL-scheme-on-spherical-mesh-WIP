@@ -362,7 +362,7 @@ protected:
             //res[i] = 0;
             if (std::isnan(u_r[i]))
             {
-                res[i] = 1;
+                res[i] = 0;
             }
         }
 
@@ -463,4 +463,22 @@ protected:
 
         return res;
     };
+
+    void set_analytical_solution()// analytical solution to be preserved
+                                  // if no required should return 0
+    {
+        vector3d<double> vec_l, vel;
+        for (size_t i = 0; i < faces.size(); i++)
+        {
+            vec_l[0] = U[i][1];
+            vec_l[1] = U[i][2];
+            vec_l[2] = U[i][3];
+
+
+            vel = cross_product(face_centers[i]/face_centers[i].norm(), vec_l);
+            vel /= -U[i][0];
+            rho_an[i] = U[i][0];
+            p_an[i] = pressure(U[i], vel, face_centers[i]);
+        }
+    }
 };

@@ -4,20 +4,23 @@
 #include "HLLC.hpp"
 #include "HLLCplus.hpp"
 
+
+
 using namespace pmp;
 
 int main()
 {
     //SurfaceMesh mesh = uv_sphere(50,50);
-    //SurfaceMesh mesh = quad_sphere(5);
-    //SurfaceMesh mesh = icosphere(4);
-    SurfaceMesh mesh = icosphere_hex(4);
+    //SurfaceMesh mesh = quad_sphere(0);
+    //SurfaceMesh mesh = icosphere(0);
+    SurfaceMesh mesh = icosphere_hex(5);
 
     //MUSCL_base_geometry test(mesh);
 
-    double dt = 0.002/10;
-    size_t maxstep = 5000+1;
-    size_t skipstep = 500;
+    //double dt = 0.002;
+    double dt = 1;
+    size_t maxstep = 1;
+    size_t skipstep = 1;
 
 
     int dim = 5;
@@ -69,8 +72,11 @@ int main()
 
     //MUSCL_HLLE test2(mesh, U_in, dim, gam);
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
-    MUSCL_HLLC test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLCplus test2(mesh, U_in, dim, gam);
+    //MUSCL_HLLC test2(mesh, U_in, dim, gam);
+    MUSCL_HLLCplus test2(mesh, U_in, dim, gam);
+
+
+
 
 
     // MUSCL_base_geometry test(mesh);

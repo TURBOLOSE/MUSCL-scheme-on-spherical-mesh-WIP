@@ -14,6 +14,7 @@ data_omega=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 maxstep=len(data_rho.loc[:,0])
 
 
+
 data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
 face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
 
@@ -22,23 +23,22 @@ vertices=np.array(data.loc[:,:])
 faces=np.array(data_faces.loc[:,:])
 
 
-
 #==============================================================================================
 
-theta=-np.arccos(np.array(face_centers)[:,2]/np.linalg.norm(np.array(face_centers), axis=1)) 
-gam=2-3./4
-omega=np.array([0,0,5])
-rho_0=1
-p_0=1
-a_0=np.sqrt(gam*p_0/rho_0)
-M_0=np.linalg.norm(omega)/a_0
-rho_aa=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
+# theta=-np.arccos(np.array(face_centers)[:,2]/np.linalg.norm(np.array(face_centers), axis=1)) 
+# gam=2-3./4
+# omega=np.array([0,0,5])
+# rho_0=1
+# p_0=1
+# a_0=np.sqrt(gam*p_0/rho_0)
+# M_0=np.linalg.norm(omega)/a_0
+# rho_aa=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
 
 
 
-for i in range(maxstep):
-    data_rho.loc[i,1:len(faces)]=(data_rho.loc[i,1:len(faces)]-rho_aa)/rho_aa
-    #data_rho.loc[i,1:len(faces)]=data_p.loc[i,1:len(faces)]/data_rho.loc[i,1:len(faces)]**gam
+# for i in range(maxstep):
+#     data_rho.loc[i,1:len(faces)]=(data_rho.loc[i,1:len(faces)]-rho_aa)/rho_aa
+#     #data_rho.loc[i,1:len(faces)]=data_p.loc[i,1:len(faces)]/data_rho.loc[i,1:len(faces)]**gam
 
 #==============================================================================================
 
@@ -113,6 +113,8 @@ theta_fc=-np.arccos(face_centers.loc[:,2])+np.pi/2
 mpl.rcParams.update({'font.size': 22})
 
 
+
+
 for i in range(maxstep): #dens
     if((i % skipstep)==0 ):
         fig, ax = plt.subplots(figsize=(16, 10), layout='constrained', nrows=2,height_ratios=[15,1])
@@ -124,7 +126,7 @@ for i in range(maxstep): #dens
         ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
-        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Relative density residuals')
+        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Surface Area')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
         plt.clf()
         plt.close()
@@ -154,7 +156,8 @@ r=np.sqrt(face_centers[:,1]**2+face_centers[:,2]**2+face_centers[:,0]**2)
 theta_fc=-np.arccos(face_centers[:,2]/r)+np.pi/2
 #rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2])+np.pi/2)**2)
 rho_0=1
-gam=1.4
+gam0=1.4
+gam=2-1/gam0
 p_0=1
 a_0=np.sqrt(gam*p_0/rho_0)
 
@@ -162,10 +165,10 @@ M_0=np.linalg.norm(omega)/a_0
 
 theta=-np.arccos(face_centers[:,2]/r) 
 
-#rho_analytic=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
+rho_analytic=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
 #rho_analytic=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
 
-rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(theta_fc)**2)
+#rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(theta_fc)**2)
 i=0
 rho=np.array(data_rho.loc[maxstep-i*3-1,1:len(faces)])
 fig=px.scatter(x=theta_fc, y=rho_analytic,  labels={"x": r"$\theta$", "y":r"$\Sigma$"})
@@ -173,7 +176,7 @@ fig.update_traces(marker=dict(color='red'))
 fig.add_traces(list(px.scatter(x=theta_fc, y=rho,  labels={"x": r"$\theta$", "y":r"$\Sigma$"}).select_traces()))
 fig.update_layout(title_text="full roatations: "+str( round(data_rho.loc[maxstep-i*3-1,0]/np.pi,2) ),showlegend=False)
 fig.update_layout(font=dict(size=20))
-fig.write_image("plots/ansol.png")
+#fig.write_image("plots/ansol.png")
 
 fig.show()
 
@@ -285,14 +288,47 @@ fig.show()
 
 
 
-path='plots/shock_test/test3/ico'
+path='plots/real stuff/6deg/dens_nosrc'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/shock_spread.gif', images, duration=500)
+imageio.mimsave('plots/example_dens_nosrc.gif', images, duration=150)
 
 
+
+def light_curve(data_p, face_centers):
+
+
+    observer_vector=np.array([9.4*10**3*3*10**16/15000,0,0]) #dist=9400pc (in R_ns)
+    fc=np.array(face_centers)
+    #theta_fc=-np.arccos(fc[:,2]/np.linalg.norm(fc))+np.pi/2
+    phi_fc=np.arctan2(fc[:,1]/np.linalg.norm(fc),fc[:,0]/np.linalg.norm(fc))
+    flux=[]
+    t=np.array(data_p.loc[:,0])
+
+
+    for n_step,t_step in enumerate(t):
+        flux.append(0)
+        for face_num,face_center in enumerate(fc):
+            if(phi_fc[face_num] <np.pi/2 and phi_fc[face_num] >=-np.pi/2  ):
+                d_vec=np.dot(observer_vector,face_center)
+                cos_alpha=np.linalg.norm(d_vec)/(np.linalg.norm(observer_vector)*np.linalg.norm(face_center))
+                flux[n_step]+=data_p.loc[n_step,1+face_num]*cos_alpha
+    
+    fig=px.scatter(x=t*3.33*10**(-5), y=flux,  labels={"x": "t, sec", "y":"Flux"})
+    fig.update_layout(font=dict(size=40))
+    fig.show()
+
+
+
+light_curve(data_p, face_centers)
+
+
+
+
+
+    
 

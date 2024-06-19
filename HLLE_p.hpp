@@ -10,14 +10,14 @@ private:
     double omega_ns;
 
 public:
-    MUSCL_HLLE_p(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+    MUSCL_HLLE_p(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i)
         : MUSCL_base(mesh, U_in, dim, gam) //U_in should be n_faces * dim(=5)
     {
          if(dim!=5){
             std::cout<<"check dim \n";
             stop_check=true;
         }
-        omega_ns=5;
+        omega_ns=omega_ns_i;
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -215,6 +215,7 @@ protected:
         }
         else
         {
+            F = FR;
             std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L << std::endl;
             stop_check = true;
         }

@@ -3,8 +3,9 @@
 #include "HLLE_p.hpp"
 #include "HLLC.hpp"
 #include "HLLCplus.hpp"
+#include "json.hpp"
 
-
+using json = nlohmann::json;
 
 using namespace pmp;
 
@@ -18,14 +19,21 @@ int main()
     //MUSCL_base_geometry test(mesh);
 
     //double dt = 0.002;
-    double dt = 1;
-    size_t maxstep = 1;
-    size_t skipstep = 1;
 
+    
+    std::ifstream ifs("input/parameters.json");
+    json parameters = json::parse(ifs);
 
-    int dim = 5;
-    double gam0 = 4./3;
-    double gam=2-1/gam0;
+    double dt = parameters["dt"];
+    size_t maxstep = parameters["maxstep"];
+    size_t skipstep = parameters["skipstep"];
+
+    size_t dim = parameters["dim"];
+    double gam3d = parameters["gam3d"];
+    double gam=2-1/gam3d;
+    double omega_ns=parameters["omega_ns"];
+
+   
     std::ifstream inData("input/input.dat");
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
@@ -54,6 +62,7 @@ int main()
             temp.push_back(1);
         }
 
+        maxstep=0;
         std::cout << "input file does not have enough values!" << std::endl;
     }
 
@@ -71,11 +80,9 @@ int main()
 
 
     //MUSCL_HLLE test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLE_p test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLC test2(mesh, U_in, dim, gam);
-    MUSCL_HLLCplus test2(mesh, U_in, dim, gam);
-
-
+    //MUSCL_HLLE_p test2(mesh, U_in, dim, gam,omega_ns);
+    //MUSCL_HLLC test2(mesh, U_in, dim, gam,omega_ns);
+    MUSCL_HLLCplus test2(mesh, U_in, dim, gam, omega_ns);
 
 
 

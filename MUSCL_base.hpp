@@ -228,40 +228,19 @@ protected:
                     j1 = 0;
 
                 
-                // #pragma omp parallel for
                 for (size_t k = 0; k < dim; k++)
                 {
-
-                    // U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *(flux_var_minus[i][j][k]);
-                    // U[i][k] -= dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
-                    U[i][k] -= round_diff * dt_here * (vertices[faces[i][j]] - vertices[faces[i][j1]]).norm() / surface_area[i] * (flux_var_minus[i][j][k]);
-                    
-                    if (std::isnan((flux_var_minus[i][j][k])))
+                       if (std::isnan((flux_var_minus[i][j][k])))
                     {
                         stop_check = true;
                         std::cout << "time: " << t << " face: " << i << " edge: " << j << " NaN in flux detected!" << std::endl;
                     }
+
+                    // U[i][k] -= dt_here * (distance(vertices[faces[i][j]],vertices[faces[i][j1]]) / surface_area[i]) *(flux_var_minus[i][j][k]);
+                    // U[i][k] -= dt_here * (vertices[faces[i][j]]-vertices[faces[i][j1]]).norm() / surface_area[i] *(flux_var_minus[i][j][k]);
+                    U[i][k] -= round_diff * dt_here * (vertices[faces[i][j]] - vertices[faces[i][j1]]).norm() / surface_area[i] * (flux_var_minus[i][j][k]);
                 }
-
-                // std::cout<<" i= "<< i << " j= " << j << " flux: " << flux_var_minus[i][j][0] << " " << flux_var_minus[i][j][1] << " " << flux_var_minus[i][j][2] << " " << flux_var_minus[i][j][3] << std::endl;
-
-                /*int neighboor_num = neighbors_edge[i][j];
-                int j0 = std::find(neighbors_edge[neighboor_num].begin(), neighbors_edge[neighboor_num].end(), i) - neighbors_edge[neighboor_num].begin();
-
-                int component =3;
-                //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;
-                //std::cout << i << " " << j << " "<< neighboor_num<<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] << std::endl;
-                //std::cout << std::endl;
-
-                std::cout << i << " " << j <<" " << flux_var_plus[neighboor_num][j0][component] + flux_var_minus[neighboor_num][j0][component] +
-                flux_var_plus[i][j][component] + flux_var_minus[i][j][component] << std::endl;*/
             }
-
-
-            /*double theta=std::acos(face_centers[i][2]/face_centers[i].norm());
-            if(std::abs(theta-M_PI/4)<1e-3){
-            std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<" "<<U[i][4] <<"\n";
-            }*/
         }
     };
 

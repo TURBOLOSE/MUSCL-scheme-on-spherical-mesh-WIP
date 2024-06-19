@@ -180,7 +180,7 @@ public:
             F = FR;
         }
         else
-        {
+        {   F = FR;
             std::cout<<"flux_star: check char vel"<<std::endl;
             stop_check=true;
         }

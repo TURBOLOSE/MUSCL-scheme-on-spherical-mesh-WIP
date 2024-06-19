@@ -10,7 +10,7 @@ protected:
     double omega_ns;
 
 public:
-    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i)
         : MUSCL_base(mesh, U_in, dim, gam)
     {
 
@@ -19,9 +19,8 @@ public:
             std::cout << "check dim \n";
             stop_check = true;
         }
+        omega_ns=omega_ns_i;
 
-        omega_ns = 0.01;
-        
         set_analytical_solution();
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
@@ -289,6 +288,7 @@ protected:
         }
         else
         {
+            F = F_R;
             std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L << std::endl;
             stop_check = true;
         }

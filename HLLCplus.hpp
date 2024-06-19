@@ -10,18 +10,17 @@ protected:
     double omega_ns;
 
 public:
-    MUSCL_HLLCplus(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+    MUSCL_HLLCplus(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i)
         : MUSCL_base(mesh, U_in, dim, gam)
     {
 
-         omega_ns = 0.01;
         set_analytical_solution();
         if (dim != 5)
         {
             std::cout << "check dim \n";
             stop_check = true;
         }
-
+        omega_ns=omega_ns_i;
        
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
@@ -196,6 +195,7 @@ protected:
         res[3] = (u_in[3] * ndv - nxR[2] * PI);
         res[4] = (u_in[4] + PI) * dot_product(vel, edge_normals[n_face][n_edge]);
 
+
         return res;
     }
 
@@ -206,6 +206,8 @@ protected:
         std::vector<double> F_L, F_R, F_L_star, F_R_star, c_vel, D, F, flux_fix_R, flux_fix_L;
         double S_star, p_L, p_R, rho_R, rho_L, v_L, v_R;
         double S_R, S_L, R;
+        F_L.resize(dim);
+        F_R.resize(dim);
         F_L_star.resize(dim);
         F_R_star.resize(dim);
         D.resize(dim);
@@ -348,11 +350,11 @@ protected:
         }
         else
         {
-            //std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L << std::endl;
+             F = F_R;
+            std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L << std::endl;
             stop_check = true;
         }
-
-       
+        
         return F;
     };
 
@@ -517,9 +519,6 @@ protected:
 
         if (std::isnan(S_L) || std::isnan(S_R))
         {
-            //std::cout << "p_r: " << p_R << " p_l: " << p_L << std::endl;
-            //std::cout << "rho_l: " << u_L[0] << " rho_r: " << u_R[0] << std::endl;
-            //std::cout << std::endl;
             stop_check = true;
         }
 

@@ -2,8 +2,10 @@
 
 
 NAME = test
-MAIN_DEPEND = test.cpp sph_gen.h MUSCL_base.hpp MUSCL_geometry.hpp HLLE.hpp HLLE_p.hpp HLLC.hpp HLLCplus.hpp 
-SOURCE_FILES = test.cpp pmp/surface_mesh.cpp pmp/algorithms/subdivision.cpp pmp/algorithms/differential_geometry.cpp
+MAIN_DEPEND = test.cpp src/geometry/sph_gen.h src/MUSCL_base/MUSCL_base.hpp \
+ src/geometry/MUSCL_geometry.hpp $(src/Riemann_solvers/*.hpp) $(src/physics/*.hpp) 
+SOURCE_FILES = test.cpp src/pmp/surface_mesh.cpp \
+src/pmp/algorithms/subdivision.cpp src/pmp/algorithms/differential_geometry.cpp
 OBJ_FILES = $(SOURCE_FILES:.cpp=.o)
 CC = g++
 CFLAGS = -std=c++23 -O3 -g -fopenmp
@@ -15,17 +17,17 @@ $(NAME): $(OBJ_FILES) $(NAME).o
 $(NAME).o: $(MAIN_DEPEND)
 	$(CC) $(CFLAGS) -c $(NAME).cpp
 
-pmp/surface_mesh.o: pmp/surface_mesh.h
+src/pmp/surface_mesh.o: src/pmp/surface_mesh.h
 
-pmp/algorithms/subdivision.o: pmp/algorithms/subdivision.h
+src/pmp/algorithms/subdivision.o: src/pmp/algorithms/subdivision.h
 
-pmp/algorithms/differential_geometry.o: pmp/algorithms/differential_geometry.h
+src/pmp/algorithms/differential_geometry.o: src/pmp/algorithms/differential_geometry.h
 
 
 clean: 
 	rm -f $(NAME)
 	rm -f *.o
-	rm -f pmp/*.o
-	rm -f pmp/algorithms/*.o
+	rm -f src/pmp/*.o
+	rm -f src/pmp/algorithms/*.o
 time:
 	time ./$(NAME)

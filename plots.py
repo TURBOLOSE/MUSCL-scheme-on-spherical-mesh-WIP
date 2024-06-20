@@ -8,7 +8,7 @@ import os
 
 
 skipstep=1
-data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
+data_rho=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
 data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
 data_omega=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 maxstep=len(data_rho.loc[:,0])
@@ -126,7 +126,7 @@ for i in range(maxstep): #dens
         ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
         for face_num,face in enumerate(faces):
             ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
-        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Surface Area')
+        fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label='Pressure')
         fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
         plt.clf()
         plt.close()

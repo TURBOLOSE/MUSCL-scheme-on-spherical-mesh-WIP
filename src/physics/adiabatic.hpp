@@ -1,8 +1,8 @@
 #pragma once
-#include "MUSCL_base.hpp"
-#include "MUSCL_geometry.hpp"
+#include "../MUSCL_base/MUSCL_base.hpp"
+#include "../geometry/MUSCL_geometry.hpp"
 
-class MUSCL_HLLC : public MUSCL_base
+class adiabatic : public MUSCL_base
 {
 
 protected:
@@ -10,18 +10,20 @@ protected:
     double omega_ns;
 
 public:
-    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i)
+    adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i)
         : MUSCL_base(mesh, U_in, dim, gam)
     {
 
+        omega_ns=omega_ns_i;
+
+        set_analytical_solution();
         if (dim != 5)
         {
             std::cout << "check dim \n";
             stop_check = true;
         }
-        omega_ns=omega_ns_i;
-
-        set_analytical_solution();
+        
+       
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -56,6 +58,13 @@ public:
 
             outfile << U_i[0] << " ";
         }
+
+        /*for (size_t i = 0; i < faces.size(); i++)
+        {
+            outfile << surface_area[i] << " ";
+        }*/
+        
+
         outfile << "\n";
     };
     void write_t_p()
@@ -73,9 +82,9 @@ public:
             vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
-
             pres = pressure(U[n_face], vel, face_centers[n_face]);
             outfile_p << pres << " ";
+            //outfile_p <<U[n_face][4] << " ";
         }
         outfile_p << "\n";
     };
@@ -136,11 +145,12 @@ public:
             vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
-            // rxV = cross_product(face_centers[n_face], vel);
-            // outfile_omega << rxV[2] << " ";
+            rxV = cross_product(face_centers[n_face], vel);
+            outfile_omega << rxV[2] << " ";
 
             // std::cout<<std::setprecision(9)<<face_centers[n_face][2]<<"\n";
-            outfile_omega << (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2 << " ";
+            //outfile_omega << (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2 << " ";
+
         }
         outfile_omega << "\n";
     };
@@ -157,8 +167,6 @@ protected:
 
         // R = face_centers[n_face].norm();
 
-       
-
         int n_edge_1 = n_edge + 1;
         if ((n_edge_1) == faces[n_face].size())
         {
@@ -167,8 +175,6 @@ protected:
 
         edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
         edge_center /= edge_center.norm();
-
-        double theta = std::acos(edge_center[2]);
 
         l_vec[0] = u_in[1];
         l_vec[1] = u_in[2];
@@ -178,130 +184,34 @@ protected:
         vel /= (-u_in[0]) * edge_center.norm();
 
         // PI = (u_in[4] - u_in[0] * vel.norm() * vel.norm() / 2.) * (gam - 1);
-        PI = pressure(u_in, vel, edge_center);  
-        //PI = pressure(u_in, vel, edge_center)+1/2.*omega_ns*omega_ns*std::sin(theta)*std::sin(theta)*u_in[0];
+        PI = pressure(u_in, vel, edge_center);
 
         ndv = dot_product(edge_normals[n_face][n_edge], vel);
         nxR = cross_product(edge_normals[n_face][n_edge], (edge_center / edge_center.norm()));
 
+        double theta = std::acos(edge_center[2] / edge_center.norm());
 
         res[0] = u_in[0] * dot_product(vel, edge_normals[n_face][n_edge]);
-
         res[1] = (u_in[1] * ndv - nxR[0] * PI);
         res[2] = (u_in[2] * ndv - nxR[1] * PI);
         res[3] = (u_in[3] * ndv - nxR[2] * PI);
         res[4] = (u_in[4] + PI) * dot_product(vel, edge_normals[n_face][n_edge]);
 
+
         return res;
     }
 
-    std::vector<double> flux_star(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
-    { // returns vector F* or G*
-        // HLLC flux
-
-        std::vector<double> F_L, F_R, F_L_star, F_R_star, c_vel, D, F;
-        double S_star, p_L, p_R, rho_R, rho_L, v_L, v_R;
-        double S_R, S_L, R;
-        F_L_star.resize(dim);
-        F_R_star.resize(dim);
-        D.resize(dim);
-
-        vector3d<double> vel_L, vel_R, l_vec, nxR, edge_center;
-
-        int n_edge_1 = n_edge + 1;
-        if ((n_edge_1) == faces[n_face].size())
-        {
-            n_edge_1 = 0;
-        }
-
-        edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
-        edge_center /= edge_center.norm();
-
-        l_vec[0] = u_L[1];
-        l_vec[1] = u_L[2];
-        l_vec[2] = u_L[3];
-
-        vel_L = cross_product(edge_center, l_vec);
-        vel_L /= (-u_L[0]) * edge_center.norm();
-
-        l_vec[0] = u_R[1];
-        l_vec[1] = u_R[2];
-        l_vec[2] = u_R[3];
-
-        vel_R = cross_product(edge_center, l_vec);
-        vel_R /= (-u_R[0]) * edge_center.norm();
-
-        c_vel = char_vel(u_L, u_R, n_face, n_edge);
-        S_L = c_vel[0];
-        S_R = c_vel[1];
-
-        nxR = cross_product(edge_normals[n_face][n_edge], (edge_center / edge_center.norm()));
-
-        D[0] = 0;
-        /*D[1] = edge_normals[n_face][n_edge][0];
-        D[2] = edge_normals[n_face][n_edge][1];
-        D[3] = edge_normals[n_face][n_edge][2];*/
-
-        D[1] = -nxR[0];
-        D[2] = -nxR[1];
-        D[3] = -nxR[2];
-
-        F_L = flux(u_L, n_face, n_edge);
-        F_R = flux(u_R, n_face, n_edge);
-
-        rho_R = u_R[0];
-        rho_L = u_L[0];
-        // p_L = (u_L[4] - ((vel_L.norm() * vel_L.norm()) * u_L[0]) / 2.) * (gam - 1);
-        // p_R = (u_R[4] - ((vel_R.norm() * vel_R.norm()) * u_R[0]) / 2.) * (gam - 1);
-        p_L = pressure(u_L, vel_L, edge_center);
-        p_R = pressure(u_R, vel_R, edge_center);
-
-        S_star = (p_R - p_L + rho_L * dot_product(edge_normals[n_face][n_edge], vel_L) * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) -
-                  rho_R * dot_product(edge_normals[n_face][n_edge], vel_R) *
-                      (S_R - dot_product(edge_normals[n_face][n_edge], vel_R))) /
-                 (rho_L * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) - rho_R * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)));
-        D[4] = S_star;
-
-        double P_LR = (p_L + p_R + u_L[0] * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_L)) + u_R[0] * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_R))) / 2;
-
-        for (size_t i = 0; i < dim; i++)
-        {
-            F_L_star[i] = (S_star * (S_L * u_L[i] - F_L[i]) + S_L * P_LR * D[i]) / (S_L - S_star);
-            F_R_star[i] = (S_star * (S_R * u_R[i] - F_R[i]) + S_R * P_LR * D[i]) / (S_R - S_star);
-        }
-
-        if (S_L >= 0)
-        {
-            F = F_L;
-        }
-        else if (S_L < 0 && S_star >= 0)
-        {
-            F = F_L_star;
-        }
-        else if (S_star < 0 && S_R >= 0)
-        {
-            F = F_R_star;
-        }
-        else if (S_R < 0)
-        {
-            F = F_R;
-        }
-        else
-        {
-            F = F_R;
-            std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L << std::endl;
-            stop_check = true;
-        }
-
-        return F;
-    };
+    virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
+    
 
     std::vector<double> source(std::vector<double> u, int n_face)
     { // du/dt
 
         std::vector<double> res;
         res.resize(dim);
-        vector3d<double> edge_center, l_vec, vel, RxV;
+        vector3d<double> l_vec, vel, vel_dot, omega_acc, omxr, rxv, fc_normed, edge_center;
+
+        double tilt_angle = M_PI / 30;
 
         for (size_t i = 0; i < dim; i++)
             res[i] = 0;
@@ -310,88 +220,76 @@ protected:
         l_vec[1] = u[2];
         l_vec[2] = u[3];
 
-        vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
+        fc_normed = face_centers[n_face] / face_centers[n_face].norm();
+        vel = cross_product(fc_normed, l_vec);
         vel /= (-u[0]);
-
-        /*if(std::abs(face_centers[n_face][2]*std::cos(M_PI/8) +face_centers[n_face][1]*std::sin(M_PI/8))  <0.1){
-        res[0]=1;
-        //res[4]=vel.norm()*vel.norm()/2. * res[0]+1;
-        res[4]=vel.norm()*vel.norm()/2. * res[0];
-        }*/
-
-        /*//visc test
-        RxV=cross_product(face_centers[n_face]/face_centers[n_face].norm(),vel);
-        res[1]=-RxV[0];
-        res[2]=-RxV[1];
-        res[3]=-RxV[2];*/
-
-        /* if(std::abs(face_centers[n_face][2])  <0.1){ //energy dissipation test
-            double e_here;
-            vector3d<double> vel_1;
-            vel_1*=-0.5;
-            res[0]=1;
-            RxV=cross_product(face_centers[n_face]/face_centers[n_face].norm(),vel_1);
-            res[1]=RxV[0]*u[0];
-            res[2]=RxV[1]*u[0];
-            res[3]=RxV[2]*u[0];
-            e_here=vel_1.norm()*vel_1.norm()/2.+1/(gam-1);
-            res[4]=e_here+(vel-vel_1).norm()*(vel-vel_1).norm()/2;
-
-        }*/
 
         // compressed star test
         double theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
 
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
+        //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+        //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
-        res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
-        res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
-        //res[4] = -omega_ns*omega_ns* u[0] *std::sin(theta)*std::cos(theta)*(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
-
-
-        /*for (size_t n_edge = 0; n_edge  < faces[n_face].size(); n_edge ++)
+        int n_edge_1;
+        res[1]=0;
+        res[2]=0;
+        for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
         {   
+            n_edge_1=n_edge+1;
+            if(n_edge==faces[n_face].size()-1)
+            n_edge_1=0;
+            edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]);
+            edge_center/=edge_center.norm();
+            theta = std::acos(edge_center[2]);
+            res[1] += -omega_ns * omega_ns * (U_plus[n_face][n_edge][0]+U_minus[n_face][n_edge][0])/2. 
+            * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+            res[2] += -omega_ns * omega_ns * (U_plus[n_face][n_edge][0]+U_minus[n_face][n_edge][0])/2. 
+            * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
-            double theta = std::acos(vertices[faces[n_face][n_edge]][2] / vertices[faces[n_face][n_edge]].norm());
-            double phi = std::atan2(vertices[faces[n_face][n_edge]][1] / vertices[faces[n_face][n_edge]].norm(), vertices[faces[n_face][n_edge]][0] / vertices[faces[n_face][n_edge]].norm());
-            res[1] += -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)) /faces[n_face].size(); // x
-            res[2] += -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi) /faces[n_face].size();    // y
-        }*/
+        };
         
+        res[1]/=faces[n_face].size();
+        res[2]/=faces[n_face].size();
+
+        //=============================================
+        //p_an[n_face]=3.2e-06+(vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.;
+        //=============================================
 
 
-        /*double p = pressure(u,vel,face_centers[n_face]);
-        static double max_val=0;
-        double val=abs(-omega_ns*omega_ns*u[0] * std::cos(theta) * std::sin(theta)*0.002/std::sqrt(gam*p/u[0]));
-        if(val > max_val)
-        max_val = val;
-        std::cout<<max_val<<"\n";*/
+         /*if(std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
+         //res[0]=1.6e-6; //= 10^-8 M_sun/yr
+         res[0]=1.6e-2; //= 10^-4 M_sun/yr
+         //res[0]=0.16; //= 10^-3 M_sun/yr
+         omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*0.1; omega_acc[2]=std::cos(tilt_angle)*0.1;
 
-        // res[4]=-omega_ns*omega_ns*u[0]*std::sin(theta)*std::cos(theta)*
-        //(std::cos(theta)*(std::cos(phi)*vel[0]+std::sin(phi)*vel[1])-std::sin(theta)*vel[2]); //v1
+         omxr=cross_product(omega_acc, fc_normed);
+         rxv=cross_product(fc_normed, omxr);
 
-        // res[4]=-omega_ns*omega_ns*std::sin(theta)*std::cos(theta)*
-        //(-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
+         res[1]+=res[0]*rxv[0];
+         res[2]+=res[0]*rxv[1];
+         res[3]+=res[0]*rxv[2];
 
-        // vector3d<double> g,fc;
-        // fc=face_centers[n_face]/face_centers[n_face].norm();
-        /*g[0]=fc[0]*fc[2]/std::sqrt(fc[0]*fc[0]+fc[1]*fc[1])*(-omega_ns*omega_ns*u[0] * std::cos(theta) *std::sin(theta));
-        g[1]=fc[1]*fc[2]/std::sqrt(fc[0]*fc[0]+fc[1]*fc[1])*(-omega_ns*omega_ns*u[0] * std::cos(theta) *std::sin(theta));
-        g[2]=-std::sqrt(fc[0]*fc[0]+fc[1]*fc[1])*(-omega_ns*omega_ns*u[0] * std::cos(theta) *std::sin(theta));
-         res[4]=u[0]*dot_product(g,vel);
-         */
+
+         //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
+         res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
+         }*/
+         
+
+        // res[4] = -omega_ns * omega_ns * u[0] * std::sin(theta) * std::cos(theta) * (-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
 
         return res;
     };
 
     double pressure(std::vector<double> u, vector3d<double> vel, vector3d<double> r)
     {
-
         double theta = std::acos(r[2] / r.norm());
 
-        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
-        //return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; //v2 = different P
-        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        // return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
+        // return (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; // v2 = different P
+        //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1); // v4 = compressed star new gamma
+
     }
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
@@ -469,9 +367,7 @@ protected:
 
         if (std::isnan(S_L) || std::isnan(S_R))
         {
-            std::cout << "p_r: " << p_R << " p_l: " << p_L << std::endl;
-            std::cout << "rho_l: " << u_L[0] << " rho_r: " << u_R[0] << std::endl;
-            std::cout << std::endl;
+            std::cout<<"S_L or S_R is NaN"<<"\n";
             stop_check = true;
         }
 
@@ -482,13 +378,8 @@ protected:
         return res;
     }
 
-    
-
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
     {
-
-
-
         //std::cout<<u_r[0]<<" "<<u_r[1]<<" "<<u_r[2]<<" "<<u_r[3]<<" "<<u_r[4]<<"\n";
 
         std::vector<double> res;
@@ -512,6 +403,7 @@ protected:
         for (size_t i = 0; i < dim; i++)
         {
             res[i] = ((1 - h(u_r[i])) * to[i] + h(u_r[i]) * sb[i]);
+            //res[i] = ((1 - h(u_r[0])) * to[0] + h(u_r[0]) * sb[0]);
             // res[i] = 0;
             if (std::isnan(u_r[i]))
             {
@@ -523,7 +415,7 @@ protected:
 
         //std::cout<<to[4]<<" "<<sb[4]<<" "<<res[4]<<"\n";
          //return limiter_third_order(u_r, n_face, n_edge);
-        // return limiter_superbee(u_r, n_face, n_edge);
+        //return limiter_superbee(u_r, n_face, n_edge);
         return res;
     }
 
@@ -620,11 +512,12 @@ protected:
         etha_minus = H_minus[n_face][n_edge] / BM_dist[n_face][n_edge];
 
 
+
         for (size_t i = 0; i < dim; i++)
         {
 
             res[i] = std::max(0.,
-                              std::max(std::min(1., etha_minus * u_r[i] * 2 / (2 * faces[n_face].size() * nu_plus)),
+                              std::max(std::min(1., etha_minus * u_r[i] / (2 * faces[n_face].size() * nu_plus)),
                                        std::min(u_r[i], etha_plus)));
             if (std::isnan(u_r[i]))
             {
@@ -632,17 +525,10 @@ protected:
             }
         }
 
-        //if((n_face==2254 && n_edge== 5) || (n_face==30 && n_edge== 2))
-        //std::cout<<n_face<<" "<<n_edge<<" "<<(U[n_face][0]+rho_an[n_face])<<" "<<p<<" "<<nu_plus<<" "<<u_r[4]<<"\n";
-
-
-        //if(res[4]>1e-6)
-        //std::cout<<n_face<<" "<<n_edge<<" "<<u_r[4]<<"\n";
-
         return res;
     };
 
-     void set_analytical_solution()// analytical solution to be preserved                               
+    void set_analytical_solution()// analytical solution to be preserved                               
     {                             // if no AS is required, thish should set rho_an and p_an to 0
         vector3d<double> vec_l, vel,r;
         for (size_t i = 0; i < faces.size(); i++)
@@ -655,11 +541,12 @@ protected:
             vel = cross_product(face_centers[i]/face_centers[i].norm(), vec_l);
             vel /= -U[i][0];
 
-            //p_an[i] = pressure(U[i], vel, face_centers[i]);
-            //rho_an[i] = U[i][0];   //will try to conserve current profile
+            p_an[i] = pressure(U[i], vel, face_centers[i]);
+            rho_an[i] = U[i][0];   //will try to conserve current profile
 
-            rho_an[i] = 0;   //no profile to be conserved
-            p_an[i] = 0;
+            //rho_an[i] = 0;   //no profile to be conserved
+            //p_an[i] = 0;
         }
     }
+
 };

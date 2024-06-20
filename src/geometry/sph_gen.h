@@ -1,5 +1,5 @@
 #pragma once
-#include "pmp/algorithms/subdivision.h"
+#include "../pmp/algorithms/subdivision.h"
 #define PMP_SCALAR_TYPE_64
 using namespace pmp;
 

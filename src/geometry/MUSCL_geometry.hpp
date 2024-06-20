@@ -1,8 +1,8 @@
 #pragma once
 
-#include "pmp/surface_mesh.h"
+#include "../pmp/surface_mesh.h"
 #include "sph_gen.h"
-#include "vec3d.hpp"
+#include "../vec3d.hpp"
 
 #include <iostream>
 #include <vector>

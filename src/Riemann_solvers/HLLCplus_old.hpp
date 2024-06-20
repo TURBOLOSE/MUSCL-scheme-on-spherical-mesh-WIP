@@ -1,6 +1,6 @@
 #pragma once
-#include "MUSCL_base.hpp"
-#include "MUSCL_geometry.hpp"
+#include "../MUSCL_base/MUSCL_base.hpp"
+#include "../geometry/MUSCL_geometry.hpp"
 
 class MUSCL_HLLCplus : public MUSCL_base
 {
@@ -14,13 +14,15 @@ public:
         : MUSCL_base(mesh, U_in, dim, gam)
     {
 
+        omega_ns=omega_ns_i;
+
         set_analytical_solution();
         if (dim != 5)
         {
             std::cout << "check dim \n";
             stop_check = true;
         }
-        omega_ns=omega_ns_i;
+        
        
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
@@ -441,7 +443,9 @@ protected:
 
         // return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
         // return (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; // v2 = different P
-        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
+        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1); // v4 = compressed star new gamma
+
     }
 
     std::vector<double> char_vel(std::vector<double> u_L, std::vector<double> u_R, int n_face, int n_edge)
@@ -519,6 +523,7 @@ protected:
 
         if (std::isnan(S_L) || std::isnan(S_R))
         {
+            std::cout<<"S_L or S_R is NaN"<<"\n";
             stop_check = true;
         }
 

@@ -1,9 +1,9 @@
 #include <iostream>
-#include "HLLE.hpp"
-#include "HLLE_p.hpp"
-#include "HLLC.hpp"
-#include "HLLCplus.hpp"
-#include "json.hpp"
+#include "src/Riemann_solvers/HLLE.hpp"
+#include "src/Riemann_solvers/HLLE_p.hpp"
+#include "src/Riemann_solvers/HLLC.hpp"
+#include "src/Riemann_solvers/HLLCplus.hpp"
+#include "src/json.hpp"
 
 using json = nlohmann::json;
 
@@ -75,9 +75,6 @@ int main()
         }
 
     }
-
-
-
 
     //MUSCL_HLLE test2(mesh, U_in, dim, gam);
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam,omega_ns);

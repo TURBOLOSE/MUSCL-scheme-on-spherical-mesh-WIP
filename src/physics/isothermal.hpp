@@ -1,17 +1,26 @@
 #pragma once
-#include "MUSCL_base.hpp"
-#include "MUSCL_geometry.hpp"
+#include "../MUSCL_base/MUSCL_base.hpp"
+#include "../geometry/MUSCL_geometry.hpp"
+#include "../physics/adiabatic.hpp"
 
-class MUSCL_HLLE : public MUSCL_base
+class isothermal : public MUSCL_base
 {
 
 private:
-    std::ofstream outfile, outfile_curl, outfile_b;
+    std::ofstream outfile, outfile_curl, outfile_p, outfile_omega;
 
 public:
-    MUSCL_HLLE(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
+    isothermal(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
         : MUSCL_base(mesh, U_in, dim, gam)
     {
+
+        set_analytical_solution();
+        if (dim != 4)
+        {
+            std::cout << "check dim \n";
+            stop_check = true;
+        }
+
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
         outfile.open("results/rho.dat", std::ios::out | std::ios::app);
@@ -20,9 +29,13 @@ public:
         outfile_curl.close();
         outfile_curl.open("results/curl.dat", std::ios::out | std::ios::app);
 
-        outfile_b.open("results/bernoulli.dat", std::ios::out | std::ios::trunc);
-        outfile_b.close();
-        outfile_b.open("results/bernoulli.dat", std::ios::out | std::ios::app);
+        outfile_p.open("results/p.dat", std::ios::out | std::ios::trunc);
+        outfile_p.close();
+        outfile_p.open("results/p.dat", std::ios::out | std::ios::app);
+
+        outfile_omega.open("results/omega.dat", std::ios::out | std::ios::trunc);
+        outfile_omega.close();
+        outfile_omega.open("results/omega.dat", std::ios::out | std::ios::app);
     }
 
     void print_rho()
@@ -44,46 +57,82 @@ public:
         outfile << "\n";
     };
 
+     void write_t_p()
+    {
+        vector3d<double> vel, l_vec, edge_center;
+        double pres;
+        outfile_p << this->time() << "  ";
+        for (size_t n_face = 0; n_face < faces.size(); n_face++)
+        {
+            outfile_p << a*a*U[n_face][0] << " ";
+        }
+        outfile_p << "\n";
+    };
+
     void write_t_curl()
     {
-        vector3d<double> vel, l_vec, rxV;
+        vector3d<double> vel, l_vec, rxV, r, edge_center;
+        double vort;
         outfile_curl << this->time() << "  ";
+        size_t n_edge_1;
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
 
-            l_vec[0] = U[n_face][1];
-            l_vec[1] = U[n_face][2];
-            l_vec[2] = U[n_face][3];
+            // vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
+            // vel /= (-U[n_face][0]);
 
-            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm() , l_vec);
-            vel /= -U[n_face][0];
+            vort = 0;
+            for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
+            {
+                l_vec[0] = U_plus[n_face][n_edge][1];
+                l_vec[1] = U_plus[n_face][n_edge][2];
+                l_vec[2] = U_plus[n_face][n_edge][3];
 
-            rxV = cross_product(face_centers[n_face], vel);
-            outfile_curl << rxV.norm() << " ";
+                n_edge_1 = n_edge + 1;
+                if (n_edge == faces[n_face].size() - 1)
+                    n_edge_1 = 0;
+
+                edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]) / 2.;
+                edge_center /= edge_center.norm();
+
+                vel = cross_product(edge_center, l_vec);
+                vel /= (-U[n_face][0]);
+
+                r = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]);
+                vort += dot_product(vel, r);
+            }
+
+            // rxV = cross_product(face_centers[n_face], vel);
+            // outfile_curl << rxV.norm() << " ";
+
+            outfile_curl << vort / surface_area[n_face] << " ";
         }
         outfile_curl << "\n";
     };
 
-
-    void write_t_bernoulli()
+    void write_t_omega_z()
     {
         vector3d<double> vel, l_vec, rxV;
-        outfile_b << this->time() << "  ";
+        outfile_omega << this->time() << "  ";
+        size_t n_edge_1;
+        double theta;
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
-
+            theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
             l_vec[0] = U[n_face][1];
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
-
-            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
+            vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
-           
-            outfile_b << vel.norm()*vel.norm()/2+a*a << " ";
+            rxV = cross_product(face_centers[n_face], vel);
+            outfile_omega << rxV[2] << " ";
+
         }
-        outfile_b << "\n";
+        outfile_omega << "\n";
     };
+
+
 
 public:
     const double a = 1;
@@ -145,49 +194,7 @@ public:
         return res;
     }
 
-    std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge)
-    {
-
-        std::vector<double> FL, FR, F, c_vel;
-        F.resize(dim);
-
-        double S_R, S_L;
-        
-        c_vel = char_vel(ul, ur, n_face, n_edge);
-        S_L = c_vel[0];
-        S_R = c_vel[1];
-
-
-
-        FL = flux(ul, n_face, n_edge);
-        FR = flux(ur, n_face, n_edge);
-
-
-        if (S_L >= 0)
-        {
-            F = FL;
-        }
-        else if (S_L < 0 && S_R > 0)
-        {
-
-            for (size_t i = 0; i < dim; i++)
-            {
-                F[i] = (S_R * FL[i] - S_L * FR[i] + S_R * S_L * (ur[i] - ul[i])) / (S_R - S_L);
-            }
-        }
-        else if (S_R <= 0)
-        {
-            F = FR;
-        }
-        else
-        {   F = FR;
-            std::cout<<"flux_star: check char vel"<<std::endl;
-            stop_check=true;
-        }
-
-
-        return F;
-    };
+     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
 
       std::vector<double> source(std::vector<double> u, int n_face){
         std::vector<double>res;
@@ -304,4 +311,26 @@ public:
 
         return res;
     };
+
+    void set_analytical_solution()// analytical solution to be preserved                               
+    {                             // if no AS is required, thish should set rho_an and p_an to 0
+        vector3d<double> vec_l, vel,r;
+        for (size_t i = 0; i < faces.size(); i++)
+        {
+            vec_l[0] = U[i][1];
+            vec_l[1] = U[i][2];
+            vec_l[2] = U[i][3];
+
+
+            vel = cross_product(face_centers[i]/face_centers[i].norm(), vec_l);
+            vel /= -U[i][0];
+
+            //p_an[i] = pressure(U[i], vel, face_centers[i]);
+            //rho_an[i] = U[i][0];   //will try to conserve current profile
+
+            rho_an[i] = 0;   //no profile to be conserved
+            p_an[i] = 0;
+        }
+    }
+
 };

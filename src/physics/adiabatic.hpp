@@ -541,11 +541,11 @@ protected:
             vel = cross_product(face_centers[i]/face_centers[i].norm(), vec_l);
             vel /= -U[i][0];
 
-            p_an[i] = pressure(U[i], vel, face_centers[i]);
-            rho_an[i] = U[i][0];   //will try to conserve current profile
+            //p_an[i] = pressure(U[i], vel, face_centers[i]);
+            //rho_an[i] = U[i][0];   //will try to conserve current profile
 
-            //rho_an[i] = 0;   //no profile to be conserved
-            //p_an[i] = 0;
+            rho_an[i] = 0;   //no profile to be conserved
+            p_an[i] = 0;
         }
     }
 

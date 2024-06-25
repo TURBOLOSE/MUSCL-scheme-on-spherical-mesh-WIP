@@ -3,7 +3,7 @@
 
 NAME = test
 MAIN_DEPEND = test.cpp src/geometry/sph_gen.h src/MUSCL_base/MUSCL_base.hpp \
- src/geometry/MUSCL_geometry.hpp $(src/Riemann_solvers/*.hpp) $(src/physics/*.hpp) 
+ src/geometry/MUSCL_geometry.hpp $(wildcard src/Riemann_solvers/*.hpp) $(wildcard src/physics/*.hpp) 
 SOURCE_FILES = test.cpp src/pmp/surface_mesh.cpp \
 src/pmp/algorithms/subdivision.cpp src/pmp/algorithms/differential_geometry.cpp
 OBJ_FILES = $(SOURCE_FILES:.cpp=.o)

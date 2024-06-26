@@ -25,7 +25,7 @@ where `mesh` -- you selected mesh, `U_in` -- vector of input values (you can gen
 
 To compile the code run the makefile in the directory. In the future code will be adapted to different compilers with use of CMake or Premake.
 
-### Methods of the MUSCL_*Riemann solver* class. 
+### Methods of the MUSCL_(*Riemann solver*) class. 
 Use `do_step(dt)` to integrate a single step in time with a fixed step size. Be aware that inside algorithm may reduce step size in order to preserve stability.
 
 * `time()` returns `double` current time of an integrator.
@@ -41,9 +41,26 @@ Use `do_step(dt)` to integrate a single step in time with a fixed step size. Be 
  * `write_t_p()` same, but writes pressure into `p.dat`.
  * `write_t_curl()` same, but writes curl into `curl.dat`.
  * `write_t_omega_z()` same, but writes z component of an angular velocity of each face into `omega.dat`.
+
+ You can find a working loop inside of main.cpp.
+
+ ### Input
+ The main input of a programm consists of 2 parts: the initial data stored in `input/input.dat` and the integration parameters stored in `input/parameters.json`. The initial data file can be created using functions present in the `make_input.py` file. Any of them will generate input.dat file for the mesh that is stored in the `results` directory.
+ 
+ If no files are present there or if you want to change the mesh you need to run a C++ code up to the point when it says "processing mesh done". It means that files containing mesh data (`results/face_centers.dat`, `results/faces.dat`, `results/vertices.dat`) were generated and can be used by a python code to generate a file with the initial state or create plots after the integration.
+
+ `parameters.json` contains several integration parameters:
+ *`dim` — the number of dimensions that should be either 4 or 5 standing for isothermal and adiabatic physics respectively.
+ *`dt` — the upper time step limit. It may become lower during the integration to preserve stability.
+ * `maxstep` — the number of steps to compute. The total time of the ingegration would be set to `maxstep*dt`.
+ * `skipstep` — the number of steps to skip while writing data into files.
+ * `gam3d` — the adiabatic index (corresponds to `\gamma` in the article). `gam2d=2-1/gam3d`.
+ * `omega_ns` — the angular velocity of initial rotation of a sphere. Can be set to 0 if none needed.
+
+ 
  
 ### Visualisation of results.
-You can use python scripts to create plots of the values recorded. Example of a plot:
+You can use python script `plots.py` to create plots of the values recorded. Example of a plot:
 
 ![fig0011](https://github.com/TURBOLOSE/MUSCL-scheme-on-spherical-mesh-WIP/assets/129312616/e986f42c-cb2e-4af0-819b-3a204be2fb5e)
 

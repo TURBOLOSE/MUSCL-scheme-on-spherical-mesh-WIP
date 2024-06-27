@@ -64,4 +64,14 @@ You can use python script `plots.py` to create plots of the values recorded. Exa
 
 ![fig0011](https://github.com/TURBOLOSE/MUSCL-scheme-on-spherical-mesh-WIP/assets/129312616/e986f42c-cb2e-4af0-819b-3a204be2fb5e)
 
+## C++ class structure
+
+The code is divided into multiple classes:
+* `MUSCL_geometry` processes mesh and contains all coefficients needed for geometric part of integration.
+* `MUSCL_base` is a virtual class that is responsible for timestepping. It has to be used to create a derived class with functions `flux_star` — Riemann solver flux, `limiter` — MUSCL method flux limiter, `source` — source term of the system. (As of right now, `MUSCL_base` also converts energy into pressure in adiabatic case, so if you want to change the way pressure or energy are calculated, you should also imlpement changes inside this class).
+* `adiabatic` and `isothermal` are derived from  `MUSCL_base`. They are also virtual but they only need `flux_star`. These classes define the physics, structure of fluxes and source terms, as well as flux limiters.
+* `HLLE`, `HLLE_p`, `HLLC`, `HLLC+` are the classes that define `flux_star` function. 
+
+
+![classes](https://github.com/TURBOLOSE/MUSCL-scheme-on-spherical-mesh-WIP/assets/129312616/41918eb6-6dee-4481-8654-af82b6d903ed)
 

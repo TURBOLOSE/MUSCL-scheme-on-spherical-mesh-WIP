@@ -7,11 +7,11 @@ class adiabatic : public MUSCL_base
 
 protected:
     std::ofstream outfile, outfile_curl, outfile_p, outfile_omega;
-    double omega_ns;
+
 
 public:
-    adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i)
-        : MUSCL_base(mesh, U_in, dim, gam)
+    adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i, size_t threads)
+        : MUSCL_base(mesh, U_in, dim, gam, omega_ns_i, threads)
     {
 
         omega_ns=omega_ns_i;
@@ -145,7 +145,7 @@ public:
             vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
-            rxV = cross_product(face_centers[n_face], vel);
+            rxV = cross_product(face_centers[n_face]/ face_centers[n_face].norm(), vel);
             outfile_omega << rxV[2] << " ";
 
             // std::cout<<std::setprecision(9)<<face_centers[n_face][2]<<"\n";
@@ -232,9 +232,10 @@ protected:
         //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
         int n_edge_1;
-        res[1]=0;
-        res[2]=0;
-        for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
+        //res[1]=0;
+        //res[2]=0;
+        double perimeter=0;
+        /*for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
         {   
             n_edge_1=n_edge+1;
             if(n_edge==faces[n_face].size()-1)
@@ -242,41 +243,49 @@ protected:
             edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]);
             edge_center/=edge_center.norm();
             theta = std::acos(edge_center[2]);
+            phi = std::atan2(edge_center[1], edge_center[0]);
             res[1] += -omega_ns * omega_ns * (U_plus[n_face][n_edge][0]+U_minus[n_face][n_edge][0])/2. 
-            * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
+            * std::cos(theta) * std::sin(theta) * (-std::sin(phi))*(vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm(); // x
             res[2] += -omega_ns * omega_ns * (U_plus[n_face][n_edge][0]+U_minus[n_face][n_edge][0])/2. 
-            * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
+            * std::cos(theta) * std::sin(theta) * std::cos(phi)*(vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm();    // y
+            perimeter+=(vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm();
 
         };
         
-        res[1]/=faces[n_face].size();
-        res[2]/=faces[n_face].size();
-
-        //=============================================
-        //p_an[n_face]=3.2e-06+(vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.;
-        //=============================================
+        //res[1]/=faces[n_face].size();
+        //res[2]/=faces[n_face].size();
+        res[1]/=perimeter;
+        res[2]/=perimeter;*/
 
 
-         /*if(std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
-         //res[0]=1.6e-6; //= 10^-8 M_sun/yr
-         res[0]=1.6e-2; //= 10^-4 M_sun/yr
-         //res[0]=0.16; //= 10^-3 M_sun/yr
-         omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*0.1; omega_acc[2]=std::cos(tilt_angle)*0.1;
+        //accretion terms
 
-         omxr=cross_product(omega_acc, fc_normed);
-         rxv=cross_product(fc_normed, omxr);
+        if(std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
+        //res[0]=1.6e-6; //= 10^-8 M_sun/yr
+        res[0]=1.6e-5; //= 10^-7 M_sun/yr
+        //res[0]=1.6e-2; //= 10^-4 M_sun/yr
+        //res[0]=0.16; //= 10^-3 M_sun/yr
+        omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*0.1; omega_acc[2]=std::cos(tilt_angle)*0.1;
 
-         res[1]+=res[0]*rxv[0];
-         res[2]+=res[0]*rxv[1];
-         res[3]+=res[0]*rxv[2];
+        omxr=cross_product(omega_acc, fc_normed);
+        rxv=cross_product(fc_normed, omxr);
+
+        res[1]+=res[0]*rxv[0];
+        res[2]+=res[0]*rxv[1];
+        res[3]+=res[0]*rxv[2];
 
 
          //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
-         res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
-         }*/
-         
+        res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
+        }
+        
+        //additional sink term for energy 
+        /*double g_eff=1.3e-8 - vel.norm()*vel.norm();
+        double kappa=3.4e6; //for Sigma=10^7 g/cm^2
+        double beta=1e-4;
+        res[4]-=g_eff/kappa*(1-beta); //c=1
+        */
 
-        // res[4] = -omega_ns * omega_ns * u[0] * std::sin(theta) * std::cos(theta) * (-std::sin(phi)*l_vec[0]+std::cos(phi)*l_vec[1]); //v2
 
         return res;
     };

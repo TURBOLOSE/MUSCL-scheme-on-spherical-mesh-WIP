@@ -12,8 +12,8 @@ using namespace pmp;
 int main()
 {
     //SurfaceMesh mesh = uv_sphere(50,50);
-    //SurfaceMesh mesh = quad_sphere(0);
-    //SurfaceMesh mesh = icosphere(0);
+    //SurfaceMesh mesh = quad_sphere(5);
+    //SurfaceMesh mesh = icosphere(4);
     SurfaceMesh mesh = icosphere_hex(5);
 
     //MUSCL_base_geometry test(mesh);
@@ -32,6 +32,7 @@ int main()
     double gam3d = parameters["gam3d"];
     double gam=2-1/gam3d;
     double omega_ns=parameters["omega_ns"];
+    size_t threads=parameters["threads"];
 
    
     std::ifstream inData("input/input.dat");
@@ -76,10 +77,10 @@ int main()
 
     }
 
-    //MUSCL_HLLE test2(mesh, U_in, dim, gam);
-    //MUSCL_HLLE_p test2(mesh, U_in, dim, gam,omega_ns);
-    //MUSCL_HLLC test2(mesh, U_in, dim, gam,omega_ns);
-    MUSCL_HLLCplus test2(mesh, U_in, dim, gam, omega_ns);
+    //MUSCL_HLLE test2(mesh, U_in, dim, gam, threads);
+    //MUSCL_HLLE_p test2(mesh, U_in, dim, gam,omega_ns, threads);
+    //MUSCL_HLLC test2(mesh, U_in, dim, gam,omega_ns, threads);
+    MUSCL_HLLCplus test2(mesh, U_in, dim, gam, omega_ns, threads);
 
 
 

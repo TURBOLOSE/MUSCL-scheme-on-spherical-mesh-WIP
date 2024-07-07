@@ -10,8 +10,8 @@ private:
     std::ofstream outfile, outfile_curl, outfile_b;
 
 public:
-    MUSCL_HLLE(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
-        : isothermal(mesh, U_in, dim, gam){}
+    MUSCL_HLLE(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, size_t threads)
+        : isothermal(mesh, U_in, dim, gam, threads){}
 
 
     std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge)

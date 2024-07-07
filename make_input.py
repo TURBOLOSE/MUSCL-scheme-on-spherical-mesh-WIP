@@ -136,36 +136,59 @@ def make_input_5_sp_layer():
     V_conv=1
 
     face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
+
     N=len(face_centers[0])
+    
+    face_centers=np.array(face_centers)
+   
 
     rho=np.ones(N) #10^7 g/cm^2
     c_s=2*10**(-3)/V_conv #c
+    #err = np.random.uniform(0,0.05,N)
+    p=c_s**2*np.ones(N)/gam #+ err*(c_s**2/gam )
+    omega_ns=0
+    #omega_ns=0.01/V_conv#c
 
 
-    err = np.random.uniform(0,0.01,N)
-
-    p=c_s**2*np.ones(N)/gam + err*(c_s**2/gam )
-    print(p[0])
-    omega_ns=0.01/V_conv#c
     omega=np.array([0,0,0.01])/V_conv #c
     
 
     
-    #face_centers=pd.read_table('results/face_centers_ico_6.dat', header=None, delimiter=r"\s+")
+
+    #============equal entropy initial version=======================================
     
+    rho_0=rho[0]/10
+    #rho_0=rho[0]
+    p_0=p[0]
+    
+    a_0=np.sqrt(gam*p_0/rho_0)
+    
+    M_0=np.linalg.norm(omega)/a_0
+    print('Mach_eq=',M_0)
+   
+
+    #M_0=(gam-1)/p_0 *np.linalg.norm(omega)**2
+
+    theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
+
+    rho=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
+    p=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
+    
+    # for theta_num,theta_el in enumerate(theta):
+    #     if(abs(theta_el-np.pi/2)<0.01):
+    #         print(rho[theta_num],p[theta_num])
+    #         print(np.linalg.norm(omega)/(np.sqrt(gam*p[theta_num]/rho[theta_num])))
+    #         break
+    #=====================================================================================
+
+    print(p[0])
 
 
     face_centers=np.array(face_centers)
 
-    
-    
-
-    
     #p=1+(np.linalg.norm(omega)**2*rho/2*np.sin(-np.arccos(face_centers[:,2]))**2)
     l=[]
     v=[]
-
-    theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
 
     for face_num, R in enumerate(face_centers):
         #if( R[2] >0):
@@ -177,16 +200,11 @@ def make_input_5_sp_layer():
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
 
-
-        #print(np.linalg.norm(v0)**2 -np.linalg.norm(v[face_num])**2)
-        #print(np.cross(R,-np.cross(R, l[face_num]))/(np.linalg.norm(R)**2))
-
     
     l=np.array(l)
     v=np.array(v)
     #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
     E=1/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
-    #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2)
     if(E.any()<0):
         print('Energy<0!!')
 

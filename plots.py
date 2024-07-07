@@ -5,6 +5,7 @@ import matplotlib as mpl
 import plotly.express as px
 import imageio
 import os
+from tqdm import tqdm
 
 
 def projection_plots(value): #value = rho,p,omega
@@ -16,7 +17,7 @@ def projection_plots(value): #value = rho,p,omega
         label_pr='Density'
     elif(value=='p'):
         data_rho=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
-        label_pr='Density'
+        label_pr='Pressure'
     elif(value=='omega'):
         data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
         label_pr='Omega_z'
@@ -112,7 +113,9 @@ def projection_plots(value): #value = rho,p,omega
     max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
-    for i in range(maxstep): #dens
+
+    
+    for i in tqdm(range(maxstep)): #dens
         if((i % skipstep)==0 ):
             fig, ax = plt.subplots(figsize=(16, 10), layout='constrained', nrows=2,height_ratios=[15,1])
             #fig.tight_layout()
@@ -154,7 +157,7 @@ def light_curve(data_p, face_centers):
                 cos_alpha=np.linalg.norm(d_vec)/(np.linalg.norm(observer_vector)*np.linalg.norm(face_center))
                 flux[n_step]+=data_p.loc[n_step,1+face_num]*cos_alpha
     
-    fig=px.scatter(x=t*3.33*10**(-5), y=flux,  labels={"x": "t, sec", "y":"Flux"})
+    fig=px.line(x=t*3.33*10**(-5), y=flux,  labels={"x": "t, sec", "y":"Flux"})
     fig.update_layout(font=dict(size=40))
     fig.show()
 
@@ -168,8 +171,13 @@ light_curve(data_p, face_centers)
 
 #axis_dist=[]
 
+data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
+face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
 
-
+data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
+vertices=np.array(data.loc[:,:])
+faces=np.array(data_faces.loc[:,:])
+data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 
 # for face_center in np.array(face_centers):
 #     axis_dist.append(np.sqrt(face_center[0]**2+face_center[1]**2))
@@ -182,7 +190,13 @@ light_curve(data_p, face_centers)
 # omega=np.array([0,0,2])
 # face_centers=np.array(face_centers)
 # r=np.sqrt(face_centers[:,1]**2+face_centers[:,2]**2+face_centers[:,0]**2)
-# theta_fc=-np.arccos(face_centers[:,2]/r)+np.pi/2
+maxstep=len(data_rho.loc[:,0])
+
+theta_fc=-np.arccos(np.array(face_centers.loc[:,2])/np.linalg.norm(face_centers, axis=1))+np.pi/2
+fig=px.scatter(x=theta_fc, y=data_rho.loc[maxstep-1,1:len(faces)]/np.cos(theta_fc)**2,  labels={"x": r"$\theta$", "y":r"$\Omega_z$"})
+fig.show()
+
+
 # #rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2])+np.pi/2)**2)
 # rho_0=1
 # gam0=1.4

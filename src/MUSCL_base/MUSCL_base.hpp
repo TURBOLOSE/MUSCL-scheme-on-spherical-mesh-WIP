@@ -10,13 +10,15 @@ protected:
     std::vector<double> rho_an, p_an;
     std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
     // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
-    double dt, gam, M, N, h0, t, max_vel, rho_full;
+    double dt, gam, M, N, h0, t, max_vel, rho_full, c_s;
     int dim;
-    size_t steps;
+    size_t steps, threads;
+    double omega_ns;
     bool stop_check = false;
 
 public:
-    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam) : MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim)
+    MUSCL_base(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i, size_t threads_i) : 
+    MUSCL_base_geometry(mesh), U(U_in), gam(gam), dim(dim), omega_ns(omega_ns_i), threads(threads_i)
     { // U_in should be n_faces * dim(=4)
 
         double h0_temp;
@@ -72,13 +74,13 @@ public:
 
                 if (face_element < faces[n_face].size() - 1)
                 {
-                    h0_temp = distance(vertices[faces[n_face][face_element]], vertices[faces[n_face][face_element + 1]]) /
-                              surface_area[n_face];
+                    h0_temp = distance(vertices[faces[n_face][face_element]], vertices[faces[n_face][face_element + 1]]);
+                              // /surface_area[n_face];
                 }
                 else
                 {
-                    h0_temp = distance(vertices[faces[n_face][face_element]], vertices[faces[n_face][0]]) /
-                              surface_area[n_face];
+                    h0_temp = distance(vertices[faces[n_face][face_element]], vertices[faces[n_face][0]]);
+                             // /surface_area[n_face];
                 }
 
                 if (h0_temp < h0)
@@ -104,10 +106,10 @@ public:
 
 
         // h0 = typical length of an edge
-        if (dt > h0 * 0.1 / max_vel)
+        if (dt > h0 * 0.3/max_vel)
         {
-            dt = h0 * 0.1 / max_vel;
-            std::cout<<dt<<"\n";
+            dt = h0 * 0.3/max_vel;
+            //std::cout<<dt<<"\n";
         }
 
 
@@ -278,7 +280,7 @@ private:
     }
     void find_v_max()
     {
-        double max;
+        double max,c,p;
         max = 0.001;
         vector3d<double> R_vec, vel, l_vec;
         for (size_t i = 0; i < this->n_faces(); i++)
@@ -289,8 +291,12 @@ private:
             l_vec[2] = U[i][3];
             vel = cross_product(face_centers[i] / face_centers[i].norm(), l_vec);
             vel /= U[i][0];
-            if (vel.norm() > max)
+            if (vel.norm() > max){
                 max = vel.norm();
+                p=pressure_fc(U[i], i);
+                c_s=std::sqrt(gam*p/U[i][0]);
+            }
+
         }
 
         max_vel = max;
@@ -300,7 +306,7 @@ private:
     {
 
         omp_set_dynamic(0);     // Explicitly disable dynamic teams
-        omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
+        omp_set_num_threads(threads); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
         for (int i = 0; i < this->n_faces(); i++)
         {
@@ -327,7 +333,7 @@ private:
         
 
         omp_set_dynamic(0);     // Explicitly disable dynamic teams
-        omp_set_num_threads(8); // Use 8 threads for all consecutive parallel regions
+        omp_set_num_threads(threads); // Use 8 threads for all consecutive parallel regions
         #pragma omp parallel for
         for (size_t i = 0; i < this->n_faces(); ++i)
         {
@@ -470,8 +476,6 @@ private:
 
     double pressure_fc(std::vector<double> u, int n_face) // u[4] == energy
     {                                                     // to do: make state_vector a class and turn this into a method
-        double omega_ns = 0.01;
-
         vector3d<double> l_vec, vel, r;
 
         l_vec[0] = u[1];
@@ -496,7 +500,6 @@ private:
 
     double E_fc(std::vector<double> u, int n_face, int n_edge) // u[4] == pressure
     {
-        double omega_ns = 0.01;
         vector3d<double> l_vec, vel, r;
 
         l_vec[0] = u[1];

@@ -10,8 +10,8 @@ private:
     std::ofstream outfile, outfile_curl, outfile_p, outfile_omega;
 
 public:
-    isothermal(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam)
-        : MUSCL_base(mesh, U_in, dim, gam)
+    isothermal(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, size_t threads)
+        : MUSCL_base(mesh, U_in, dim, gam,0,threads)
     {
 
         set_analytical_solution();

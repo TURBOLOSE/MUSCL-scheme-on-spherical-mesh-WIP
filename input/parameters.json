@@ -4,6 +4,6 @@
     "maxstep": 12001,
     "skipstep":800,
     "gam3d":1.3333333333333333333333333333333,
-    "omega_ns":0.01,
+    "omega_ns":0,
     "threads":8
 }

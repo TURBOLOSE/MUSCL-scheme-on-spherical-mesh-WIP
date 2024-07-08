@@ -190,11 +190,16 @@ data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 # omega=np.array([0,0,2])
 # face_centers=np.array(face_centers)
 # r=np.sqrt(face_centers[:,1]**2+face_centers[:,2]**2+face_centers[:,0]**2)
-maxstep=len(data_rho.loc[:,0])
 
-theta_fc=-np.arccos(np.array(face_centers.loc[:,2])/np.linalg.norm(face_centers, axis=1))+np.pi/2
-fig=px.scatter(x=theta_fc, y=data_rho.loc[maxstep-1,1:len(faces)]/np.cos(theta_fc)**2,  labels={"x": r"$\theta$", "y":r"$\Omega_z$"})
-fig.show()
+
+#maxstep=len(data_rho.loc[:,0])
+
+#theta_fc=-np.arccos(np.array(face_centers.loc[:,2])/np.linalg.norm(face_centers, axis=1))+np.pi/2
+#fig=px.scatter(x=theta_fc, y=data_rho.loc[maxstep-1,1:len(faces)]/np.cos(theta_fc)**2,  labels={"x": r"$\theta$", "y":r"$\Omega_z$"})
+#fig.show()
+
+
+
 
 
 # #rho_analytic=np.exp(-1/2*(np.linalg.norm(omega)**2)*np.sin(-np.arccos(face_centers[:,2])+np.pi/2)**2)

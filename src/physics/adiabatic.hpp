@@ -260,7 +260,7 @@ protected:
 
         //accretion terms
 
-        if(std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
+        /*if(std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
         //res[0]=1.6e-6; //= 10^-8 M_sun/yr
         res[0]=1.6e-5; //= 10^-7 M_sun/yr
         //res[0]=1.6e-2; //= 10^-4 M_sun/yr
@@ -277,7 +277,7 @@ protected:
 
          //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
         res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
-        }
+        }*/
         
         //additional sink term for energy 
         /*double g_eff=1.3e-8 - vel.norm()*vel.norm();

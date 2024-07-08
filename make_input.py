@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+#import plotly.express as px
 
 
 def make_input_4(): #no energy as separate variable
@@ -153,12 +154,11 @@ def make_input_5_sp_layer():
     omega=np.array([0,0,0.01])/V_conv #c
     
 
-    
 
     #============equal entropy initial version=======================================
     
-    rho_0=rho[0]/10
-    #rho_0=rho[0]
+    rho_0=rho[0]
+    #rho_0=rho[0]/10
     p_0=p[0]
     
     a_0=np.sqrt(gam*p_0/rho_0)
@@ -171,14 +171,16 @@ def make_input_5_sp_layer():
 
     theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
 
+
+
     rho=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
     p=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
     
-    # for theta_num,theta_el in enumerate(theta):
-    #     if(abs(theta_el-np.pi/2)<0.01):
-    #         print(rho[theta_num],p[theta_num])
-    #         print(np.linalg.norm(omega)/(np.sqrt(gam*p[theta_num]/rho[theta_num])))
-    #         break
+    #for theta_num,theta_el in enumerate(theta):
+    #    if(abs(theta_el-np.pi/2)<0.01):
+    #        print(rho[theta_num],p[theta_num])
+    #        print(np.linalg.norm(omega)/(np.sqrt(gam*p[theta_num]/rho[theta_num])))
+    #        break
     #=====================================================================================
 
     print(p[0])
@@ -200,6 +202,10 @@ def make_input_5_sp_layer():
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
 
+
+    
+    #fig=px.scatter(x=theta, y=np.linalg.norm(v, axis=1)/np.sqrt(gam*p/rho),  labels={"x": r"$\theta$", "y":"Mach number"})
+    #fig.show()
     
     l=np.array(l)
     v=np.array(v)

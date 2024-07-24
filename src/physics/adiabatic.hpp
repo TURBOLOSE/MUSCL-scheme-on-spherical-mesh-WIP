@@ -7,11 +7,12 @@ class adiabatic : public MUSCL_base
 
 protected:
     std::ofstream outfile, outfile_curl, outfile_p, outfile_omega;
-
+    bool accretion_on;
 
 public:
-    adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i, size_t threads)
-        : MUSCL_base(mesh, U_in, dim, gam, omega_ns_i, threads)
+    adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, 
+    int dim, double gam, double omega_ns_i, bool accretion_on_i, size_t threads)
+        : MUSCL_base(mesh, U_in, dim, gam, omega_ns_i, threads), accretion_on(accretion_on_i)
     {
 
         omega_ns=omega_ns_i;
@@ -260,7 +261,7 @@ protected:
 
         //accretion terms
 
-        /*if(std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
+        if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
         //res[0]=1.6e-6; //= 10^-8 M_sun/yr
         res[0]=1.6e-5; //= 10^-7 M_sun/yr
         //res[0]=1.6e-2; //= 10^-4 M_sun/yr
@@ -277,7 +278,7 @@ protected:
 
          //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
         res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
-        }*/
+        }
         
         //additional sink term for energy 
         /*double g_eff=1.3e-8 - vel.norm()*vel.norm();

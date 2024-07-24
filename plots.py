@@ -336,14 +336,14 @@ data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 
 
 
-# path='plots/analytical attempt 1/profile_new_gamma'
-# _, _, files = next(os.walk(path))
-# images = []
-# for filename in files:
-#     images.append(imageio.imread(path+"/"+filename))
+path='plots/no_profile/10-7 accretion new CFL hex'
+_, _, files = next(os.walk(path))
+images = []
+for filename in files:
+    images.append(imageio.imread(path+"/"+filename))
 
 
-# imageio.mimsave('plots/profile_new_gamma.gif', images, duration=150)
+imageio.mimsave('plots/accretion_2_p.gif', images, duration=150)
 
 
 

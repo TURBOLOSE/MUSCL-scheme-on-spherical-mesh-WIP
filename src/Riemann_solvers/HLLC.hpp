@@ -8,8 +8,9 @@ class MUSCL_HLLC : public adiabatic
 
 
 public:
-    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, int dim, double gam, double omega_ns_i, size_t threads)
-        :adiabatic(mesh, U_in, dim, gam, omega_ns_i, threads){}
+    MUSCL_HLLC(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, 
+    int dim, double gam, double omega_ns_i, bool accretion_on_i, size_t threads)
+        :adiabatic(mesh, U_in, dim, gam, omega_ns_i,accretion_on_i, threads){}
 
 
 protected:

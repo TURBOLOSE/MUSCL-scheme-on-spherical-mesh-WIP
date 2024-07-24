@@ -34,6 +34,8 @@ int main()
     double omega_ns=parameters["omega_ns"];
     size_t threads=parameters["threads"];
 
+    bool accretion_on=parameters["accretion_on"];
+
    
     std::ifstream inData("input/input.dat");
     std::vector<std::vector<double>> U_in;
@@ -80,7 +82,7 @@ int main()
     //MUSCL_HLLE test2(mesh, U_in, dim, gam, threads);
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam,omega_ns, threads);
     //MUSCL_HLLC test2(mesh, U_in, dim, gam,omega_ns, threads);
-    MUSCL_HLLCplus test2(mesh, U_in, dim, gam, omega_ns, threads);
+    MUSCL_HLLCplus test2(mesh, U_in, dim, gam, omega_ns,accretion_on, threads);
 
 
 

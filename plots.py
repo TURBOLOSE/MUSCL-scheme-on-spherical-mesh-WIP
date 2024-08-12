@@ -8,7 +8,7 @@ import os
 from tqdm import tqdm
 
 
-def projection_plots(value): #value = rho,p,omega
+def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     skipstep=1
     
 
@@ -25,10 +25,18 @@ def projection_plots(value): #value = rho,p,omega
         print("wrong type of plot value")
         return
 
+    maxstep=len(data_rho.loc[:,0])
+
+    if(print_residuals):
+        for i in range(1,maxstep):
+            data_rho.loc[i,:]-=data_rho.loc[0,:]
+        data_rho.loc[0,:]-=data_rho.loc[0,:]
+        label_pr+=" residuals"
+        
         
     #data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
     #data_omega=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
-    maxstep=len(data_rho.loc[:,0])
+   
 
 
 
@@ -133,7 +141,7 @@ def projection_plots(value): #value = rho,p,omega
     
 
 
-projection_plots("p")
+projection_plots("p", print_residuals=True)
 
 
 
@@ -162,22 +170,22 @@ def light_curve(data_p, face_centers):
     fig.show()
 
 
-face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
-data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
-light_curve(data_p, face_centers)
+# face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
+# data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
+# light_curve(data_p, face_centers)
 
 
-#rho=np.array(data_rho.loc[maxstep,1:len(faces)])
+# #rho=np.array(data_rho.loc[maxstep,1:len(faces)])
 
-#axis_dist=[]
+# #axis_dist=[]
 
-data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
-face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
+# data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
+# face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
 
-data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
-vertices=np.array(data.loc[:,:])
-faces=np.array(data_faces.loc[:,:])
-data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
+# data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
+# vertices=np.array(data.loc[:,:])
+# faces=np.array(data_faces.loc[:,:])
+# data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
 
 # for face_center in np.array(face_centers):
 #     axis_dist.append(np.sqrt(face_center[0]**2+face_center[1]**2))

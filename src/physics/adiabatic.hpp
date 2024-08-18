@@ -208,6 +208,8 @@ protected:
     std::vector<double> source(std::vector<double> u, int n_face)
     { // du/dt
 
+
+
         std::vector<double> res;
         res.resize(dim);
         vector3d<double> l_vec, vel, vel_dot, omega_acc, omxr, rxv, fc_normed, edge_center;
@@ -261,24 +263,55 @@ protected:
 
         //accretion terms
 
-        if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1){
-        //res[0]=1.6e-6; //= 10^-8 M_sun/yr
-        res[0]=1.6e-5; //= 10^-7 M_sun/yr
-        //res[0]=1.6e-2; //= 10^-4 M_sun/yr
-        //res[0]=0.16; //= 10^-3 M_sun/yr
-        omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*0.1; omega_acc[2]=std::cos(tilt_angle)*0.1;
+        if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
+        {
+            //res[0]=3.3e-6; //= 10^-8 M_sun/yr
+            res[0]=3.3e-5; //= 10^-7 M_sun/yr
+            //res[0]=3.3e-2; //= 10^-4 M_sun/yr
+            //res[0]=0.33; //= 10^-3 M_sun/yr
+            omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*0.1; omega_acc[2]=std::cos(tilt_angle)*0.1;
 
-        omxr=cross_product(omega_acc, fc_normed);
-        rxv=cross_product(fc_normed, omxr);
+            omxr=cross_product(omega_acc, fc_normed);
+            rxv=cross_product(fc_normed, omxr);
 
-        res[1]+=res[0]*rxv[0];
-        res[2]+=res[0]*rxv[1];
-        res[3]+=res[0]*rxv[2];
+            res[1]+=res[0]*rxv[0];
+            res[2]+=res[0]*rxv[1];
+            res[3]+=res[0]*rxv[2];
 
 
-         //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
-        res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
+            //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
+            res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
         }
+
+
+
+        //sink term for mass into crust (+ energy and angular momentum)
+
+        if(accretion_on)
+        {
+            rxv=cross_product(fc_normed, vel);
+            double dmdt=-1./512100000*u[0];
+            //double dmdt=0;
+
+            res[0]+=dmdt;
+            res[1]+=dmdt*rxv[0];
+            res[2]+=dmdt*rxv[1];
+            res[3]+=dmdt*rxv[2];
+            res[4]+=(vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * dmdt;
+
+
+            //energy sink term (radiation energy diffusion)
+            double GM=0.2; //grav parameter in R_unit^3/t_unit^2
+            double g_eff=GM-vel.norm()*vel.norm();
+            double c_sigma=4.8e48; //c/sigma_SB in R_unit*t_unit^2*K^4/M_unit
+            double k_m=1.6e-13; // k/m in V_unit(speed of light)/K
+            double kappa=3.4e6; //scattering opacity in 1/Sigma_unit (R_unit^2/M_unit)
+            double beta=1-1/(1+12./5*k_m*u[0]/u[4]*pow(3./4 *c_sigma*g_eff*u[0],1./4));
+            
+            res[4]-=g_eff/kappa*(1-beta);
+
+        }
+
         
         //additional sink term for energy 
         /*double g_eff=1.3e-8 - vel.norm()*vel.norm();
@@ -286,7 +319,6 @@ protected:
         double beta=1e-4;
         res[4]-=g_eff/kappa*(1-beta); //c=1
         */
-
 
         return res;
     };

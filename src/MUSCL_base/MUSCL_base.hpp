@@ -175,9 +175,9 @@ public:
             //    U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
             //}
             temp += U[i][0];
-            l1 += U[i][1];
-            l2 += U[i][2];
-            l3 += U[i][3];
+            l1 += U[i][1]/U[i][0];
+            l2 += U[i][2]/U[i][0];
+            l3 += U[i][3]/U[i][0];
 
             // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
         }
@@ -185,7 +185,7 @@ public:
         if (steps == 0)
             rho_full = temp;
 
-        std::cout << "t= " << t + dt << " rho_total_err=" << 1. - temp / rho_full << " l_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
+        std::cout << "t= " << t + dt << " rho_total_err=" << 1. - temp / rho_full << " (l/sigma)_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
                   << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << std::endl;
 
         // std::cout<<std::endl;

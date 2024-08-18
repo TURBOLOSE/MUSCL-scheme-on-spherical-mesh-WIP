@@ -21,6 +21,9 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     elif(value=='omega'):
         data_rho=pd.read_table('results/omega.dat', header=None, delimiter=r"\s+")
         label_pr='Omega_z'
+    elif(value=='vort'):
+        data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
+        label_pr='Vorticity'
     else:
         print("wrong type of plot value")
         return
@@ -141,7 +144,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     
 
 
-projection_plots("p", print_residuals=True)
+projection_plots("omega", print_residuals=False)
 
 
 
@@ -344,14 +347,14 @@ def light_curve(data_p, face_centers):
 
 
 
-path='plots/no_profile/10-7 accretion new CFL hex'
+path='plots/sink term/fixed accretion + big t/rho'
 _, _, files = next(os.walk(path))
 images = []
 for filename in files:
     images.append(imageio.imread(path+"/"+filename))
 
 
-imageio.mimsave('plots/accretion_2_p.gif', images, duration=150)
+imageio.mimsave('plots/accretion_rho.gif', images, duration=150)
 
 
 

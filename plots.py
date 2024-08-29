@@ -144,7 +144,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     
 
 
-projection_plots("omega", print_residuals=False)
+projection_plots("rho", print_residuals=False)
 
 
 
@@ -171,6 +171,7 @@ def light_curve(data_p, face_centers):
     fig=px.line(x=t*3.33*10**(-5), y=flux,  labels={"x": "t, sec", "y":"Flux"})
     fig.update_layout(font=dict(size=40))
     fig.show()
+
 
 
 # face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
@@ -341,6 +342,28 @@ def light_curve(data_p, face_centers):
 # fig.update_layout(font=dict(size=30))
 # fig.show()
 
+
+#==============================================================================
+#plot the L_total
+dat1=pd.read_table('results/L_acc.dat', header=None, delimiter=r"\s+")
+dat2=pd.read_table('results/L_acc_sink.dat', header=None, delimiter=r"\s+")
+
+
+label1=np.array([])
+label2=np.array([])
+
+for i in dat1.loc[:,0]:
+    label1=np.append(label1,'Accretion')
+    label2=np.append(label2,'Accretion + sink terms')
+
+
+
+df=pd.DataFrame(data={'Time (t_unit)':np.array([dat1.loc[:,0],dat1.loc[:,0]]).flatten(), 
+                      'L/Sigma_total':np.array([dat1.loc[:,1],dat2.loc[:,1]]).flatten(),'labels':np.concatenate([label1,label2])})
+
+fig=px.line(df,x='Time (t_unit)', y='L/Sigma_total',  color='labels')
+fig.update_layout(font=dict(size=30))
+fig.show()
 
 
 

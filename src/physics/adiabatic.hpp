@@ -8,6 +8,7 @@ class adiabatic : public MUSCL_base
 protected:
     std::ofstream outfile, outfile_curl, outfile_p, outfile_omega;
     bool accretion_on;
+    double total_mass;
 
 public:
     adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, 
@@ -41,6 +42,12 @@ public:
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::trunc);
         outfile_omega.close();
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::app);
+
+        total_mass=0;
+        for (size_t n_face = 0; n_face < faces.size(); n_face++)
+        {
+            total_mass+=U[n_face][0]*surface_area[n_face];
+        }
     }
 
     void print_rho()
@@ -156,6 +163,21 @@ public:
         outfile_omega << "\n";
     };
 
+    void write_final_state(){
+        std::ofstream out_final;
+        out_final.open("results/final_state.dat");
+
+        for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
+        {
+            for(size_t j = 0; j < dim; j++)
+            {
+                out_final<<U[n_face][j]<<" ";
+            }
+            out_final<<"\n";
+        }
+
+    }
+
 protected:
     // U = {rho, l1, l2, l3, E}
     std::vector<double> flux(std::vector<double> u_in, int n_face, int n_edge)
@@ -186,7 +208,6 @@ protected:
 
         // PI = (u_in[4] - u_in[0] * vel.norm() * vel.norm() / 2.) * (gam - 1);
         PI = pressure(u_in, vel, edge_center);
-
         ndv = dot_product(edge_normals[n_face][n_edge], vel);
         nxR = cross_product(edge_normals[n_face][n_edge], (edge_center / edge_center.norm()));
 
@@ -207,7 +228,7 @@ protected:
 
     std::vector<double> source(std::vector<double> u, int n_face)
     { // du/dt
-
+      //due to the weird reconstruction algorithm, u[4] here is the pressure \Pi
 
 
         std::vector<double> res;
@@ -227,77 +248,64 @@ protected:
         vel = cross_product(fc_normed, l_vec);
         vel /= (-u[0]);
 
+
         // compressed star test
         double theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
-
+        
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
+        //old stuff for compressed star
+
         //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
         //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
-        int n_edge_1;
-        //res[1]=0;
-        //res[2]=0;
-        double perimeter=0;
-        /*for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
-        {   
-            n_edge_1=n_edge+1;
-            if(n_edge==faces[n_face].size()-1)
-            n_edge_1=0;
-            edge_center = (vertices[faces[n_face][n_edge]] + vertices[faces[n_face][n_edge_1]]);
-            edge_center/=edge_center.norm();
-            theta = std::acos(edge_center[2]);
-            phi = std::atan2(edge_center[1], edge_center[0]);
-            res[1] += -omega_ns * omega_ns * (U_plus[n_face][n_edge][0]+U_minus[n_face][n_edge][0])/2. 
-            * std::cos(theta) * std::sin(theta) * (-std::sin(phi))*(vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm(); // x
-            res[2] += -omega_ns * omega_ns * (U_plus[n_face][n_edge][0]+U_minus[n_face][n_edge][0])/2. 
-            * std::cos(theta) * std::sin(theta) * std::cos(phi)*(vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm();    // y
-            perimeter+=(vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]).norm();
-
-        };
         
-        //res[1]/=faces[n_face].size();
-        //res[2]/=faces[n_face].size();
-        res[1]/=perimeter;
-        res[2]/=perimeter;*/
 
 
         //accretion terms
+         double acc_rate=3.3e-5;//= 10^-7 M_sun/yr (d \Sigma/dt in local units)
+        //double acc_rate; //= 10^-8 M_sun/yr
+        //double acc_rate=3.3e-2; //= 10^-4 M_sun/yr
+        //double acc_rate=0.33; //= 10^-3 M_sun/yr
+
+        //double e_acc=1e-6; //local E units
+        double e_acc=1e-2; //local E units
 
         if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
         {
-            //res[0]=3.3e-6; //= 10^-8 M_sun/yr
-            res[0]=3.3e-5; //= 10^-7 M_sun/yr
-            //res[0]=3.3e-2; //= 10^-4 M_sun/yr
-            //res[0]=0.33; //= 10^-3 M_sun/yr
-            omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*0.1; omega_acc[2]=std::cos(tilt_angle)*0.1;
+
+           
+            //double omega_acc_abs=0.075;
+            double omega_acc_abs=0.1;
+            res[0]=acc_rate;
+            omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
 
             omxr=cross_product(omega_acc, fc_normed);
             rxv=cross_product(fc_normed, omxr);
 
-            res[1]+=res[0]*rxv[0];
-            res[2]+=res[0]*rxv[1];
-            res[3]+=res[0]*rxv[2];
-
-
+            res[1]+=acc_rate*rxv[0];
+            res[2]+=acc_rate*rxv[1];
+            res[3]+=acc_rate*rxv[2];
             //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
-            res[4]=(omxr.norm()*omxr.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * res[0];
+            res[4]= acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. );
         }
 
 
 
-        //sink term for mass into crust (+ energy and angular momentum)
-
+       
         if(accretion_on)
         {
+             //sink term for mass into crust (+ energy and angular momentum)
             rxv=cross_product(fc_normed, vel);
-            double dmdt=-1./512100000*u[0];
+            //double dmdt=-1./512100000*u[0]; //time constant in T_unit^{-1}
+            double dmdt=-(acc_rate*0.4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
             //double dmdt=0;
 
             res[0]+=dmdt;
             res[1]+=dmdt*rxv[0];
             res[2]+=dmdt*rxv[1];
             res[3]+=dmdt*rxv[2];
-            res[4]+=(vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. * dmdt;
+
+            res[4]+=dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) ;
 
 
             //energy sink term (radiation energy diffusion)
@@ -309,6 +317,12 @@ protected:
             double beta=1-1/(1+12./5*k_m*u[0]/u[4]*pow(3./4 *c_sigma*g_eff*u[0],1./4));
             
             res[4]-=g_eff/kappa*(1-beta);
+
+            /*if(n_face==3388){
+            std::cout<<acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. )<<" "
+            <<dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) <<" "
+            <<g_eff/kappa*(1-beta)<<"\n";}*/
+
 
         }
 
@@ -330,7 +344,7 @@ protected:
         // return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
         // return (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; // v2 = different P
         //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
-        return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1); // v4 = compressed star new gamma
+        return std::max(0.,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4 = compressed star new gamma
 
     }
 
@@ -370,11 +384,15 @@ protected:
         // p_L = (u_L[4] - u_L[0] * vel_l.norm() * vel_l.norm() / 2) * (gam - 1);
         // p_R = (u_R[4] - u_R[0] * vel_r.norm() * vel_r.norm() / 2) * (gam - 1);
 
-        p_L = pressure(u_L, vel_l, edge_center_l);
-        p_R = pressure(u_R, vel_r, edge_center_r);
+        p_L =  pressure(u_L, vel_l, edge_center_l);
+        p_R =  pressure(u_R, vel_r, edge_center_r);
+
+
+
 
         a_L = std::sqrt(gam * p_L / u_L[0]);
         a_R = std::sqrt(gam * p_R / u_R[0]);
+
 
         double z = (gam - 1) / (2 * gam);
         // double p_star=std::pow((a_L+a_R-(gam-1)/2. * (dot_product(edge_normals[n_face][n_edge], vel_r)-dot_product(edge_normals[n_face][n_edge], vel_l)))
@@ -390,6 +408,8 @@ protected:
         else
         {
             q_R = std::sqrt(1 + (gam + 1) / (2 * gam) * (p_star / p_R - 1));
+            if(std::isnan(q_R)||std::isinf(q_R))
+            q_R = 1;
         }
 
         if (p_star <= p_L)
@@ -399,6 +419,8 @@ protected:
         else
         {
             q_L = std::sqrt(1 + (gam + 1) / (2 * gam) * (p_star / p_L - 1));
+            if(std::isnan(q_L)||std::isinf(q_L))
+            q_L = 1;
         }
 
         S_L = dot_product(vel_l, edge_normals[n_face][n_edge]) - a_L * q_L;
@@ -409,7 +431,8 @@ protected:
 
         if (std::isnan(S_L) || std::isnan(S_R))
         {
-            std::cout<<"S_L or S_R is NaN"<<"\n";
+            std::cout<<"S_L or S_R is NaN in face "<<n_face<<"\n";
+            std::cout<<"p_L/R = "<<p_L<<" "<<p_R<<" rho_L/R = "<<u_L[0]<<" "<<u_R[0]<<"\n";
             stop_check = true;
         }
 
@@ -421,7 +444,7 @@ protected:
     }
 
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
-    {
+    {   // here U[4] is also pressure
         //std::cout<<u_r[0]<<" "<<u_r[1]<<" "<<u_r[2]<<" "<<u_r[3]<<" "<<u_r[4]<<"\n";
 
         std::vector<double> res;
@@ -462,7 +485,7 @@ protected:
     }
 
     std::vector<double> limiter_third_order(std::vector<double> u_r, int n_face, int n_edge)
-    {
+    { // here U[4] is also pressure
         std::vector<double> supb = limiter_superbee(u_r, n_face, n_edge);
         vector3d<double> R_vec, l_vec, vel, edge_center;
         double R, c, nu_plus;
@@ -513,7 +536,8 @@ protected:
     }
 
     std::vector<double> limiter_superbee(std::vector<double> u_r, int n_face, int n_edge)
-    { // classical Superbee limiter for irregular grids
+    {   // here U[4] is also pressure
+        // classical Superbee limiter for irregular grids
         // CFL independent
         double etha_minus, etha_plus;
         vector3d<double> R_vec, l_vec, vel, edge_center;

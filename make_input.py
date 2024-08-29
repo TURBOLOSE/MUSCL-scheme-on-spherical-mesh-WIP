@@ -158,13 +158,14 @@ def make_input_5_sp_layer():
     #============equal entropy initial version=======================================
     
     rho_0=rho[0]/130
+
     p_0=c_s**2*rho_0/gam
     
     #rho_0=rho[0]/10
     #p_0=p[0]
     
     a_0=np.sqrt(gam*p_0/rho_0)
-    
+    print("c_s=",a_0)
     M_0=np.linalg.norm(omega)/a_0
     print('Mach_eq=',M_0)
    
@@ -177,7 +178,6 @@ def make_input_5_sp_layer():
 
     rho=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
     p=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
-    
     print(np.sum(rho)/len(rho))
 
     #for theta_num,theta_el in enumerate(theta):

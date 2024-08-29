@@ -73,16 +73,20 @@ protected:
         p_R = pressure(u_R, vel_R, edge_center);
 
 
-        S_star = (p_R - p_L + rho_L * dot_product(edge_normals[n_face][n_edge], vel_L) * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) -
-                  rho_R * dot_product(edge_normals[n_face][n_edge], vel_R) *
-                      (S_R - dot_product(edge_normals[n_face][n_edge], vel_R))) /
-                 (rho_L * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) - rho_R * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)));
+        double V_L = dot_product(edge_normals[n_face][n_edge], vel_L);
+        double V_R = dot_product(edge_normals[n_face][n_edge], vel_R);
+
+        S_star = (p_R - p_L + rho_L * V_L * (S_L - V_L) -rho_R * V_R *(S_R - V_R)) /
+                 (rho_L * (S_L - V_L) - rho_R * (S_R - V_R));
+        
+        if(std::isnan(S_star)||std::isinf(S_star))
+        S_star = (V_L+V_R)/2;
+
+
         D[4] = S_star;
 
         double P_LR = (p_L + p_R + u_L[0] * (S_L - dot_product(edge_normals[n_face][n_edge], vel_L)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_L)) + u_R[0] * (S_R - dot_product(edge_normals[n_face][n_edge], vel_R)) * (S_star - dot_product(edge_normals[n_face][n_edge], vel_R))) / 2;
 
-        double V_L = dot_product(edge_normals[n_face][n_edge], vel_L);
-        double V_R = dot_product(edge_normals[n_face][n_edge], vel_R);
         double phi_L = u_L[0] * (S_L - V_L);
         double phi_R = u_R[0] * (S_R - V_R);
 
@@ -164,8 +168,8 @@ protected:
         }
         else
         {
-             F = F_R;
-            std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L << std::endl;
+            F = F_R;
+            std::cout << "flux_star: check char vel, S_R=  " << S_R << " S_L= " << S_L<<" S_Star = "<<S_star << "\n";
             stop_check = true;
         }
         

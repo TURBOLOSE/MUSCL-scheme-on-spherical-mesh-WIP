@@ -1018,6 +1018,9 @@ public:
                 C = std::acos((std::cos(c) - std::cos(b) * std::cos(a)) / (std::sin(b) * std::sin(a)));
 
                 surface_area[i] += A + B + C - M_PI;
+                if(surface_area[i]<0){
+                    std::cout<<"check surface areas, S < 0 detected! \n";
+                }
 
                 S_total += A + B + C - M_PI;
 

@@ -13,7 +13,7 @@ int main()
 {
     //SurfaceMesh mesh = uv_sphere(50,50);
     //SurfaceMesh mesh = quad_sphere(5);
-    //SurfaceMesh mesh = icosphere(5);
+    //SurfaceMesh mesh = icosphere(6);
     SurfaceMesh mesh = icosphere_hex(5);
 
     //MUSCL_base_geometry test(mesh);
@@ -79,6 +79,7 @@ int main()
 
     }
 
+
     //MUSCL_HLLE test2(mesh, U_in, dim, gam, threads);
     //MUSCL_HLLE_p test2(mesh, U_in, dim, gam,omega_ns, threads);
     //MUSCL_HLLC test2(mesh, U_in, dim, gam,omega_ns, threads);
@@ -111,11 +112,18 @@ int main()
             //test2.write_t_tracer();
         }
 
-        if (test2.get_stop_check())
+        if (test2.get_stop_check()){
+
+            test2.write_t_rho();
+            test2.write_t_p();
+            test2.write_t_curl();
+            test2.write_t_omega_z();
             break;
+        }
+            
 
     }
-    
+    test2.write_final_state();
 
     return 0;
 }

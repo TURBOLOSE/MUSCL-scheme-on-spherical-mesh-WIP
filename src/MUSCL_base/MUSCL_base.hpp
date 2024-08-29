@@ -112,7 +112,6 @@ public:
             //std::cout<<dt<<"\n";
         }
 
-
         res2d(dt); // res2d makes U = dt*phi(U)
         for (size_t i = 0; i < this->n_faces(); i++)
         {
@@ -174,10 +173,10 @@ public:
             //{
             //    U[i][k] += U_temp[i][k]; // U=U+dt*phi(U+dt/2*phi(U))
             //}
-            temp += U[i][0];
-            l1 += U[i][1]/U[i][0];
-            l2 += U[i][2]/U[i][0];
-            l3 += U[i][3]/U[i][0];
+            temp += U[i][0]*surface_area[i];
+            l1 += U[i][1]*surface_area[i];
+            l2 += U[i][2]*surface_area[i];
+            l3 += U[i][3]*surface_area[i];
 
             // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
         }
@@ -185,8 +184,11 @@ public:
         if (steps == 0)
             rho_full = temp;
 
-        std::cout << "t= " << t + dt << " rho_total_err=" << 1. - temp / rho_full << " (l/sigma)_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
-                  << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << std::endl;
+
+        std::cout << "t= " << t + dt << " mass_total_err=" << temp / rho_full-1 << " (l/mass)_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
+                  << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << "\n";
+
+        //std::cout <<t + dt<<" "<< sqrt(l1 * l1 + l2 * l2 + l3 * l3)<<"\n";
 
         // std::cout<<std::endl;
         // std::cout <<t<<" "<<1. - temp / rho_full << std::endl;
@@ -495,7 +497,7 @@ private:
         vel /= -u[0];
 
        // return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
-       return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1); // v4
+       return std::max(0.,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4
     }
 
     double E_fc(std::vector<double> u, int n_face, int n_edge) // u[4] == pressure

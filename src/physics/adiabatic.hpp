@@ -268,7 +268,7 @@ protected:
         //double acc_rate=0.33; //= 10^-3 M_sun/yr
 
         //double e_acc=1e-6; //local E units
-        double e_acc=1e-2; //local E units
+        double e_acc=6e-3; //local E units
 
         if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
         {
@@ -304,7 +304,6 @@ protected:
             res[1]+=dmdt*rxv[0];
             res[2]+=dmdt*rxv[1];
             res[3]+=dmdt*rxv[2];
-
             res[4]+=dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) ;
 
 
@@ -341,10 +340,11 @@ protected:
     {
         double theta = std::acos(r[2] / r.norm());
 
+        double pressure_floor=1e-16;
         // return  (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1); //v1 = uncompressed
         // return (u[4] - u[0] * vel.norm() * vel.norm() / 2) * (gam - 1) / gam; // v2 = different P
         //return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
-        return std::max(0.,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4 = compressed star new gamma
+        return std::max(pressure_floor,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4 = compressed star new gamma
 
     }
 

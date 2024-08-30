@@ -479,7 +479,7 @@ private:
     double pressure_fc(std::vector<double> u, int n_face) // u[4] == energy
     {                                                     // to do: make state_vector a class and turn this into a method
         vector3d<double> l_vec, vel, r;
-
+        double pressure_floor=1e-16;
         l_vec[0] = u[1];
         l_vec[1] = u[2];
         l_vec[2] = u[3];
@@ -497,7 +497,7 @@ private:
         vel /= -u[0];
 
        // return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
-       return std::max(0.,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4
+       return std::max(pressure_floor,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4
     }
 
     double E_fc(std::vector<double> u, int n_face, int n_edge) // u[4] == pressure

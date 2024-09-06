@@ -18,7 +18,6 @@ int main()
 
     //MUSCL_base_geometry test(mesh);
 
-    //double dt = 0.002;
 
     
     std::ifstream ifs("input/parameters.json");
@@ -38,6 +37,11 @@ int main()
 
    
     std::ifstream inData("input/input.dat");
+    //std::ifstream inData("results/part1.dat");
+
+    std::ofstream out_lc("results/lightcurve.dat");
+
+
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
 
@@ -87,7 +91,7 @@ int main()
 
 
 
-    // MUSCL_base_geometry test(mesh);
+
 
     test2.write_face_centers();
     test2.write_faces();
@@ -97,14 +101,23 @@ int main()
     test2.write_t_p();
     test2.write_t_curl();
     test2.write_t_omega_z();
+
+    out_lc<<test2.time()<<" "<<test2.write_light_curve()<<"\n";
+
     //test2.write_t_tracer();
 
     for (size_t i = 0; i < maxstep; i++)
     {
         test2.do_step(dt);
+        
+        //test2.write_light_curve();
+        out_lc<<test2.time()<<" "<<test2.write_light_curve()<<"\n";
+        out_lc.flush();
+
 
         if (i % skipstep == 0)
         {
+           
             test2.write_t_rho();
             test2.write_t_p();
             test2.write_t_curl();
@@ -120,7 +133,8 @@ int main()
             test2.write_t_omega_z();
             break;
         }
-            
+        
+        
 
     }
     test2.write_final_state();

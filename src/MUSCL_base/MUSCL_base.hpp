@@ -10,7 +10,7 @@ protected:
     std::vector<double> rho_an, p_an;
     std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
     // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
-    double dt, gam, M, N, h0, t, max_vel, rho_full, c_s;
+    double dt, gam, M, N, h0, t, max_vel, rho_full, E_full, c_s;
     int dim;
     size_t steps, threads;
     double omega_ns;
@@ -118,16 +118,18 @@ public:
 
             for (size_t k = 0; k < dim; k++)
             {
-                U_temp[i][k] += U[i][k]; //both are equal to U+dt(U)
-                U[i][k]+= U_temp[i][k]; 
+                U_temp[i][k] += U[i][k]; //U_temp = U+dt*phi(U)
+                U[i][k]= U_temp[i][k];  //U = U_temp = U+dt*phi(U)
             }
         }
-        //temp comment
+
+
         find_U_edges();
         find_flux_var();
-        res2d(dt);
+        res2d(dt); //U=dt*phi( U+dt*phi(U))
 
 
+        //U_res = U+dt*phi(U) + dt/2 * phi(U+dt*phi(U))
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
@@ -163,7 +165,7 @@ public:
 
         double temp = 0;
         double l1, l2, l3 = 0;
-
+        double temp_E=0;
         l1 = 0;
         l2 = 0;
         for (size_t i = 0; i < this->n_faces(); i++)
@@ -177,17 +179,21 @@ public:
             l1 += U[i][1]*surface_area[i];
             l2 += U[i][2]*surface_area[i];
             l3 += U[i][3]*surface_area[i];
-
+            temp_E += U[i][4]*surface_area[i];
             // std::cout<<U[i][0]<<" "<<U[i][1]<<" "<<U[i][2]<<" "<<U[i][3]<<std::endl;
         }
 
-        if (steps == 0)
+        if (steps == 0){
             rho_full = temp;
+            E_full = temp_E;
+        }
 
 
         std::cout << "t= " << t + dt << " mass_total_err=" << temp / rho_full-1 << " (l/mass)_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
                   << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << "\n";
 
+
+        //std::cout <<t + dt<<" "<< temp / rho_full-1 <<" "<<temp_E / E_full-1 <<"\n";
         //std::cout <<t + dt<<" "<< sqrt(l1 * l1 + l2 * l2 + l3 * l3)<<"\n";
 
         // std::cout<<std::endl;

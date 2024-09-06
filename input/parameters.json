@@ -6,5 +6,5 @@
     "gam3d":1.3333333333333333333333333333333,
     "omega_ns":0,
     "threads":8,
-    "accretion_on":true
+    "accretion_on":false
 }

@@ -6,7 +6,8 @@ class adiabatic : public MUSCL_base
 {
 
 protected:
-    std::ofstream outfile, outfile_curl, outfile_p, outfile_omega;
+    std::ofstream outfile, outfile_p, outfile_omega;
+    std::ofstream outfile_curl;
     bool accretion_on;
     double total_mass;
 
@@ -25,7 +26,6 @@ public:
             stop_check = true;
         }
         
-       
 
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -42,6 +42,10 @@ public:
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::trunc);
         outfile_omega.close();
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::app);
+
+       
+
+        
 
         total_mass=0;
         for (size_t n_face = 0; n_face < faces.size(); n_face++)
@@ -65,16 +69,11 @@ public:
         {
 
             outfile << U_i[0] << " ";
+            //out_lc<< U_i[0] << " ";
         }
-
-        /*for (size_t i = 0; i < faces.size(); i++)
-        {
-            outfile << surface_area[i] << " ";
-        }*/
-        
-
         outfile << "\n";
     };
+    
     void write_t_p()
     {
         vector3d<double> vel, l_vec, edge_center;
@@ -143,7 +142,7 @@ public:
         vector3d<double> vel, l_vec, rxV;
         outfile_omega << this->time() << "  ";
         size_t n_edge_1;
-        double theta;
+        double theta,om_z;
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
             theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
@@ -154,13 +153,54 @@ public:
             vel /= (-U[n_face][0]);
 
             rxV = cross_product(face_centers[n_face]/ face_centers[n_face].norm(), vel);
-            outfile_omega << rxV[2] << " ";
+            om_z=rxV[2]/(std::sin(theta)*std::sin(theta));
+
+            if(std::isnan(om_z)||std::isinf(om_z)||std::abs(om_z)>1e7)
+                om_z=0;
+
+            outfile_omega << om_z  << " ";
 
             // std::cout<<std::setprecision(9)<<face_centers[n_face][2]<<"\n";
             //outfile_omega << (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2 << " ";
 
         }
         outfile_omega << "\n";
+    };
+
+    double write_light_curve(){
+
+        vector3d<double> obs_vector, l_vec, vel;
+        obs_vector[0]=9.4*3*1e19/15000; // dist = 9400pc (in R_ns)
+        obs_vector[1]=0; obs_vector[2]=0;
+        
+        double flux_tot=0; 
+        double phi_fc, d_vec, cos_alpha,PI;
+
+        for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
+        {
+            phi_fc=std::atan2(face_centers[n_face][1]/face_centers[n_face].norm(), 
+            face_centers[n_face][0]/face_centers[n_face].norm());
+
+            if(phi_fc<M_PI/2 && phi_fc >=-M_PI/2){
+            d_vec=dot_product(obs_vector, face_centers[n_face]/face_centers[n_face].norm());
+            cos_alpha=std::abs(d_vec)/obs_vector.norm();
+            
+            l_vec[0] = U[n_face][1];
+            l_vec[1] = U[n_face][2];
+            l_vec[2] = U[n_face][3];
+
+            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
+            vel /= (-U[n_face][0]);
+            PI = pressure(U[n_face], vel, face_centers[n_face]/face_centers[n_face].norm());
+
+            flux_tot+=PI*cos_alpha*surface_area[n_face];
+
+            }
+
+            
+        }
+
+       return flux_tot;
     };
 
     void write_final_state(){
@@ -176,7 +216,8 @@ public:
             out_final<<"\n";
         }
 
-    }
+    };
+    
 
 protected:
     // U = {rho, l1, l2, l3, E}

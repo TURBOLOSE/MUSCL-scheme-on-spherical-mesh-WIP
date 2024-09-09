@@ -37,7 +37,7 @@ int main()
 
    
     std::ifstream inData("input/input.dat");
-    //std::ifstream inData("results/part1.dat");
+    //std::ifstream inData("results/part2_rk2.dat");
 
     std::ofstream out_lc("results/lightcurve.dat");
 

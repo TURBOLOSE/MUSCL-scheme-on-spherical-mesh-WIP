@@ -112,21 +112,32 @@ public:
             //std::cout<<dt<<"\n";
         }
 
-        res2d(dt); // res2d makes U = dt*phi(U)
+        res2d(dt/2); // res2d makes U = dt*phi(U)
+        //res2d(dt);
+
         for (size_t i = 0; i < this->n_faces(); i++)
         {
 
-            for (size_t k = 0; k < dim; k++)
+            /*for (size_t k = 0; k < dim; k++)
             {
                 U_temp[i][k] += U[i][k]; //U_temp = U+dt*phi(U)
-                U[i][k]= U_temp[i][k];  //U = U_temp = U+dt*phi(U)
+                U[i][k] += U_temp[i][k];  //U = U_temp = U+dt*phi(U)
+                
+            }*/
+
+           for (size_t k = 0; k < dim; k++) //ok wtf
+            {
+                //U_temp[i][k] += U[i][k]; 
+                U[i][k]+= U_temp[i][k]; 
             }
+
+
         }
 
 
         find_U_edges();
         find_flux_var();
-        res2d(dt); //U=dt*phi( U+dt*phi(U))
+        res2d(dt); //U=dt*phi( U+dt/2*phi(U))
 
 
         //U_res = U+dt*phi(U) + dt/2 * phi(U+dt*phi(U))
@@ -135,7 +146,8 @@ public:
 
             for (size_t k = 0; k < dim; k++)
             { 
-                U[i][k]=U[i][k]/2.+U_temp[i][k]; 
+                //U[i][k]=U[i][k]/2.+U_temp[i][k]; 
+                U[i][k]+=U_temp[i][k]; 
             }
         }
 

@@ -9,6 +9,7 @@ from tqdm import tqdm
 def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     skipstep=1
     
+    gam=1.25
 
     if(value=='rho'):
         data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
@@ -22,6 +23,14 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     elif(value=='vort'):
         data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
         label_pr='Vorticity'
+    # elif(value=='mach'):
+    #     data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
+    #     data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
+    #     maxstep=len(data_rho.loc[:,0])
+    #     for i in range(1,maxstep):
+    #         data_rho.loc[i,:]=np.sqrt(gam*data_p.loc[0,:]/data_rho.loc[0,:])
+
+    #     label_pr='Mach number'
     else:
         print("wrong type of plot value")
         return
@@ -119,8 +128,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     #=====================================================
     colorm = plt.get_cmap('viridis')
     min_rho=np.min( data_rho.loc[:maxstep,1:len(x_plot)])
-    #max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
-    max_rho=4.5
+    max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
 
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
@@ -146,7 +154,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
 
 
 
-projection_plots("vort", print_residuals=False)
+projection_plots("p", print_residuals=False)
 
 
 

@@ -148,9 +148,7 @@ def make_input_5_sp_layer():
     rho=np.ones(N) #10^7 g/cm^2
     c_s=2*10**(-3)/V_conv #c
     #err = np.random.uniform(0,0.05,N)
-    p=c_s**2*np.ones(N)/gam #+ err*(c_s**2/gam )
     omega_ns=0
-    #omega_ns=0.01/V_conv#c
 
 
     omega=np.array([0,0,0.01])/V_conv #c

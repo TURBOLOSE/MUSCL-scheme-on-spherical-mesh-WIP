@@ -311,11 +311,15 @@ private:
             l_vec[2] = U[i][3];
             vel = cross_product(face_centers[i] / face_centers[i].norm(), l_vec);
             vel /= U[i][0];
+            p=pressure_fc(U[i], i);
+            c_s=std::sqrt(gam*p/U[i][0]);
+
             if (vel.norm() > max){
                 max = vel.norm();
-                p=pressure_fc(U[i], i);
-                c_s=std::sqrt(gam*p/U[i][0]);
             }
+
+            if(c_s>max)
+            max=c_s;
 
         }
 

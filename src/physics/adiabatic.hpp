@@ -1,6 +1,10 @@
 #pragma once
 #include "../MUSCL_base/MUSCL_base.hpp"
 #include "../geometry/MUSCL_geometry.hpp"
+#include "../json.hpp"
+
+using json = nlohmann::json;
+
 
 class adiabatic : public MUSCL_base
 {
@@ -9,7 +13,7 @@ protected:
     std::ofstream outfile, outfile_p, outfile_omega;
     std::ofstream outfile_curl;
     bool accretion_on;
-    double total_mass;
+    double total_mass, acc_rate, e_acc, omega_acc_abs;
 
 public:
     adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, 
@@ -44,8 +48,12 @@ public:
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::app);
 
        
+        std::ifstream ifs("input/parameters.json");
+        json parameters = json::parse(ifs);
 
-        
+        acc_rate=parameters["accretion_rate"];
+        e_acc=parameters["e_acc"];
+        omega_acc_abs=parameters["omega_acc_abs"];
 
         total_mass=0;
         for (size_t n_face = 0; n_face < faces.size(); n_face++)
@@ -155,8 +163,11 @@ public:
             rxV = cross_product(face_centers[n_face]/ face_centers[n_face].norm(), vel);
             om_z=rxV[2]/(std::sin(theta)*std::sin(theta));
 
-            if(std::isnan(om_z)||std::isinf(om_z)||std::abs(om_z)>1e7)
+            if(std::isnan(om_z)||std::isinf(om_z)||std::abs(om_z)>1e4){
+                //std::cout<<rxV[2]<<" "<<std::sin(theta)<<"\n";
+                //(face_centers[n_face]/ face_centers[n_face].norm()).print();
                 om_z=0;
+            }
 
             outfile_omega << om_z  << " ";
 
@@ -167,24 +178,24 @@ public:
         outfile_omega << "\n";
     };
 
-    double write_light_curve(){
+    std::vector<double> get_light_curves(){
+        //roation around z axis is implied
+        std::vector<double> result;
 
-        vector3d<double> obs_vector, l_vec, vel;
-        obs_vector[0]=9.4*3*1e19/15000; // dist = 9400pc (in R_ns)
-        obs_vector[1]=0; obs_vector[2]=0;
-        
-        double flux_tot=0; 
-        double phi_fc, d_vec, cos_alpha,PI;
+        vector3d<double> obs_vector_0, obs_vector_45, obs_vector_90, l_vec, vel;
+        obs_vector_0[0]=9.4*3*1e19/15000; obs_vector_0[1]=0; obs_vector_0[2]=0; // dist = 9400pc (in R_ns)
+        obs_vector_45[0]=std::sqrt(9.4*3*1e19/15000); obs_vector_45[1]=0; obs_vector_45[2]=std::sqrt(9.4*3*1e19/15000); // dist = 9400pc (in R_ns)
+        obs_vector_90[0]=0; obs_vector_90[1]=0; obs_vector_90[2]=9.4*3*1e19/15000; // dist = 9400pc (in R_ns)
+
+        double flux_tot_0=0,flux_tot_45=0,flux_tot_90=0; 
+        double phi_fc, theta_fc, d_vec, cos_alpha,PI;
 
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
             phi_fc=std::atan2(face_centers[n_face][1]/face_centers[n_face].norm(), 
             face_centers[n_face][0]/face_centers[n_face].norm());
+            theta_fc = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
 
-            if(phi_fc<M_PI/2 && phi_fc >=-M_PI/2){
-            d_vec=dot_product(obs_vector, face_centers[n_face]/face_centers[n_face].norm());
-            cos_alpha=std::abs(d_vec)/obs_vector.norm();
-            
             l_vec[0] = U[n_face][1];
             l_vec[1] = U[n_face][2];
             l_vec[2] = U[n_face][3];
@@ -193,14 +204,27 @@ public:
             vel /= (-U[n_face][0]);
             PI = pressure(U[n_face], vel, face_centers[n_face]/face_centers[n_face].norm());
 
-            flux_tot+=PI*cos_alpha*surface_area[n_face];
-
+            if(phi_fc<M_PI/2 && phi_fc >-M_PI/2){
+            d_vec=dot_product(obs_vector_0, face_centers[n_face]/face_centers[n_face].norm());
+            cos_alpha=std::abs(d_vec)/obs_vector_0.norm();
+            flux_tot_0+=PI*cos_alpha*surface_area[n_face];
             }
 
-            
+            if(theta_fc<M_PI/2){
+            d_vec=dot_product(obs_vector_90, face_centers[n_face]/face_centers[n_face].norm());
+            cos_alpha=std::abs(d_vec)/obs_vector_90.norm();
+            flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            }
+
+            if(dot_product(obs_vector_45, face_centers[n_face]/face_centers[n_face].norm())>0){
+            d_vec=dot_product(obs_vector_45, face_centers[n_face]/face_centers[n_face].norm());
+            cos_alpha=std::abs(d_vec)/obs_vector_45.norm();
+            flux_tot_45+=PI*cos_alpha*surface_area[n_face];
+            }
         }
 
-       return flux_tot;
+        result.push_back(flux_tot_0); result.push_back(flux_tot_45); result.push_back(flux_tot_90);
+        return result;
     };
 
     void write_final_state(){
@@ -303,20 +327,16 @@ protected:
 
 
         //accretion terms
-         double acc_rate=3.3e-5;//= 10^-7 M_sun/yr (d \Sigma/dt in local units)
+        //double acc_rate=3.3e-5;//= 10^-7 M_sun/yr (d \Sigma/dt in local units)
         //double acc_rate; //= 10^-8 M_sun/yr
         //double acc_rate=3.3e-2; //= 10^-4 M_sun/yr
         //double acc_rate=0.33; //= 10^-3 M_sun/yr
 
         //double e_acc=1e-6; //local E units
-        double e_acc=6e-3; //local E units
+        //double e_acc=6e-3; //local E units
 
         if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
         {
-
-           
-            //double omega_acc_abs=0.075;
-            double omega_acc_abs=0.1;
             res[0]=acc_rate;
             omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
 

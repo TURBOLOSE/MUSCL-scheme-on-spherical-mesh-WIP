@@ -3,9 +3,8 @@
 #include "src/Riemann_solvers/HLLE_p.hpp"
 #include "src/Riemann_solvers/HLLC.hpp"
 #include "src/Riemann_solvers/HLLCplus.hpp"
-#include "src/json.hpp"
 
-using json = nlohmann::json;
+
 
 using namespace pmp;
 
@@ -24,6 +23,7 @@ int main()
     json parameters = json::parse(ifs);
 
     double dt = parameters["dt"];
+    double t_max = parameters["t_max"];
     size_t maxstep = parameters["maxstep"];
     size_t skipstep = parameters["skipstep"];
 
@@ -37,10 +37,11 @@ int main()
 
    
     std::ifstream inData("input/input.dat");
-    //std::ifstream inData("results/part2_rk2.dat");
+    //std::ifstream inData("results/part6_rk2.dat");
 
-    std::ofstream out_lc("results/lightcurve.dat");
-
+    std::ofstream out_lc_0("results/lightcurve0.dat");
+    std::ofstream out_lc_45("results/lightcurve45.dat");
+    std::ofstream out_lc_90("results/lightcurve90.dat");
 
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
@@ -102,20 +103,35 @@ int main()
     test2.write_t_curl();
     test2.write_t_omega_z();
 
-    out_lc<<test2.time()<<" "<<test2.write_light_curve()<<"\n";
+
+    std::vector<double> lightcurves;
+
+    lightcurves=test2.get_light_curves();
+    out_lc_0<<test2.time()<<" "<<lightcurves[0]<<"\n";
+    out_lc_0.flush();
+    out_lc_45<<test2.time()<<" "<<lightcurves[1]<<"\n";
+    out_lc_45.flush();
+    out_lc_90<<test2.time()<<" "<<lightcurves[2]<<"\n";
+    out_lc_90.flush();
 
     //test2.write_t_tracer();
 
-    for (size_t i = 0; i < maxstep; i++)
+    //for (size_t i = 0; i < maxstep; i++)
+    size_t steps=0;
+    while(test2.time()<t_max && steps<maxstep)
     {
         test2.do_step(dt);
         
-        //test2.write_light_curve();
-        out_lc<<test2.time()<<" "<<test2.write_light_curve()<<"\n";
-        out_lc.flush();
+        lightcurves=test2.get_light_curves();
+        out_lc_0<<test2.time()<<" "<<lightcurves[0]<<"\n";
+        out_lc_0.flush();
+        out_lc_45<<test2.time()<<" "<<lightcurves[1]<<"\n";
+        out_lc_45.flush();
+        out_lc_90<<test2.time()<<" "<<lightcurves[2]<<"\n";
+        out_lc_90.flush();
 
 
-        if (i % skipstep == 0)
+        if (steps % skipstep == 0)
         {
            
             test2.write_t_rho();
@@ -135,8 +151,9 @@ int main()
         }
         
         
-
+    steps++;
     }
+
     test2.write_final_state();
 
     return 0;

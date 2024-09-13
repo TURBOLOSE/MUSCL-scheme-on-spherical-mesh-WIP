@@ -104,18 +104,30 @@ def make_input_5():
 
 
     for face_num, R in enumerate(face_centers):
-        if((theta[face_num] >-np.pi/4 and theta[face_num]<np.pi/4)):
-        #if( (theta[face_num] >0 and theta[face_num]<np.pi/4) or (theta[face_num] >-np.pi/2 and theta[face_num]<-np.pi/4) ):
-            omega=np.array([0,0,0.5])
-        #elif ((theta[face_num] <0 and theta[face_num] >-np.pi/4) or (theta[face_num] >np.pi/4 and theta[face_num] < np.pi/2)     ):
-        elif((theta[face_num] <-np.pi/4 and theta[face_num] >-np.pi/2) or (theta[face_num] >np.pi/4 and theta[face_num] < np.pi/2)     ):
-            omega=np.array([0,0,-0.5])
-        else:
-            omega=np.array([0,0,0])
-        #if(np.abs(theta[face_num]-np.pi/2)<0.1):
-        #   p[face_num]=5
-        #if r[face_num]<R0:
-            #p[face_num]=50
+        # if((theta[face_num] >-np.pi/4 and theta[face_num]<np.pi/4)):
+        # #if( (theta[face_num] >0 and theta[face_num]<np.pi/4) or (theta[face_num] >-np.pi/2 and theta[face_num]<-np.pi/4) ):
+        #     omega=np.array([0,0,0.5])
+        # #elif ((theta[face_num] <0 and theta[face_num] >-np.pi/4) or (theta[face_num] >np.pi/4 and theta[face_num] < np.pi/2)     ):
+        # elif((theta[face_num] <-np.pi/4 and theta[face_num] >-np.pi/2) or (theta[face_num] >np.pi/4 and theta[face_num] < np.pi/2)     ):
+        #     omega=np.array([0,0,-0.5])
+        # else:
+        #     omega=np.array([0,0,0])
+
+
+        if(np.abs(theta[face_num]-np.pi/2)<0.1):
+          p[face_num]=5
+        if r[face_num]<R0:
+           p[face_num]=50
+
+        
+        # if(theta[face_num] >0):
+        #     omega=np.array([0,0,0.5])
+        # elif(theta[face_num]<0):
+        #     omega=np.array([0,0,-0.5])
+        # else:
+        #     omega=np.array([0,0,0])
+
+
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
         #print(np.cross(R,-np.cross(R, l[face_num]))/(np.linalg.norm(R)**2))
@@ -124,8 +136,7 @@ def make_input_5():
     l=np.array(l)
     v=np.array(v)
 
-    #E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
-    E=gam/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
+    E=1/(gam-1)*p+rho*np.linalg.norm(v, axis=1)*np.linalg.norm(v, axis=1)/2
     if(E.any()<0):
         print('Energy<0!!')
 
@@ -314,6 +325,7 @@ def make_input_5_const_entr():
 #make_input_5_new_p()
 #make_input_5()
 #make_input_5_const_entr()
+
 make_input_5_sp_layer()
 
 

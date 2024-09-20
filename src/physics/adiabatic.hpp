@@ -360,7 +360,6 @@ protected:
             //double dmdt=-1./512100000*u[0]; //time constant in T_unit^{-1}
             double dmdt=-(acc_rate*0.4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
             //double dmdt=0;
-
             res[0]+=dmdt;
             res[1]+=dmdt*rxv[0];
             res[2]+=dmdt*rxv[1];
@@ -369,20 +368,36 @@ protected:
 
 
             //energy sink term (radiation energy diffusion)
-            double GM=0.2; //grav parameter in R_unit^3/t_unit^2
+            double GM=0.143748; //grav parameter in R_unit^3/t_unit^2
             double g_eff=GM-vel.norm()*vel.norm();
-            double c_sigma=4.8e48; //c/sigma_SB in R_unit*t_unit^2*K^4/M_unit
-            double k_m=1.6e-13; // k/m in V_unit(speed of light)/K
+            double c_sigma=4.85e36; //c/sigma_SB in R_unit*t_unit^2*K^4/M_unit
+            double k_m=1.6e-13; // k/m in V_unit(speed of light)^2/K
             double kappa=3.4e6; //scattering opacity in 1/Sigma_unit (R_unit^2/M_unit)
-            double beta=1-1/(1+12./5*k_m*u[0]/u[4]*pow(3./4 *c_sigma*g_eff*u[0],1./4));
+
+            double C=12./5*k_m*u[0]/u[4]*pow(3./4 *c_sigma*g_eff*u[0],1./4);
+
+            double beta_switch=0.736194670678821; //switch point for function
+            double C_switch = -1-1/(beta_switch-1);
+            double beta;
+
+            if(C<=C_switch){
+                
+                beta=1-1/(1+C);
+
+
+            }else{
+                beta=1-pow(2/C,4);
+            }
+
+          
             
             res[4]-=g_eff/kappa*(1-beta);
 
             /*if(n_face==3388){
             std::cout<<acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. )<<" "
             <<dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) <<" "
-            <<g_eff/kappa*(1-beta)<<"\n";}*/
-
+            <<g_eff/kappa*(1-beta)<<" beta= "<<beta<< "\n";
+            }*/
 
         }
 

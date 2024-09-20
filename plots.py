@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import plotly.express as px
 from tqdm import tqdm
+from scipy.interpolate import griddata
 
 
 def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
@@ -128,8 +129,8 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     #=====================================================
     colorm = plt.get_cmap('viridis')
     min_rho=np.min( data_rho.loc[:maxstep,1:len(x_plot)])
-    #max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
-    max_rho=13
+    max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
+    #max_rho=13
 
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
@@ -141,7 +142,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
             #fig.tight_layout()
             plt.subplots_adjust(hspace=10)
             rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
-            fig.suptitle('t='+"{:10.4f}".format(data_rho.loc[i,0]))
+            fig.suptitle('t='+"{:.4f}".format(data_rho.loc[i,0]))
             ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
             ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
             for face_num,face in enumerate(faces):
@@ -155,7 +156,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
 
 
 
-projection_plots("vort", print_residuals=False)
+projection_plots("p", print_residuals=False)
 
 
 def light_curve(data_p, face_centers):
@@ -186,11 +187,13 @@ def light_curve(data_p, face_centers):
 def vel_plot():
     gam=1.25
 
-    data_full=pd.read_table('results/final_state.dat', header=None, delimiter=r"\s+")
-    data_faces=pd.read_table('results/faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
-    face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
+    #path_to_res='results/'
+    path_to_res='plots/big_sim/'
 
-    data=pd.read_table('results/vertices.dat', header=None, delimiter=r"\s+")
+    data_full=pd.read_table(path_to_res+'final_state.dat', header=None, delimiter=r"\s+")
+    data_faces=pd.read_table(path_to_res+'faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
+    face_centers=pd.read_table(path_to_res+'face_centers.dat', header=None, delimiter=r"\s+")
+    data=pd.read_table(path_to_res+'vertices.dat', header=None, delimiter=r"\s+")
     vertices=np.array(data.loc[:,:])
     faces=np.array(data_faces.loc[:,:])
 
@@ -269,6 +272,18 @@ def vel_plot():
     xd=phi_d/np.sqrt(2)
     yd=theta_d*np.sqrt(2)*np.cos(theta_fc)
 
+
+    #ax[0].quiver(x_fc[::3], y_fc[::3],xd[::3],yd[::3])
+    X_gr, Y_gr=np.meshgrid(np.linspace(-2.3,3, 100),np.linspace(-1.5, 1.5, 100))
+
+
+    
+
+    xd_gr=griddata(np.stack([x_fc.T, y_fc.T]).T, xd,(X_gr,Y_gr), method='linear')
+    yd_gr=griddata(np.stack([x_fc.T, y_fc.T]).T, yd,(X_gr,Y_gr), method='linear')    
+
+    
+
     ##======================================================
     # order=np.argsort(x_fc)
     # x_fc=np.sort(x_fc)
@@ -311,19 +326,21 @@ def vel_plot():
     for face_num,face in enumerate(faces):
         ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
     
-    ax[0].quiver(x_fc[::3], y_fc[::3],xd[::3],yd[::3])
+    #ax[0].quiver(x_fc[::3], y_fc[::3],xd[::3],yd[::3])
         #if(face_num % 20 == 0):
     #for face_num,face in enumerate(faces):
         #ax[0].arrow(x_fc[face_num],y_fc[face_num],1e-1*xd[face_num],1e-1*yd[face_num],width=0.007, color='grey', alpha=0.9)
 
+    #ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=np.sqrt(xd_gr*2*+yd_gr**2), arrowsize=3)
+    ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color='r', arrowsize=3)
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label="Pressure")
-    fig.savefig('plots/test.png', bbox_inches='tight',dpi=600)
+    fig.savefig('plots/test2.png', bbox_inches='tight',dpi=600)
     plt.clf()
     plt.close()
 
 
 
-vel_plot()
+#vel_plot()
 
 
 

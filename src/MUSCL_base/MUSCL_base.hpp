@@ -10,7 +10,7 @@ protected:
     std::vector<double> rho_an, p_an;
     std::vector<std::vector<std::vector<double>>> flux_var_plus, flux_var_minus, U_plus, U_minus;
     // flux_var^plus_ij flux_var^minus_ij, U_ij (short), U_ji(short)
-    double dt, gam, M, N, h0, t, max_vel, rho_full, E_full, c_s;
+    double dt, gam, M, N, h0, t, max_vel, rho_full, E_full, c_s, density_floor;
     int dim;
     size_t steps, threads;
     double omega_ns;
@@ -59,7 +59,7 @@ public:
                 U_minus[i][j].resize(dim);
             }
         }
-
+        density_floor=1e-8;
         N = 1;
         h0 = 10;
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
@@ -112,7 +112,7 @@ public:
             //std::cout<<dt<<"\n";
         }
 
-        res2d(dt/2); // res2d makes U = dt*phi(U)
+        res2d(dt/2); // res2d makes U = dt/2*phi(U)
         //res2d(dt);
 
         for (size_t i = 0; i < this->n_faces(); i++)
@@ -125,13 +125,14 @@ public:
                 
             }*/
 
-           for (size_t k = 0; k < dim; k++) //ok wtf
+           for (size_t k = 0; k < dim; k++) 
             {
                 //U_temp[i][k] += U[i][k]; 
                 U[i][k]+= U_temp[i][k]; 
             }
 
-
+              if(U[i][0]<density_floor)
+                U[i][0]=density_floor; //density floor
         }
 
 
@@ -149,6 +150,8 @@ public:
                 //U[i][k]=U[i][k]/2.+U_temp[i][k]; 
                 U[i][k]+=U_temp[i][k]; 
             }
+              if(U[i][0]<density_floor)
+                U[i][0]=density_floor; //density floor
         }
 
 
@@ -301,11 +304,11 @@ private:
     void find_v_max()
     {
         double max,c,p;
-        max = 0.001;
+        max = 1e-8;
+        double max_Mach=0;
         vector3d<double> R_vec, vel, l_vec;
         for (size_t i = 0; i < this->n_faces(); i++)
         {
-
             l_vec[0] = U[i][1];
             l_vec[1] = U[i][2];
             l_vec[2] = U[i][3];
@@ -321,9 +324,15 @@ private:
             if(c_s>max)
             max=c_s;
 
+            if(vel.norm()/c_s>max_Mach)
+            max_Mach=vel.norm()/c_s;
+
         }
 
         max_vel = max;
+
+        //std::cout<< max_vel<< " " << max_Mach<<"\n";
+
     }
 
     void find_flux_var()

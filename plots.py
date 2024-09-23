@@ -7,7 +7,7 @@ from tqdm import tqdm
 from scipy.interpolate import griddata
 
 
-def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
+def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #value = rho,p,omega
     skipstep=1
     
     gam=1.25
@@ -24,6 +24,12 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
     elif(value=='vort'):
         data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
         label_pr='Vorticity'
+    elif(value=='c_s'):
+        data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
+        data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
+        label_pr='Speed of sound'
+        data_rho.loc[:,1:]=data_p.loc[:,1:]/data_rho.loc[:,1:]
+        data_rho.loc[:,1:]=np.sqrt(1.25*data_rho.loc[:,1:])
     # elif(value=='mach'):
     #     data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
     #     data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
@@ -43,6 +49,9 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
             data_rho.loc[i,:]-=data_rho.loc[0,:]
         data_rho.loc[0,:]-=data_rho.loc[0,:]
         label_pr+=" residuals"
+
+    if(print_log):
+        data_rho.loc[:,1:]=np.log10(data_rho.loc[:,1:])
         
         
     #data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
@@ -156,7 +165,7 @@ def projection_plots(value, print_residuals:bool=False): #value = rho,p,omega
 
 
 
-projection_plots("p", print_residuals=False)
+projection_plots("p", print_residuals=False, print_log=False)
 
 
 def light_curve(data_p, face_centers):
@@ -274,15 +283,20 @@ def vel_plot():
 
 
     #ax[0].quiver(x_fc[::3], y_fc[::3],xd[::3],yd[::3])
-    X_gr, Y_gr=np.meshgrid(np.linspace(-2.3,3, 100),np.linspace(-1.5, 1.5, 100))
+    X_gr, Y_gr=np.meshgrid(np.linspace(-2.2,2.2, 100),np.linspace(-1.4, 1.4, 100))
+
+    mask=np.logical_or(np.isnan(xd, where=False),np.isnan(xd, where=False))
 
 
-    
+    xd_gr=griddata(np.stack([x_fc[mask].T, y_fc[mask].T]).T, xd[mask],(X_gr,Y_gr), method='nearest')
+    yd_gr=griddata(np.stack([x_fc[mask].T, y_fc[mask].T]).T, yd[mask],(X_gr,Y_gr), method='nearest')    
 
-    xd_gr=griddata(np.stack([x_fc.T, y_fc.T]).T, xd,(X_gr,Y_gr), method='linear')
-    yd_gr=griddata(np.stack([x_fc.T, y_fc.T]).T, yd,(X_gr,Y_gr), method='linear')    
 
-    
+
+
+
+
+
 
     ##======================================================
     # order=np.argsort(x_fc)
@@ -316,7 +330,16 @@ def vel_plot():
 
 
 
-    fig, ax = plt.subplots(figsize=(16, 10), layout='constrained', nrows=2,height_ratios=[15,1])
+    colorm2 = plt.get_cmap('inferno')
+    v=np.sqrt(xd_gr**2+yd_gr**2)
+
+    print(xd_gr,xd_gr)
+    print(np.min(v),np.max(v))
+    norm2 = mpl.colors.Normalize(vmin=np.min(v), vmax=np.max(v))
+
+
+
+    fig, ax = plt.subplots(figsize=(18, 10), layout='constrained', nrows=3,height_ratios=[16,1,1])
 
     plt.subplots_adjust(hspace=10)
     rho=(np.array(p-min_p)/(max_p-min_p))
@@ -325,22 +348,23 @@ def vel_plot():
     ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
     for face_num,face in enumerate(faces):
         ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
-    
+
     #ax[0].quiver(x_fc[::3], y_fc[::3],xd[::3],yd[::3])
         #if(face_num % 20 == 0):
     #for face_num,face in enumerate(faces):
         #ax[0].arrow(x_fc[face_num],y_fc[face_num],1e-1*xd[face_num],1e-1*yd[face_num],width=0.007, color='grey', alpha=0.9)
 
     #ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=np.sqrt(xd_gr*2*+yd_gr**2), arrowsize=3)
-    ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color='r', arrowsize=3)
+    ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=v,norm=norm2, cmap=colorm2, arrowsize=3)
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label="Pressure")
+    fig.colorbar(mpl.cm.ScalarMappable(norm=norm2, cmap=colorm2),cax=ax[2], orientation='horizontal', label="Speed")
     fig.savefig('plots/test2.png', bbox_inches='tight',dpi=600)
     plt.clf()
     plt.close()
 
 
 
-#vel_plot()
+vel_plot()
 
 
 

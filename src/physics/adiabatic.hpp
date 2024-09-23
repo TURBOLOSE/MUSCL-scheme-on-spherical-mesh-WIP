@@ -364,12 +364,13 @@ protected:
             res[1]+=dmdt*rxv[0];
             res[2]+=dmdt*rxv[1];
             res[3]+=dmdt*rxv[2];
-            res[4]+=dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) ;
+            res[4]+=dmdt*(1/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) ;
 
 
             //energy sink term (radiation energy diffusion)
-            double GM=0.143748; //grav parameter in R_unit^3/t_unit^2
+            double GM=0.217909; //grav parameter in R_unit^3/t_unit^2
             double g_eff=GM-vel.norm()*vel.norm();
+            //double g_eff=GM;
             double c_sigma=4.85e36; //c/sigma_SB in R_unit*t_unit^2*K^4/M_unit
             double k_m=1.6e-13; // k/m in V_unit(speed of light)^2/K
             double kappa=3.4e6; //scattering opacity in 1/Sigma_unit (R_unit^2/M_unit)
@@ -383,31 +384,53 @@ protected:
             if(C<=C_switch){
                 
                 beta=1-1/(1+C);
-
-
             }else{
                 beta=1-pow(2/C,4);
             }
+
+
+            double beta_ceil=1-1e-8, beta_floor=1e-8;
+
+            if(beta<beta_floor|| std::isnan(beta)) //beta limitations
+            beta=beta_floor;
+
+            if(beta>beta_ceil)
+            beta=beta_ceil;
 
           
             
             res[4]-=g_eff/kappa*(1-beta);
 
-            /*if(n_face==3388){
-            std::cout<<acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. )<<" "
-            <<dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) <<" "
-            <<g_eff/kappa*(1-beta)<<" beta= "<<beta<< "\n";
+
+
+
+            //if(n_face==2720){
+            // std::cout<<acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. )<<" "
+            // <<dmdt*(gam/(gam-1)*u[4]/u[0]+ (vel.norm()*vel.norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2.) <<" "
+            // <<g_eff/kappa*(1-beta)<<" beta= "<<beta<< "\n";
+
+            //std::cout<<beta<< "\n";
+            //}
+
+            // static double max_E=0;
+            // if(std::abs(res[4]/(1/(gam-1)*u[4]+vel.norm()*vel.norm()/2))>max_E){
+            // max_E=std::abs(res[4]/(1/(gam-1)*u[4]+vel.norm()*vel.norm()/2));
+            // std::cout<<max_E<<"\n";
+            // }
+
+            /*static double max_Mach=0;
+            if(vel.norm()/std::sqrt(gam*u[4]/u[0])>max_Mach){
+            max_Mach=vel.norm()/std::sqrt(gam*u[4]/u[0]);
+            std::cout<<max_Mach<<"\n";
             }*/
 
+            //if(this->time()>590)
+            //std::cout<<max_Mach<<"\n";
+
+            
         }
 
-        
-        //additional sink term for energy 
-        /*double g_eff=1.3e-8 - vel.norm()*vel.norm();
-        double kappa=3.4e6; //for Sigma=10^7 g/cm^2
-        double beta=1e-4;
-        res[4]-=g_eff/kappa*(1-beta); //c=1
-        */
+            
 
         return res;
     };

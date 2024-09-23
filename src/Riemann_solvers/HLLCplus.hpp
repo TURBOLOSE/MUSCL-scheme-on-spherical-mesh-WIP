@@ -109,7 +109,7 @@ protected:
         if ((V_R + a_R) > 0 && (V_L + a_L) < 0)
             lambd_R = 1;
 
-        double f_star = 0;
+        double f_star = 1;
         if (lambd_L == 0 && lambd_R == 0)
             f_star = M * std::sqrt(4 + (1 - M * M) * (1 - M * M)) / ((1 + M * M));
 

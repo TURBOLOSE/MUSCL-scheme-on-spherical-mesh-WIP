@@ -181,6 +181,7 @@ def make_input_5_sp_layer():
     print('Mach_eq=',M_0)
    
 
+
     #M_0=(gam-1)/p_0 *np.linalg.norm(omega)**2
 
     theta=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1)) 
@@ -190,6 +191,8 @@ def make_input_5_sp_layer():
     rho=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
     p=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
     print(np.sum(rho)/len(rho))
+
+    
 
     #for theta_num,theta_el in enumerate(theta):
     #    if(abs(theta_el-np.pi/2)<0.01):
@@ -218,6 +221,8 @@ def make_input_5_sp_layer():
         v.append(np.cross(omega,R)/np.linalg.norm(R))
 
 
+
+    print(np.linalg.norm(v, axis=1)/np.sqrt(gam*p/rho))
     
     #fig=px.scatter(x=theta, y=np.linalg.norm(v, axis=1)/np.sqrt(gam*p/rho),  labels={"x": r"$\theta$", "y":"Mach number"})
     #fig.show()

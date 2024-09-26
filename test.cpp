@@ -102,7 +102,7 @@ int main()
     test2.write_t_p();
     test2.write_t_curl();
     test2.write_t_omega_z();
-
+    test2.write_t_L();
 
     std::vector<double> lightcurves;
 
@@ -138,6 +138,7 @@ int main()
             test2.write_t_p();
             test2.write_t_curl();
             test2.write_t_omega_z();
+            test2.write_t_L();
             //test2.write_t_tracer();
         }
 
@@ -147,6 +148,7 @@ int main()
             test2.write_t_p();
             test2.write_t_curl();
             test2.write_t_omega_z();
+            test2.write_t_L();
             break;
         }
         

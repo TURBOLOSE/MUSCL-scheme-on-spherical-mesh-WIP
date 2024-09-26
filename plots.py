@@ -8,7 +8,7 @@ from scipy.interpolate import griddata
 
 
 def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #value = rho,p,omega
-    skipstep=1
+    skipstep=60
     
     gam=1.25
 
@@ -151,7 +151,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
             #fig.tight_layout()
             plt.subplots_adjust(hspace=10)
             rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
-            fig.suptitle('t='+"{:.4f}".format(data_rho.loc[i,0]))
+            fig.suptitle('t='+"{:.4f}".format(data_rho.loc[i,0]*3.3e-5))
             ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
             ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
             for face_num,face in enumerate(faces):
@@ -165,7 +165,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
 
 
 
-projection_plots("p", print_residuals=False, print_log=False)
+projection_plots("rho", print_residuals=False, print_log=False)
 
 
 def light_curve(data_p, face_centers):
@@ -196,8 +196,12 @@ def light_curve(data_p, face_centers):
 def vel_plot():
     gam=1.25
 
+    turn_angle=np.pi/2
+
     #path_to_res='results/'
-    path_to_res='plots/big_sim/'
+    #path_to_res='plots/big_sim/'
+    path_to_res='plots/0.4c crashes/time series/'
+    
 
     data_full=pd.read_table(path_to_res+'final_state.dat', header=None, delimiter=r"\s+")
     data_faces=pd.read_table(path_to_res+'faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
@@ -210,12 +214,21 @@ def vel_plot():
     p=[]
 
 
+    turn_matrix=np.matrix([[np.cos(turn_angle),0, np.sin(turn_angle)],[0,1,0],[-np.sin(turn_angle),0, np.cos(turn_angle)]])
+
 
     for num, el in enumerate(data_full.loc[:,4]):
         l=np.array([data_full.loc[num,1],data_full.loc[num,2],data_full.loc[num,3]])
         R=np.array(face_centers.loc[num])
         vel.append(np.cross(R,l)/(-np.linalg.norm(R)*data_full.loc[num,0]))
         p.append((data_full.loc[num,4]-data_full.loc[num,0]/2 * np.linalg.norm(vel[num])**2)*(gam-1))
+
+
+    for ver_num, vertice in enumerate(vertices):
+        vertices[ver_num]=np.matmul(turn_matrix,vertices[ver_num])
+
+    #for face_num, face in enumerate(faces):
+    #    faces[face_num]=np.matmul(turn_matrix,faces[face_num])
 
 
     faces_new=[]
@@ -249,7 +262,15 @@ def vel_plot():
 
     vel=np.array(vel)
 
+    for vel_num, ve in enumerate(vel):
+            vel[vel_num]=np.matmul(turn_matrix,vel[vel_num])
+
     face_centers=np.array(face_centers)
+
+    for face_cent_num, face_cent in enumerate(face_centers):
+            face_centers[face_cent_num]=np.matmul(turn_matrix,face_centers[face_cent_num])
+
+
 
     theta_fc=np.arccos(face_centers[:,2]/np.linalg.norm(face_centers, axis=1))
     phi_fc=np.arctan2(face_centers[:,1]/np.linalg.norm(face_centers, axis=1),
@@ -333,8 +354,8 @@ def vel_plot():
     colorm2 = plt.get_cmap('inferno')
     v=np.sqrt(xd_gr**2+yd_gr**2)
 
-    print(xd_gr,xd_gr)
-    print(np.min(v),np.max(v))
+    #print(xd_gr,xd_gr)
+    #print(np.min(v),np.max(v))
     norm2 = mpl.colors.Normalize(vmin=np.min(v), vmax=np.max(v))
 
 
@@ -343,7 +364,7 @@ def vel_plot():
 
     plt.subplots_adjust(hspace=10)
     rho=(np.array(p-min_p)/(max_p-min_p))
-    fig.suptitle('t='+"{:10.4f}".format(1.05050319))
+    fig.suptitle('t='+"{:10.4f}".format(1.423488))
     ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
     ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
     for face_num,face in enumerate(faces):
@@ -358,7 +379,7 @@ def vel_plot():
     ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=v,norm=norm2, cmap=colorm2, arrowsize=3)
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label="Pressure")
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm2, cmap=colorm2),cax=ax[2], orientation='horizontal', label="Speed")
-    fig.savefig('plots/test2.png', bbox_inches='tight',dpi=600)
+    fig.savefig('plots/test3_pole1.png', bbox_inches='tight',dpi=600)
     plt.clf()
     plt.close()
 

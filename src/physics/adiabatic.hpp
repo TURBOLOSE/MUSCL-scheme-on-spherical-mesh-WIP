@@ -10,8 +10,8 @@ class adiabatic : public MUSCL_base
 {
 
 protected:
-    std::ofstream outfile, outfile_p, outfile_omega;
-    std::ofstream outfile_curl;
+    std::ofstream outfile, outfile_p, outfile_omega,outfile_curl;
+    std::ofstream outfile_l[3];
     bool accretion_on;
     double total_mass, acc_rate, e_acc, omega_acc_abs;
 
@@ -30,7 +30,7 @@ public:
             stop_check = true;
         }
         
-
+        //clean file and append next line
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
         outfile.open("results/rho.dat", std::ios::out | std::ios::app);
@@ -46,6 +46,16 @@ public:
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::trunc);
         outfile_omega.close();
         outfile_omega.open("results/omega.dat", std::ios::out | std::ios::app);
+
+        std::string adrs[] = {"results/Lx.dat", "results/Ly.dat","results/Lz.dat"};
+
+        for(size_t i; i<3; i++){
+        
+        outfile_l[i].open(adrs[i], std::ios::out | std::ios::trunc);
+        outfile_l[i].close();
+        outfile_l[i].open(adrs[i], std::ios::out | std::ios::app);
+
+        }
 
        
         std::ifstream ifs("input/parameters.json");
@@ -143,6 +153,22 @@ public:
             outfile_curl << vort / surface_area[n_face] << " ";
         }
         outfile_curl << "\n";
+    };
+
+    void write_t_L()
+    {
+
+        for(size_t i; i<3; i++){
+
+            outfile_l[i] << this->time() << "  ";
+            for (auto U_j : U)
+            {
+
+                outfile_l[i] << U_j[i+1] << " ";
+                //out_lc<< U_i[0] << " ";
+            }
+            outfile_l[i] << "\n";
+        }
     };
 
     void write_t_omega_z()

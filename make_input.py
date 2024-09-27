@@ -190,8 +190,8 @@ def make_input_5_sp_layer():
 
     rho=rho_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(1/(gam-1))
     p=p_0*(1+(gam-1)/2*M_0**2*np.sin(theta)**2)**(gam/(gam-1))
-    print(np.sum(rho)/len(rho))
-
+    #rho=np.ones(N)
+    #p=np.ones(N)*0.00005
     
 
     #for theta_num,theta_el in enumerate(theta):

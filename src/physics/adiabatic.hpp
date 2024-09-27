@@ -216,6 +216,15 @@ public:
         double flux_tot_0=0,flux_tot_45=0,flux_tot_90=0; 
         double phi_fc, theta_fc, d_vec, cos_alpha,PI;
 
+        double GM=0.217909; //grav parameter in R_unit^3/t_unit^2
+        double g_eff,C, beta,E;
+        double c_sigma=4.85e36; //c/sigma_SB in R_unit*t_unit^2*K^4/M_unit
+        double k_m=1.6e-13; // k/m in V_unit(speed of light)^2/K
+        double kappa=3.4e6; //scattering opacity in 1/Sigma_unit (R_unit^2/M_unit)
+        double beta_switch=0.736194670678821; //switch point for function
+        double C_switch = -1-1/(beta_switch-1);
+        double beta_ceil=1-1e-8, beta_floor=1e-8;
+
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
             phi_fc=std::atan2(face_centers[n_face][1]/face_centers[n_face].norm(), 
@@ -230,22 +239,45 @@ public:
             vel /= (-U[n_face][0]);
             PI = pressure(U[n_face], vel, face_centers[n_face]/face_centers[n_face].norm());
 
+            g_eff=GM-vel.norm()*vel.norm();
+
+            C=12./5*k_m*U[n_face][0]/PI*pow(3./4 *c_sigma*g_eff*U[n_face][0],1./4);
+
+            if(C<=C_switch){
+                
+                beta=1-1/(1+C);
+            }else{
+                beta=1-pow(2/C,4);
+            }
+
+            if(beta<beta_floor|| std::isnan(beta)) //beta limitations
+            beta=beta_floor;
+
+            if(beta>beta_ceil)
+            beta=beta_ceil;
+
+        
+            E=g_eff/kappa*(1-beta);
+
             if(phi_fc<M_PI/2 && phi_fc >-M_PI/2){
             d_vec=dot_product(obs_vector_0, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_0.norm();
-            flux_tot_0+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_0+=PI*cos_alpha*surface_area[n_face];
+            flux_tot_0+=E*cos_alpha*surface_area[n_face];
             }
 
             if(theta_fc<M_PI/2){
             d_vec=dot_product(obs_vector_90, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_90.norm();
-            flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            flux_tot_90+=E*cos_alpha*surface_area[n_face];
             }
 
             if(dot_product(obs_vector_45, face_centers[n_face]/face_centers[n_face].norm())>0){
             d_vec=dot_product(obs_vector_45, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_45.norm();
-            flux_tot_45+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_45+=PI*cos_alpha*surface_area[n_face];
+            flux_tot_45+=E*cos_alpha*surface_area[n_face];
             }
         }
 
@@ -346,6 +378,7 @@ protected:
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
         //old stuff for compressed star
 
+    
         //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
         //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 

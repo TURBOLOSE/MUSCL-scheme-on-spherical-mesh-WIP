@@ -8,7 +8,7 @@ from scipy.interpolate import griddata
 
 
 def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #value = rho,p,omega
-    skipstep=60
+    skipstep=1
     
     gam=1.25
 
@@ -152,8 +152,8 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
             plt.subplots_adjust(hspace=10)
             rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
             fig.suptitle('t='+"{:.4f}".format(data_rho.loc[i,0]*3.3e-5))
-            ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
-            ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
+            ax[0].set_xlabel(r'$\varphi / \sqrt{2}$', fontsize=25)
+            ax[0].set_ylabel(r'$\sqrt{2}  \sin(\theta )$', fontsize=25)
             for face_num,face in enumerate(faces):
                 ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
             fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label=label_pr)
@@ -365,8 +365,8 @@ def vel_plot():
     plt.subplots_adjust(hspace=10)
     rho=(np.array(p-min_p)/(max_p-min_p))
     fig.suptitle('t='+"{:10.4f}".format(1.423488))
-    ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
-    ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
+    ax[0].set_xlabel(r'$\varphi / \sqrt{2}$', fontsize=25)
+    ax[0].set_ylabel(r'$\sqrt{2}  \sin(\theta )$', fontsize=25)
     for face_num,face in enumerate(faces):
         ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
 

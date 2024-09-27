@@ -204,7 +204,7 @@ public:
         }
 
 
-        std::cout << "t= " << t + dt << " mass_total_err=" << temp / rho_full-1 << " (l/mass)_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
+        std::cout << "t= " << t + dt << " mass_relative_gain=" << temp / rho_full-1 << " (l/mass)_total_norm= " << sqrt(l1 * l1 + l2 * l2 + l3 * l3)
                   << " l_total = (" << l1 << "," << l2 << "," << l3 << ")" << "\n";
 
 

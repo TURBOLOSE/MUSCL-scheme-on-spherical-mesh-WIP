@@ -208,12 +208,13 @@ public:
         //roation around z axis is implied
         std::vector<double> result;
 
-        vector3d<double> obs_vector_0, obs_vector_45, obs_vector_90, l_vec, vel;
+        vector3d<double> obs_vector_0, obs_vector_45, obs_vector_90, obs_vector_180, l_vec, vel;
         obs_vector_0[0]=9.4*3*1e19/15000; obs_vector_0[1]=0; obs_vector_0[2]=0; // dist = 9400pc (in R_ns)
         obs_vector_45[0]=std::sqrt(9.4*3*1e19/15000); obs_vector_45[1]=0; obs_vector_45[2]=std::sqrt(9.4*3*1e19/15000); // dist = 9400pc (in R_ns)
         obs_vector_90[0]=0; obs_vector_90[1]=0; obs_vector_90[2]=9.4*3*1e19/15000; // dist = 9400pc (in R_ns)
+        obs_vector_180[0]=0; obs_vector_180[1]=0; obs_vector_180[2]=-9.4*3*1e19/15000; // dist = 9400pc (in R_ns)
 
-        double flux_tot_0=0,flux_tot_45=0,flux_tot_90=0; 
+        double flux_tot_0=0,flux_tot_45=0,flux_tot_90=0,flux_tot_180=0; 
         double phi_fc, theta_fc, d_vec, cos_alpha,PI;
 
         double GM=0.217909; //grav parameter in R_unit^3/t_unit^2
@@ -279,9 +280,17 @@ public:
             //flux_tot_45+=PI*cos_alpha*surface_area[n_face];
             flux_tot_45+=E*cos_alpha*surface_area[n_face];
             }
+
+            if(theta_fc>M_PI/2){
+            d_vec=dot_product(obs_vector_180, face_centers[n_face]/face_centers[n_face].norm());
+            cos_alpha=std::abs(d_vec)/obs_vector_180.norm();
+            //flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            flux_tot_180+=E*cos_alpha*surface_area[n_face];
+            }
         }
 
-        result.push_back(flux_tot_0); result.push_back(flux_tot_45); result.push_back(flux_tot_90);
+        result.push_back(flux_tot_0); result.push_back(flux_tot_45); 
+        result.push_back(flux_tot_90); result.push_back(flux_tot_180);
         return result;
     };
 

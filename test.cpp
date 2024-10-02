@@ -42,6 +42,7 @@ int main()
     std::ofstream out_lc_0("results/lightcurve0.dat");
     std::ofstream out_lc_45("results/lightcurve45.dat");
     std::ofstream out_lc_90("results/lightcurve90.dat");
+    std::ofstream out_lc_180("results/lightcurve180.dat");
 
     std::vector<std::vector<double>> U_in;
     U_in.resize(mesh.n_faces());
@@ -100,8 +101,8 @@ int main()
 
     test2.write_t_rho();
     test2.write_t_p();
-    test2.write_t_curl();
-    test2.write_t_omega_z();
+    //test2.write_t_curl();
+    //test2.write_t_omega_z();
     test2.write_t_L();
 
     std::vector<double> lightcurves;
@@ -113,6 +114,9 @@ int main()
     out_lc_45.flush();
     out_lc_90<<test2.time()<<" "<<lightcurves[2]<<"\n";
     out_lc_90.flush();
+    out_lc_180<<test2.time()<<" "<<lightcurves[3]<<"\n";
+    out_lc_180.flush();
+
 
     //test2.write_t_tracer();
 
@@ -129,6 +133,8 @@ int main()
         out_lc_45.flush();
         out_lc_90<<test2.time()<<" "<<lightcurves[2]<<"\n";
         out_lc_90.flush();
+        out_lc_180<<test2.time()<<" "<<lightcurves[3]<<"\n";
+        out_lc_180.flush();
 
 
         if (steps % skipstep == 0)
@@ -136,8 +142,8 @@ int main()
            
             test2.write_t_rho();
             test2.write_t_p();
-            test2.write_t_curl();
-            test2.write_t_omega_z();
+            //test2.write_t_curl();
+            //test2.write_t_omega_z();
             test2.write_t_L();
             //test2.write_t_tracer();
         }
@@ -146,8 +152,8 @@ int main()
 
             test2.write_t_rho();
             test2.write_t_p();
-            test2.write_t_curl();
-            test2.write_t_omega_z();
+            //test2.write_t_curl();
+            //test2.write_t_omega_z();
             test2.write_t_L();
             break;
         }

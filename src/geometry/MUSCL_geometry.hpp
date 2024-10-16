@@ -1073,7 +1073,8 @@ public:
 
         for (auto face_center : face_centers)
         {
-            outfile << std::setprecision(15) << face_center[0] << " " << face_center[1] << " " << face_center[2];
+            outfile << std::setprecision(15) << face_center[0]/face_center.norm() 
+            << " " << face_center[1]/face_center.norm()  << " " << face_center[2]/face_center.norm();
             outfile << "\n";
         }
         outfile.close();

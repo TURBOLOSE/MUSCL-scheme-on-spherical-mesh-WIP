@@ -13,7 +13,7 @@ protected:
     std::ofstream outfile, outfile_p, outfile_omega,outfile_curl;
     std::ofstream outfile_l[3];
     bool accretion_on;
-    double total_mass, acc_rate, e_acc, omega_acc_abs;
+    double total_mass, acc_rate, e_acc, omega_acc_abs, tilt_angle, acc_width, area_coeff;
 
 public:
     adiabatic(SurfaceMesh mesh, std::vector<std::vector<double>> U_in, 
@@ -30,6 +30,8 @@ public:
             stop_check = true;
         }
         
+
+
         //clean file and append next line
         outfile.open("results/rho.dat", std::ios::out | std::ios::trunc);
         outfile.close();
@@ -58,12 +60,37 @@ public:
         }
 
        
+       
         std::ifstream ifs("input/parameters.json");
         json parameters = json::parse(ifs);
 
         acc_rate=parameters["accretion_rate"];
         e_acc=parameters["e_acc"];
         omega_acc_abs=parameters["omega_acc_abs"];
+        tilt_angle=parameters["tilt_angle"];
+        acc_width=parameters["acc_width"];
+
+
+
+         area_coeff=0; 
+        double mu=M_PI/2;
+        double sigma=acc_width/2.355; //FWHM formula
+        double theta;
+
+        for(size_t n_face; n_face<faces.size(); n_face++){
+            
+            theta= std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
+            
+            area_coeff+=surface_area[n_face]/std::sqrt(2*M_PI*sigma*sigma)*
+            std::exp(-(theta-mu)*(theta-mu)/(2*sigma*sigma));
+
+        }
+
+
+        area_coeff/=4*M_PI;
+
+
+
 
         total_mass=0;
         for (size_t n_face = 0; n_face < faces.size(); n_face++)
@@ -107,12 +134,15 @@ public:
             vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
+
             pres = pressure(U[n_face], vel, face_centers[n_face]);
             outfile_p << pres << " ";
             //outfile_p <<U[n_face][4] << " ";
         }
         outfile_p << "\n";
     };
+
+    
 
     void write_t_curl()
     {
@@ -126,7 +156,7 @@ public:
             // vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
             // vel /= (-U[n_face][0]);
 
-            vort = 0;
+            /*vort = 0;
             for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
             {
                 l_vec[0] = U_plus[n_face][n_edge][1];
@@ -145,19 +175,37 @@ public:
 
                 r = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]);
                 vort += dot_product(vel, r);
-            }
+            }*/
 
+
+           //====================================================================
+
+            
+
+            l_vec[0] = U[n_face][1];
+            l_vec[1] = U[n_face][2];
+            l_vec[2] = U[n_face][3];
+
+            vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
+            vel /= (-U[n_face][0]);
+
+            double pres = pressure(U[n_face], vel, face_centers[n_face]);
+
+
+            outfile_curl << (vel.norm()*vel.norm()/2+gam/(gam-1)*pres/U[n_face][0])<<" ";
+            //====================================================================
+
+            
             // rxV = cross_product(face_centers[n_face], vel);
             // outfile_curl << rxV.norm() << " ";
 
-            outfile_curl << vort / surface_area[n_face] << " ";
+            //outfile_curl << vort / surface_area[n_face] << " ";
         }
         outfile_curl << "\n";
     };
 
     void write_t_L()
     {
-
         for(size_t i; i<3; i++){
 
             outfile_l[i] << this->time() << "  ";
@@ -362,12 +410,12 @@ protected:
     { // du/dt
       //due to the weird reconstruction algorithm, u[4] here is the pressure \Pi
 
-
+        
+        static double total_mass_gain=0,total_mass_gain_old=0;
+        static double total_mass_loss=0;
         std::vector<double> res;
         res.resize(dim);
         vector3d<double> l_vec, vel, vel_dot, omega_acc, omxr, rxv, fc_normed, edge_center;
-
-        double tilt_angle = M_PI / 30;
 
         for (size_t i = 0; i < dim; i++)
             res[i] = 0;
@@ -403,30 +451,59 @@ protected:
         //double e_acc=1e-6; //local E units
         //double e_acc=6e-3; //local E units
 
-        if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
+
+        //double adj_acc_rate=acc_rate*0.2; //due to old units
+
+        double adj_acc_rate=acc_rate;
+        double mu=M_PI/2;
+        double sigma=acc_width/2.355; //FWHM formula
+
+
+        double theta_acc=std::acos(fc_normed[1]*std::sin(tilt_angle)+fc_normed[2]*std::cos(tilt_angle));
+
+
+
+        //if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
+        //if(accretion_on && theta_acc>0.1*M_PI && theta_acc < 0.9*M_PI) //exception for polar areas
+        if(accretion_on)
         {
-            res[0]=acc_rate;
-            omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
+            //res[0]=acc_rate;
+
+            res[0]=1/area_coeff*adj_acc_rate/std::sqrt(2*M_PI*sigma*sigma)*
+            std::exp(-(theta_acc-mu)*(theta_acc-mu)/(2*sigma*sigma));
+            //normal distribution for smooth accretion
+
+
+            //omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
+            omega_acc[0]=0; omega_acc[1]=-std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
+
 
             omxr=cross_product(omega_acc, fc_normed);
             rxv=cross_product(fc_normed, omxr);
 
-            res[1]+=acc_rate*rxv[0];
-            res[2]+=acc_rate*rxv[1];
-            res[3]+=acc_rate*rxv[2];
+            res[1]+=adj_acc_rate*rxv[0];
+            res[2]+=adj_acc_rate*rxv[1];
+            res[3]+=adj_acc_rate*rxv[2];
             //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
-            res[4]= acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. );
+            res[4]= adj_acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. );
         }
 
 
+        total_mass_gain+=res[0]*surface_area[n_face];
+        total_mass_gain_old+=adj_acc_rate*surface_area[n_face];
 
-       
+        //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
+
+        //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
+
         if(accretion_on)
         {
-             //sink term for mass into crust (+ energy and angular momentum)
+            //sink term for mass into crust (+ energy and angular momentum)
+
+            double fall_eff=1; // how much of accreted material is gonna fall
             rxv=cross_product(fc_normed, vel);
             //double dmdt=-1./512100000*u[0]; //time constant in T_unit^{-1}
-            double dmdt=-(acc_rate*0.4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
+            double dmdt=-(fall_eff*adj_acc_rate*4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
             //double dmdt=0;
             res[0]+=dmdt;
             res[1]+=dmdt*rxv[0];
@@ -457,6 +534,9 @@ protected:
             }
 
 
+            total_mass_loss+=dmdt*surface_area[n_face];
+            //std::cout<<total_mass_gain+total_mass_loss<<"\n";
+
             double beta_ceil=1-1e-8, beta_floor=1e-8;
 
             if(beta<beta_floor|| std::isnan(beta)) //beta limitations
@@ -466,7 +546,7 @@ protected:
             beta=beta_ceil;
 
           
-            
+
             res[4]-=g_eff/kappa*(1-beta);
 
 

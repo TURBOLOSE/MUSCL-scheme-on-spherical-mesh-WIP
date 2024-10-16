@@ -23,13 +23,29 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
         label_pr='Omega_z'
     elif(value=='vort'):
         data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
-        label_pr='Vorticity'
+        #label_pr='Vorticity'
+        label_pr='Bernoulli integral -1 /R'
     elif(value=='c_s'):
         data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
         data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
         label_pr='Speed of sound'
         data_rho.loc[:,1:]=data_p.loc[:,1:]/data_rho.loc[:,1:]
         data_rho.loc[:,1:]=np.sqrt(1.25*data_rho.loc[:,1:])
+    elif(value=='vel_abs'):
+        label_pr='Speed'
+        data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
+        data_Lx=pd.read_table('results/Lx.dat', header=None, delimiter=r"\s+")
+        data_Ly=pd.read_table('results/Ly.dat', header=None, delimiter=r"\s+")
+        data_Lz=pd.read_table('results/Lz.dat', header=None, delimiter=r"\s+")
+        face_centers=pd.read_table('results/face_centers.dat', header=None, delimiter=r"\s+")
+        maxstep=len(data_rho.loc[:,0])
+        n_faces=len(data_rho.loc[0,:])-1
+        for i in range(maxstep):
+            for j in range(1,n_faces):
+                L=np.array([data_Lx.loc[i,j],data_Ly.loc[i,j],data_Lz.loc[i,j]])
+                fc=np.array(face_centers.loc[j-1]/np.linalg.norm(face_centers.loc[j-1]))
+                rho0=data_rho.loc[i,j]
+                data_rho.loc[i,j]=np.linalg.norm(np.cross(fc,L))/rho0
     # elif(value=='mach'):
     #     data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
     #     data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
@@ -139,7 +155,8 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
     colorm = plt.get_cmap('viridis')
     min_rho=np.min( data_rho.loc[:maxstep,1:len(x_plot)])
     max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
-    #max_rho=13
+    #min_rho=0
+    #max_rho=2e-4
 
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
@@ -152,8 +169,8 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
             plt.subplots_adjust(hspace=10)
             rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
             fig.suptitle('t='+"{:.4f}".format(data_rho.loc[i,0]*3.3e-5))
-            ax[0].set_xlabel(r'$\varphi / \sqrt{2}$', fontsize=25)
-            ax[0].set_ylabel(r'$\sqrt{2}  \sin(\theta )$', fontsize=25)
+            ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
+            ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
             for face_num,face in enumerate(faces):
                 ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
             fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label=label_pr)
@@ -165,7 +182,8 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
 
 
 
-projection_plots("rho", print_residuals=False, print_log=False)
+projection_plots("p", print_residuals=False, print_log=False)
+
 
 
 def light_curve(data_p, face_centers):
@@ -196,11 +214,12 @@ def light_curve(data_p, face_centers):
 def vel_plot():
     gam=1.25
 
-    turn_angle=np.pi/2
+    #turn_angle=np.pi/2
 
-    #path_to_res='results/'
+    turn_angle=0
+    path_to_res='results/'
     #path_to_res='plots/big_sim/'
-    path_to_res='plots/0.4c crashes/time series/'
+    #path_to_res='plots/0.4c crashes/time series/'
     
 
     data_full=pd.read_table(path_to_res+'final_state.dat', header=None, delimiter=r"\s+")
@@ -221,7 +240,8 @@ def vel_plot():
         l=np.array([data_full.loc[num,1],data_full.loc[num,2],data_full.loc[num,3]])
         R=np.array(face_centers.loc[num])
         vel.append(np.cross(R,l)/(-np.linalg.norm(R)*data_full.loc[num,0]))
-        p.append((data_full.loc[num,4]-data_full.loc[num,0]/2 * np.linalg.norm(vel[num])**2)*(gam-1))
+        p.append(data_full.loc[num,0])
+        #p.append((data_full.loc[num,4]-data_full.loc[num,0]/2 * np.linalg.norm(vel[num])**2)*(gam-1))
 
 
     for ver_num, vertice in enumerate(vertices):
@@ -364,7 +384,7 @@ def vel_plot():
 
     plt.subplots_adjust(hspace=10)
     rho=(np.array(p-min_p)/(max_p-min_p))
-    fig.suptitle('t='+"{:10.4f}".format(1.423488))
+    fig.suptitle('t='+"{:10.4f}".format(1.4235))
     ax[0].set_xlabel(r'$\varphi / \sqrt{2}$', fontsize=25)
     ax[0].set_ylabel(r'$\sqrt{2}  \sin(\theta )$', fontsize=25)
     for face_num,face in enumerate(faces):
@@ -377,17 +397,13 @@ def vel_plot():
 
     #ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=np.sqrt(xd_gr*2*+yd_gr**2), arrowsize=3)
     ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=v,norm=norm2, cmap=colorm2, arrowsize=3)
-    fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label="Pressure")
+    fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label="Density")
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm2, cmap=colorm2),cax=ax[2], orientation='horizontal', label="Speed")
-    fig.savefig('plots/test3_pole1.png', bbox_inches='tight',dpi=600)
+    fig.savefig('plots/vel_plot.png', bbox_inches='tight',dpi=400)
     plt.clf()
     plt.close()
 
 
 
 vel_plot()
-
-
-
-    
 

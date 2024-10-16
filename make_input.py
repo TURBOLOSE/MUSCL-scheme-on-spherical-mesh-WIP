@@ -229,6 +229,7 @@ def make_input_5_sp_layer():
     
     l=np.array(l)
     v=np.array(v)
+
     #E=gam/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
     E=1/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
     if(E.any()<0):

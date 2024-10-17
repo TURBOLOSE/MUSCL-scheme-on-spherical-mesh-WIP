@@ -162,6 +162,7 @@ def make_input_5_sp_layer():
     omega_ns=0
 
 
+    #omega=np.array([0,0,0])/V_conv #c
     omega=np.array([0,0,0.01])/V_conv #c
     
 

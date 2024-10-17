@@ -78,7 +78,9 @@ public:
         double theta;
 
         for(size_t n_face; n_face<faces.size(); n_face++){
-            
+
+
+
             theta= std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
             
             area_coeff+=surface_area[n_face]/std::sqrt(2*M_PI*sigma*sigma)*
@@ -88,9 +90,6 @@ public:
 
 
         area_coeff/=4*M_PI;
-
-
-
 
         total_mass=0;
         for (size_t n_face = 0; n_face < faces.size(); n_face++)
@@ -429,30 +428,22 @@ protected:
         vel /= (-u[0]);
 
 
-        // compressed star test
         double theta = std::acos(face_centers[n_face][2] / face_centers[n_face].norm());
         
         double phi = std::atan2(face_centers[n_face][1] / face_centers[n_face].norm(), face_centers[n_face][0] / face_centers[n_face].norm());
-        //old stuff for compressed star
 
-    
+
+        //old stuff for compressed star
         //res[1] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * (-std::sin(phi)); // x
         //res[2] = -omega_ns * omega_ns * u[0] * std::cos(theta) * std::sin(theta) * std::cos(phi);    // y
 
         
 
 
-        //accretion terms
-        //double acc_rate=3.3e-5;//= 10^-7 M_sun/yr (d \Sigma/dt in local units)
-        //double acc_rate; //= 10^-8 M_sun/yr
-        //double acc_rate=3.3e-2; //= 10^-4 M_sun/yr
-        //double acc_rate=0.33; //= 10^-3 M_sun/yr
 
-        //double e_acc=1e-6; //local E units
-        //double e_acc=6e-3; //local E units
+        //double adj_acc_rate=acc_rate*20; //due to old units
 
 
-        //double adj_acc_rate=acc_rate*0.2; //due to old units
 
         double adj_acc_rate=acc_rate;
         double mu=M_PI/2;
@@ -467,15 +458,16 @@ protected:
         //if(accretion_on && theta_acc>0.1*M_PI && theta_acc < 0.9*M_PI) //exception for polar areas
         if(accretion_on)
         {
-            //res[0]=acc_rate;
-
+            //res[0]=adj_acc_rate;
+            
             res[0]=1/area_coeff*adj_acc_rate/std::sqrt(2*M_PI*sigma*sigma)*
             std::exp(-(theta_acc-mu)*(theta_acc-mu)/(2*sigma*sigma));
+            
+
             //normal distribution for smooth accretion
 
 
-            //omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
-            omega_acc[0]=0; omega_acc[1]=-std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
+            omega_acc[0]=0; omega_acc[1]=std::sin(tilt_angle)*omega_acc_abs; omega_acc[2]=std::cos(tilt_angle)*omega_acc_abs;
 
 
             omxr=cross_product(omega_acc, fc_normed);
@@ -484,16 +476,18 @@ protected:
             res[1]+=adj_acc_rate*rxv[0];
             res[2]+=adj_acc_rate*rxv[1];
             res[3]+=adj_acc_rate*rxv[2];
-            //res[4]=(omxr.norm()*omxr.norm())/2. * res[0];
             res[4]= adj_acc_rate *( e_acc+ ((omxr-vel).norm()*(omxr-vel).norm()-omega_ns*omega_ns*std::sin(theta)*std::sin(theta))/2. );
         }
 
 
         total_mass_gain+=res[0]*surface_area[n_face];
+
         total_mass_gain_old+=adj_acc_rate*surface_area[n_face];
 
-        //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
+        // if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
+        //total_mass_gain_old+=adj_acc_rate*surface_area[n_face]*5;
 
+        //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
         //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
 
         if(accretion_on)
@@ -502,9 +496,8 @@ protected:
 
             double fall_eff=1; // how much of accreted material is gonna fall
             rxv=cross_product(fc_normed, vel);
-            //double dmdt=-1./512100000*u[0]; //time constant in T_unit^{-1}
             double dmdt=-(fall_eff*adj_acc_rate*4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
-            //double dmdt=0;
+            //double dmdt=-(fall_eff*adj_acc_rate*area_coeff*4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
             res[0]+=dmdt;
             res[1]+=dmdt*rxv[0];
             res[2]+=dmdt*rxv[1];

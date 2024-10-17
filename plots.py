@@ -182,7 +182,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
 
 
 
-projection_plots("p", print_residuals=False, print_log=False)
+projection_plots("rho", print_residuals=True, print_log=False)
 
 
 
@@ -399,7 +399,7 @@ def vel_plot():
     ax[0].streamplot(X_gr,Y_gr,xd_gr,yd_gr,color=v,norm=norm2, cmap=colorm2, arrowsize=3)
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label="Density")
     fig.colorbar(mpl.cm.ScalarMappable(norm=norm2, cmap=colorm2),cax=ax[2], orientation='horizontal', label="Speed")
-    fig.savefig('plots/vel_plot.png', bbox_inches='tight',dpi=400)
+    fig.savefig('plots/vel_plot_1.png', bbox_inches='tight',dpi=400)
     plt.clf()
     plt.close()
 

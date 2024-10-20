@@ -151,9 +151,12 @@ public:
         size_t n_edge_1;
         for (size_t n_face = 0; n_face < this->n_faces(); n_face++)
         {
-
-            // vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
-            // vel /= (-U[n_face][0]);
+            
+            l_vec[0] = U[n_face][1];
+            l_vec[1] = U[n_face][2];
+            l_vec[2] = U[n_face][3];
+            vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
+            vel /= (-U[n_face][0]);
 
             /*vort = 0;
             for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
@@ -176,29 +179,11 @@ public:
                 vort += dot_product(vel, r);
             }*/
 
-
-           //====================================================================
-
             
+            rxV = cross_product(face_centers[n_face], vel);
+            outfile_curl << rxV.norm() << " ";
 
-            l_vec[0] = U[n_face][1];
-            l_vec[1] = U[n_face][2];
-            l_vec[2] = U[n_face][3];
-
-            vel = cross_product(face_centers[n_face] / face_centers[n_face].norm(), l_vec);
-            vel /= (-U[n_face][0]);
-
-            double pres = pressure(U[n_face], vel, face_centers[n_face]);
-
-
-            outfile_curl << (vel.norm()*vel.norm()/2+gam/(gam-1)*pres/U[n_face][0])<<" ";
-            //====================================================================
-
-            
-            // rxV = cross_product(face_centers[n_face], vel);
-            // outfile_curl << rxV.norm() << " ";
-
-            //outfile_curl << vort / surface_area[n_face] << " ";
+            outfile_curl << vort / surface_area[n_face] << " ";
         }
         outfile_curl << "\n";
     };
@@ -310,29 +295,29 @@ public:
             if(phi_fc<M_PI/2 && phi_fc >-M_PI/2){
             d_vec=dot_product(obs_vector_0, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_0.norm();
-            //flux_tot_0+=PI*cos_alpha*surface_area[n_face];
-            flux_tot_0+=E*cos_alpha*surface_area[n_face];
+            flux_tot_0+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_0+=E*cos_alpha*surface_area[n_face];
             }
 
             if(theta_fc<M_PI/2){
             d_vec=dot_product(obs_vector_90, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_90.norm();
-            //flux_tot_90+=PI*cos_alpha*surface_area[n_face];
-            flux_tot_90+=E*cos_alpha*surface_area[n_face];
+            flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_90+=E*cos_alpha*surface_area[n_face];
             }
 
             if(dot_product(obs_vector_45, face_centers[n_face]/face_centers[n_face].norm())>0){
             d_vec=dot_product(obs_vector_45, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_45.norm();
-            //flux_tot_45+=PI*cos_alpha*surface_area[n_face];
-            flux_tot_45+=E*cos_alpha*surface_area[n_face];
+            flux_tot_45+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_45+=E*cos_alpha*surface_area[n_face];
             }
 
             if(theta_fc>M_PI/2){
             d_vec=dot_product(obs_vector_180, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_180.norm();
-            //flux_tot_90+=PI*cos_alpha*surface_area[n_face];
-            flux_tot_180+=E*cos_alpha*surface_area[n_face];
+            flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            //flux_tot_180+=E*cos_alpha*surface_area[n_face];
             }
         }
 

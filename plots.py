@@ -8,7 +8,7 @@ from scipy.interpolate import griddata
 
 
 def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #value = rho,p,omega
-    skipstep=1
+    skipstep=60
     
     gam=1.25
 
@@ -23,8 +23,8 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
         label_pr='Omega_z'
     elif(value=='vort'):
         data_rho=pd.read_table('results/curl.dat', header=None, delimiter=r"\s+")
-        #label_pr='Vorticity'
-        label_pr='Bernoulli integral -1 /R'
+        label_pr='Vorticity'
+        #label_pr='Bernoulli integral -1 /R'
     elif(value=='c_s'):
         data_rho=pd.read_table('results/rho.dat', header=None, delimiter=r"\s+")
         data_p=pd.read_table('results/p.dat', header=None, delimiter=r"\s+")
@@ -157,6 +157,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
     max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
     #min_rho=0
     #max_rho=2e-4
+    #max_rho=1.8
 
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
@@ -182,7 +183,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
 
 
 
-projection_plots("rho", print_residuals=True, print_log=False)
+projection_plots("p", print_residuals=False, print_log=False)
 
 
 

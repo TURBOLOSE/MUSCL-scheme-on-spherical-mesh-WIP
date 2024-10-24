@@ -2,13 +2,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 import plotly.express as px
 from tqdm import tqdm
 from scipy.interpolate import griddata
 
 
 def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #value = rho,p,omega
-    skipstep=60
+    skipstep=1
     
     gam=1.25
 
@@ -133,8 +135,6 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
         y_plot_full.append(temp_y)
 
 
-
-
     for face_num,face in enumerate(faces): #fix x
         sign_arr=np.sign(x_plot_full[face_num])
         if( (not (0 in sign_arr)) and (1 in sign_arr) and (-1 in sign_arr) and (np.min(np.abs(x_plot_full[face_num])) > 1)):
@@ -143,7 +143,13 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
                     x_plot_full[face_num][i]+=2*np.pi/np.sqrt(2)
 
 
+        patches = []
 
+    for face_num,face in enumerate(faces):
+        polygon = Polygon(np.vstack([x_plot_full[face_num], y_plot_full[face_num]]).T,closed=True)
+        patches.append(polygon)
+
+   
     #=====================================================
     # face_centers=np.array(face_centers)
     # omega=np.array([0,0,2])
@@ -162,24 +168,37 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
 
-    
+   
+
+
     for i in tqdm(range(maxstep)): #dens
         if((i % skipstep)==0 ):
+
+            collection = PatchCollection(patches)
+            colors=colorm(norm(data_rho.loc[i,1:len(faces)]))
+
             fig, ax = plt.subplots(figsize=(16, 10), layout='constrained', nrows=2,height_ratios=[15,1])
             #fig.tight_layout()
             plt.subplots_adjust(hspace=10)
-            rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
+            #rho=(np.array(data_rho.loc[i,1:len(faces)])-min_rho)/(max_rho-min_rho)
             fig.suptitle('t='+"{:.4f}".format(data_rho.loc[i,0]*3.3e-5))
             ax[0].set_xlabel(r'$\lambda / \sqrt{2}$', fontsize=25)
             ax[0].set_ylabel(r'$\sqrt{2}  \sin(\varphi )$', fontsize=25)
-            for face_num,face in enumerate(faces):
-                ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
+            #for face_num,face in enumerate(faces):
+                #ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
+                #ax[0].fill(x_plot_full[face_num], y_plot_full[face_num],facecolor=colorm(rho[face_num]),edgecolor =colorm(rho[face_num]))
+            #ax[0].fill(x_plot_full, y_plot_full,facecolor=colorm(norm(data_rho.loc[i,1:len(faces)])), edgecolor=colorm(norm(data_rho.loc[i,1:len(faces)])))
+            ax[0].add_collection(collection)
+            collection.set_color(colors)
+            #ax[0].autoscale_view()
+            ax[0].set_xlim([-2.5, 3.4])
+            ax[0].set_ylim([-1.5, 1.5])
+
             fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=colorm),cax=ax[1], orientation='horizontal', label=label_pr)
             fig.savefig('plots/fig'+"{0:0>4}".format(i)+'.png', bbox_inches='tight')
             plt.clf()
             plt.close()
     
-
 
 
 
@@ -192,8 +211,8 @@ def light_curve(data_p, face_centers):
 
     observer_vector=np.array([9.4*10**3*3*10**16/15000,0,0]) #dist=9400pc (in R_ns)
     fc=np.array(face_centers)
-    #theta_fc=-np.arccos(fc[:,2]/np.linalg.norm(fc))+np.pi/2
-    phi_fc=np.arctan2(fc[:,1]/np.linalg.norm(fc),fc[:,0]/np.linalg.norm(fc))
+    #theta_fc=-np.arccos(fc[:,2]/np.linalg.norm(fc, axis=1))+np.pi/2
+    phi_fc=np.arctan2(fc[:,1]/np.linalg.norm(fc, axis=1),fc[:,0]/np.linalg.norm(fc, axis=1))
     flux=[]
     t=np.array(data_p.loc[:,0])
 

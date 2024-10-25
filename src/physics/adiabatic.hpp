@@ -158,7 +158,7 @@ public:
             vel = cross_product(face_centers[n_face]/face_centers[n_face].norm(), l_vec);
             vel /= (-U[n_face][0]);
 
-            /*vort = 0;
+            vort = 0;
             for (size_t n_edge = 0; n_edge < faces[n_face].size(); n_edge++)
             {
                 l_vec[0] = U_plus[n_face][n_edge][1];
@@ -177,11 +177,11 @@ public:
 
                 r = (vertices[faces[n_face][n_edge]] - vertices[faces[n_face][n_edge_1]]);
                 vort += dot_product(vel, r);
-            }*/
+            }
 
             
-            rxV = cross_product(face_centers[n_face], vel);
-            outfile_curl << rxV.norm() << " ";
+            //rxV = cross_product(face_centers[n_face], vel);
+            //outfile_curl << rxV.norm() << " ";
 
             outfile_curl << vort / surface_area[n_face] << " ";
         }
@@ -316,7 +316,7 @@ public:
             if(theta_fc>M_PI/2){
             d_vec=dot_product(obs_vector_180, face_centers[n_face]/face_centers[n_face].norm());
             cos_alpha=std::abs(d_vec)/obs_vector_180.norm();
-            flux_tot_90+=PI*cos_alpha*surface_area[n_face];
+            flux_tot_180+=PI*cos_alpha*surface_area[n_face];
             //flux_tot_180+=E*cos_alpha*surface_area[n_face];
             }
         }

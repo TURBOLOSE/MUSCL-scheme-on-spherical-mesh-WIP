@@ -163,7 +163,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
     max_rho=np.max( data_rho.loc[:maxstep,1:len(x_plot)])
     #min_rho=0
     #max_rho=2e-4
-    #max_rho=1.8
+    max_rho=1.8
 
     norm = mpl.colors.Normalize(vmin=min_rho, vmax=max_rho)
     mpl.rcParams.update({'font.size': 22})
@@ -202,7 +202,7 @@ def projection_plots(value, print_residuals:bool=False, print_log:bool=False): #
 
 
 
-projection_plots("p", print_residuals=False, print_log=False)
+projection_plots("rho", print_residuals=False, print_log=False)
 
 
 

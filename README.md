@@ -51,12 +51,20 @@ Use `do_step(dt)` to integrate a single step in time with a fixed step size. Be 
  If no files are present there or if you want to change the mesh you need to run a C++ code up to the point when it says "processing mesh done". It means that files containing mesh data (`results/face_centers.dat`, `results/faces.dat`, `results/vertices.dat`) were generated and can be used by a python code to generate a file with the initial state or create plots after the integration.
 
  `parameters.json` contains several integration parameters:
- *`dim` — the number of dimensions that should be either 4 or 5 standing for isothermal and adiabatic physics respectively.
- *`dt` — the upper time step limit. It may become lower during the integration to preserve stability.
- * `maxstep` — the number of steps to compute. The total time of the ingegration would be set to `maxstep*dt`.
+ * `dim` — the number of dimensions that should be either 4 or 5 standing for isothermal and adiabatic physics respectively.
+ * `dt` — the upper time step limit. It may become lower during the integration to preserve stability.
+ * `t_max` — full simulation time (in code units)
+ * `maxstep` — the number of steps to compute. The simulation will stop either at `t_max` or when the number of steps reaches `maxstep` (whichever happens first).
  * `skipstep` — the number of steps to skip while writing data into files.
  * `gam3d` — the adiabatic index (corresponds to `\gamma` in the article). `gam2d=2-1/gam3d`.
- * `omega_ns` — the angular velocity of initial rotation of a sphere. Can be set to 0 if none needed.
+ * `omega_ns` — the angular velocity of initial rotation of a sphere. (usually should be set to 0, as the source terms are somewhat unstable).
+ * `threads` — the number of openmp threads to use.
+ * `accretion_on` — boolean, enables or disables accretion.
+ * `accretion_rate` — full accretion rate in code units.
+ * `e_acc` — $\Pi_{acc} / \Sigma_{acc}$ in code units.
+ * `omega_acc_abs` — rotational frequency of the accreted matter in $z_{acc}$ axis.
+ * `tilt_angle` — defines tilt of $z_{acc}$ axis in relation to $z$ axis.
+ * `acc_width` — width of an accretion zone in $R_{ns}$. Accretion zone is distributed normally by latitude.
 
  
  
@@ -75,4 +83,16 @@ The code is divided into multiple classes:
 
 
 ![classes](https://github.com/TURBOLOSE/MUSCL-scheme-on-spherical-mesh-WIP/assets/129312616/41918eb6-6dee-4481-8654-af82b6d903ed)
+
+## Units used in code
+
+
+* $\gamma = 4/3$
+* $\Gamma = 2-1/\gamma=5/4$
+* $R_{unit}=10 km $
+* $V_{unit} = 1 \rm c$
+* $\Sigma_{unit} = 10^7 g/cm^2$
+* $t_{unit} = R_{unit}/V_{unit} = 3.33 \cdot 10^{-5} s$
+* $\Pi_{unit} = 9 \cdot 10^{27} g \ s^{-2}$
+
 

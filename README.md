@@ -1,4 +1,4 @@
-# Sph_Mesh_MUSCL
+# SPLASH: SPreading LAyer Simulation for Hydrodynamics
 
 Credit to https://github.com/pmp-library/pmp-library and Daniel Sieger (https://danielsieger.com/blog/2021/03/27/generating-spheres.html) for mesh related headers.
 

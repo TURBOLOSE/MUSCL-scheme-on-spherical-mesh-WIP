@@ -73,6 +73,13 @@ You can use python script `plots.py` to create plots of the values recorded. Exa
 
 ![fig0011](https://github.com/TURBOLOSE/MUSCL-scheme-on-spherical-mesh-WIP/assets/129312616/e986f42c-cb2e-4af0-819b-3a204be2fb5e)
 
+
+These plots can be turned into a video. Example of a long simulation (click on gif to go to YouTube):
+
+
+
+[![IMAGE ALT TEXT HERE](https://i.ytimg.com/an_webp/9_TPXbtqDNY/mqdefault_6s.webp?du=3000&sqp=CPTi5boG&rs=AOn4CLC5WTxrNHvtzkzG0bWaYl96htBVGA)](https://www.youtube.com/watch?v=9_TPXbtqDNY)
+
 ## C++ class structure
 
 The code is divided into multiple classes:

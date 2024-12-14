@@ -106,9 +106,9 @@ public:
 
 
         // h0 = typical length of an edge
-        if (dt > h0 * 0.3/max_vel)
+        if (dt > h0 * 0.1/max_vel)
         {
-            dt = h0 * 0.3/max_vel;
+            dt = h0 * 0.1/max_vel;
             //std::cout<<dt<<"\n";
         }
 

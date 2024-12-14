@@ -143,7 +143,9 @@ def make_input_5():
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False)
 
 def make_input_5_sp_layer():
+
     gam0=4./3
+    #gam0=1.002
     gam=2-1/gam0
 
     #V_conv=0.01
@@ -157,24 +159,25 @@ def make_input_5_sp_layer():
    
 
     rho=np.ones(N) #10^7 g/cm^2
-    c_s=2*10**(-3)/V_conv #c
-    #err = np.random.uniform(0,0.05,N)
+    #c_s=2*10**(-3)/V_conv 
+    c_s=2*10**(-3)/V_conv 
     omega_ns=0
 
 
-    #omega=np.array([0,0,0])/V_conv #c
     omega=np.array([0,0,0.01])/V_conv #c
+
+    #omega=np.array([0,0,0.1])/V_conv #c
     
 
 
     #============equal entropy initial version=======================================
     
-    rho_0=rho[0]/130
+    #rho_0=rho[0]/130
+    #p_0=c_s**2*rho_0/gam
 
+
+    rho_0=1e-8
     p_0=c_s**2*rho_0/gam
-    
-    #rho_0=rho[0]/10
-    #p_0=p[0]
     
     a_0=np.sqrt(gam*p_0/rho_0)
     print("c_s=",a_0)
@@ -202,7 +205,7 @@ def make_input_5_sp_layer():
     #        break
     #=====================================================================================
 
-    print(p[0])
+    print('rho_avg=',np.sum(rho)/len(face_centers))
 
 
     face_centers=np.array(face_centers)
@@ -221,9 +224,8 @@ def make_input_5_sp_layer():
         l.append(rho[face_num]*np.cross(R,np.cross(omega,R))/(np.linalg.norm(R)**2))
         v.append(np.cross(omega,R)/np.linalg.norm(R))
 
-
-
-    print(np.linalg.norm(v, axis=1)/np.sqrt(gam*p/rho))
+    print('mean_vel= ',np.mean(np.linalg.norm(v, axis=1)))
+    print('mean_Mach= ',np.mean(np.linalg.norm(v, axis=1)/np.sqrt(gam*p/rho)))
     
     #fig=px.scatter(x=theta, y=np.linalg.norm(v, axis=1)/np.sqrt(gam*p/rho),  labels={"x": r"$\theta$", "y":"Mach number"})
     #fig.show()

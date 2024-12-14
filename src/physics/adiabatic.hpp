@@ -195,7 +195,7 @@ public:
             outfile_l[i] << this->time() << "  ";
             for (auto U_j : U)
             {
-
+                //outfile_l[i].flush()
                 outfile_l[i] << U_j[i+1] << " ";
                 //out_lc<< U_i[0] << " ";
             }
@@ -467,21 +467,13 @@ protected:
 
         total_mass_gain+=res[0]*surface_area[n_face];
 
-        //total_mass_gain_old+=adj_acc_rate*surface_area[n_face];
-
-        //if(accretion_on && std::abs(face_centers[n_face][2]*std::cos(tilt_angle) +face_centers[n_face][1]*std::sin(tilt_angle))  <0.1)
-        //total_mass_gain_old+=3.3e-6*surface_area[n_face];
-
-        //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
-
-        
-        //std::cout<<total_mass_gain<<" "<<total_mass_gain_old<<"\n";
-
         if(accretion_on)
         {
             //sink term for mass into crust (+ energy and angular momentum)
 
-            double fall_eff=1; // how much of accreted material is gonna fall
+            double fall_eff=0; // how much of accreted material is gonna fall
+
+            
             rxv=cross_product(fc_normed, vel);
             double dmdt=-(fall_eff*acc_rate*4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density
             //double dmdt=-(fall_eff*adj_acc_rate*area_coeff*4*M_PI)/total_mass * u[0]; //time constant in T_unit^{-1} times surf density

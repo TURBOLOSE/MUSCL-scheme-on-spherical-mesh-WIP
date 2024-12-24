@@ -172,11 +172,11 @@ def make_input_5_sp_layer():
 
     #============equal entropy initial version=======================================
     
-    #rho_0=rho[0]/130
+    rho_0=rho[0]/130
     #p_0=c_s**2*rho_0/gam
 
 
-    rho_0=1e-8
+    #rho_0=1e-8
     p_0=c_s**2*rho_0/gam
     
     a_0=np.sqrt(gam*p_0/rho_0)
@@ -197,6 +197,7 @@ def make_input_5_sp_layer():
     #rho=np.ones(N)
     #p=np.ones(N)*0.00005
     
+    print("p[0]= ", p[0])
 
     #for theta_num,theta_el in enumerate(theta):
     #    if(abs(theta_el-np.pi/2)<0.01):
@@ -237,6 +238,8 @@ def make_input_5_sp_layer():
     E=1/(gam-1)*p+rho*((np.linalg.norm(v, axis=1)**2)/2-np.ones(N)*omega_ns**2*(np.sin(theta)**2)/2)
     if(E.any()<0):
         print('Energy<0!!')
+
+    print("E[0]= ", E[0])
 
     pd.DataFrame(data=np.array([rho, l[:,0],l[:,1],l[:,2],E]).transpose()).to_csv('input/input.dat',index=False, sep=' ', header=False, float_format="%.15f")
 

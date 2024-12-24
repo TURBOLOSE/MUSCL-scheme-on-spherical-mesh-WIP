@@ -259,6 +259,13 @@ public:
         return res;
     }
 
+    double extra_dt_constr()
+    {
+        double dt_new=1e20;
+
+        return dt_new;
+    }
+
     std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge)
     { // classical Superbee limiter for irregular grids
         // CFL independent

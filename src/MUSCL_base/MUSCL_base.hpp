@@ -101,16 +101,22 @@ public:
         U_temp = U;
 
         find_v_max();
-        find_U_edges();
-        find_flux_var();
-
-
-        // h0 = typical length of an edge
+        
+        // h0 = typical length of an edg
         if (dt > h0 * 0.1/max_vel)
         {
             dt = h0 * 0.1/max_vel;
             //std::cout<<dt<<"\n";
         }
+
+        double extra_dt=extra_dt_constr();
+
+        if(dt> extra_dt)
+        dt=extra_dt;
+
+
+        find_U_edges();
+        find_flux_var();
 
         res2d(dt/2); // res2d makes U = dt/2*phi(U)
         //res2d(dt);
@@ -272,6 +278,7 @@ protected:
     virtual std::vector<double> flux_star(std::vector<double> ul, std::vector<double> ur, int n_face, int n_edge) = 0;
     virtual std::vector<double> limiter(std::vector<double> u_r, int n_face, int n_edge) = 0;
     virtual std::vector<double> source(std::vector<double> u, int n_face) = 0;
+    virtual double extra_dt_constr() = 0;
     // virtual void set_analytical_solution();
 
 private:
@@ -528,7 +535,7 @@ private:
         vel /= -u[0];
 
        // return (u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1) / gam; // v3 = compressed star + sin
-       return std::max(pressure_floor,(u[4] - u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2) * (gam - 1)); // v4
+       return std::max(pressure_floor,(u[4] - u[0] * (vel.norm() * vel.norm()) / 2) * (gam - 1)); // v4
     }
 
     double E_fc(std::vector<double> u, int n_face, int n_edge) // u[4] == pressure
@@ -551,6 +558,6 @@ private:
         vel = cross_product(r, l_vec);
         vel /= (-u[0]);
 
-        return 1 / (gam - 1) * u[4] + u[0] * (vel.norm() * vel.norm() - omega_ns * omega_ns * std::sin(theta) * std::sin(theta)) / 2;
+        return 1 / (gam - 1) * u[4] + u[0] * (vel.norm() * vel.norm()) / 2;
     }
 };

@@ -14,5 +14,5 @@
     "tilt_angle":0.4,
     "acc_width":0.1,
     "friction_on": true,
-    "alpha":1e-3
+    "alpha":1e-6
 }

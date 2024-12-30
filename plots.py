@@ -255,28 +255,82 @@ projection_plots("p", print_residuals=False, print_log=False, add_streamplot=Fal
 
 
 
-def light_curve(data_p, face_centers):
+
+def integrated_plot(value): 
+    #value = rho,p
 
 
-    observer_vector=np.array([9.4*10**3*3*10**16/15000,0,0]) #dist=9400pc (in R_ns)
-    fc=np.array(face_centers)
-    #theta_fc=-np.arccos(fc[:,2]/np.linalg.norm(fc, axis=1))+np.pi/2
-    phi_fc=np.arctan2(fc[:,1]/np.linalg.norm(fc, axis=1),fc[:,0]/np.linalg.norm(fc, axis=1))
-    flux=[]
-    t=np.array(data_p.loc[:,0])
+    path='results/'
 
 
-    for n_step,t_step in enumerate(t):
-        flux.append(0)
-        for face_num,face_center in enumerate(fc):
-            if(phi_fc[face_num] <np.pi/2 and phi_fc[face_num] >=-np.pi/2  ):
-                d_vec=np.dot(observer_vector,face_center)
-                cos_alpha=np.linalg.norm(d_vec)/(np.linalg.norm(observer_vector)*np.linalg.norm(face_center))
-                flux[n_step]+=data_p.loc[n_step,1+face_num]*cos_alpha
+    if(value=='rho'):
+        data_rho=pd.read_table(path+'rho.dat', header=None, delimiter=r"\s+")
+        label_pr=r'm, $10^7 \rm g $ '
+    elif(value=='p'):
+        data_rho=pd.read_table(path+'p.dat', header=None, delimiter=r"\s+")
+        label_pr='Pressure'
+    else:
+        print("wrong type of plot value")
+        return
     
-    fig=px.line(x=t*3.33*10**(-5), y=flux,  labels={"x": "t, sec", "y":"Flux"})
-    fig.update_layout(font=dict(size=40))
-    fig.show()
+    dist = lambda r1,r2: 2*np.arcsin(np.linalg.norm(r1-r2)/2)
+
+    maxstep=len(data_rho.loc[:,0])
+
+
+    data_faces=pd.read_table(path+'faces.dat', header=None, delimiter=r"\s+", names=['col' + str(x) for x in range(6) ])
+    face_centers=pd.read_table(path+'face_centers.dat', header=None, delimiter=r"\s+")
+
+    data=pd.read_table(path+'vertices.dat', header=None, delimiter=r"\s+")
+    vertices=np.array(data.loc[:,:])
+    faces=np.array(data_faces.loc[:,:])
+
+    surface_areas=[]
+
+    faces_new=[]
+    for face_num, face in enumerate(faces): #trick for variable length of each face (needed for hex meshes)
+        faces_new.append(face[~np.isnan(face)].astype(int))
+
+    faces=faces_new
+    
+
+    for i,face in enumerate(faces):
+        surface_areas.append(0)
+        for j,face_vert in enumerate(face):
+            j1=j+1
+            if(j==len(face)-1):
+                j1=0
+            a=dist(face_centers.loc[i,:], vertices[faces[i][j]])
+            b=dist(face_centers.loc[i,:], vertices[faces[i][j1]])
+            c=dist(vertices[faces[i][j]], vertices[faces[i][j1]])
+
+            A = np.arccos((np.cos(a) - np.cos(b) * np.cos(c)) / (np.sin(b) * np.sin(c)))
+            B = np.arccos((np.cos(b) - np.cos(a) * np.cos(c)) / (np.sin(a) * np.sin(c)))
+            C = np.arccos((np.cos(c) - np.cos(b) * np.cos(a)) / (np.sin(b) * np.sin(a)))
+            surface_areas[i] += A + B + C - np.pi
+
+    surface_areas=np.array(surface_areas)
+
+    plot_data=[]
+    t=np.array(data_rho.loc[:,0])
+
+    for step in range(maxstep):
+        plot_data.append(np.sum(np.array(data_rho.loc[step,1:])*surface_areas))
+
+    plot_data=np.array(plot_data)
+
+    plt.plot(t*3.3e-5,plot_data)
+    plt.xlabel("t,s")
+    plt.ylabel("total "+label_pr)
+    plt.savefig('plots/integ_plt.png', bbox_inches='tight',dpi=300)
+    plt.clf()
+    plt.close()
+
+
+integrated_plot('rho')
+
+
+
 
 
 
@@ -367,27 +421,27 @@ def vel_plot():
                     face_centers[:,0]/np.linalg.norm(face_centers, axis=1))
     
     #==============================================================
-    omega_z=np.cross(face_centers,vel)[:,2]/np.sin(theta_fc)**2
+    # omega_z=np.cross(face_centers,vel)[:,2]/np.sin(theta_fc)**2
 
-    mask_here=np.logical_and(theta_fc>0.05, theta_fc<np.pi-0.05)
+    # mask_here=np.logical_and(theta_fc>0.05, theta_fc<np.pi-0.05)
 
-    bins=np.linspace(0.1,np.pi-0.1,200)
-    digitized = np.digitize(theta_fc, bins)
-    digitized_masks=[]
-    for i in range(len(bins)):
-        digitized_masks.append(digitized == i)
-
-
-    bin_omegas=[np.median(omega_z[digitized_masks[i]]) for i in range(len(bins))]      
-    bin_omegas=np.array(bin_omegas)
+    # bins=np.linspace(0.1,np.pi-0.1,200)
+    # digitized = np.digitize(theta_fc, bins)
+    # digitized_masks=[]
+    # for i in range(len(bins)):
+    #     digitized_masks.append(digitized == i)
 
 
-    plt.plot(bins, bin_omegas/(3.3e-5*2*np.pi))
-    #plt.scatter(theta_fc[mask_here], omega_z[mask_here]/(3.3e-5*2*np.pi))
-    plt.ylabel(r'Freq, Hz')
-    plt.xlabel(r'$\theta$')
-    plt.savefig('plots/omegas.png', bbox_inches='tight',dpi=250)
-    plt.clf()
+    # bin_omegas=[np.median(omega_z[digitized_masks[i]]) for i in range(len(bins))]      
+    # bin_omegas=np.array(bin_omegas)
+
+
+    # plt.plot(bins, bin_omegas/(3.3e-5*2*np.pi))
+    # #plt.scatter(theta_fc[mask_here], omega_z[mask_here]/(3.3e-5*2*np.pi))
+    # plt.ylabel(r'Freq, Hz')
+    # plt.xlabel(r'$\theta$')
+    # plt.savefig('plots/omegas.png', bbox_inches='tight',dpi=250)
+    # plt.clf()
     #==============================================================
 
 
